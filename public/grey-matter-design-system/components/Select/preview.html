@@ -1,0 +1,26 @@
+<!-- @dsCard group="Forms" height=120 subtitle="Native dropdown matched to Input" -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8" />
+<style>
+  body{margin:0;padding:24px;background:var(--gm-cream);font-family:var(--gm-font-text);color:var(--gm-charcoal);}
+  .grp{margin-bottom:24px} .grp:last-child{margin-bottom:0}
+  .lbl{font:var(--gm-w-semi) 11px/1 var(--gm-font-text);letter-spacing:.14em;text-transform:uppercase;color:var(--gm-grey);margin-bottom:12px}
+  .row{display:flex;flex-wrap:wrap;gap:16px;align-items:center}
+  .dark{background:var(--gm-charcoal);padding:18px 22px;border-radius:4px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .fields{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+</style></head>
+<body><div id="root"></div>
+<script>
+const NS = window.DesignSystem_69d0e9, h = React.createElement;
+
+const { Select } = NS;
+function Demo() {
+  return h("div", {className:"fields"},
+    h(Select, {label:"Grind", options:["Whole bean","Espresso","Filter","Moka pot"]}),
+    h(Select, {label:"Bag size", options:[{value:"250",label:"250g"},{value:"1000",label:"1kg"}]}));
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(h(Demo));
+</script></body></html>

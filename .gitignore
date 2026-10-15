@@ -1,8 +1,22 @@
 node_modules/
+coverage/
 dist/
 .firebase/
 firebase-debug.log
 firebase-debug.*.log
+firestore-debug.log
+.eslintcache
+*.tsbuildinfo
+
+# Local operating-system and editor files
+.DS_Store
+Thumbs.db
+
+# Local Firebase credentials and downloaded service-account exports
+serviceAccountKey.json
+*-firebase-adminsdk-*.json
+
+# Local environment configuration (keep the documented template)
 .env
 .env.*
 !.env.example

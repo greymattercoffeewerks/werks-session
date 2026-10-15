@@ -1,0 +1,37 @@
+<!-- @dsCard group="Brand" height=300 subtitle="Bean mark and lockup in the three approved finishes, plus the Figtree wordmark" -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8" />
+<style>
+  body{margin:0;padding:24px;background:var(--gm-cream);font-family:var(--gm-font-text);color:var(--gm-charcoal);}
+  .grp{margin-bottom:24px} .grp:last-child{margin-bottom:0}
+  .lbl{font:var(--gm-w-semi) 11px/1 var(--gm-font-text);letter-spacing:.14em;text-transform:uppercase;color:var(--gm-grey);margin-bottom:12px}
+  .row{display:flex;flex-wrap:wrap;gap:16px;align-items:center}
+  .dark{background:var(--gm-charcoal);padding:18px 22px;border-radius:4px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+
+  .wm{font-family:var(--gm-font-wordmark);font-weight:700;font-size:36px;line-height:.94;letter-spacing:-.005em;color:var(--gm-grey)}
+  .wm span{display:block;font-size:23px;letter-spacing:.005em}
+
+</style></head>
+<body><div id="root"></div>
+<script>
+const NS = window.DesignSystem_69d0e9, h = React.createElement;
+
+const { Logo } = NS, A = "../../assets";
+function Demo() {
+  return h("div", null,
+    h("div", {className:"grp"}, h("div", {className:"lbl"}, "Logo — approved finishes"),
+      h("div", {className:"row"},
+        h(Logo, {variant:"lockup", finish:"color", height:34, assetBase:A}),
+        h(Logo, {variant:"mark", finish:"color", height:40, assetBase:A}),
+        h("div", {className:"dark"}, h(Logo, {variant:"lockup", finish:"white", height:30, assetBase:A})),
+        h("div", {className:"dark"}, h(Logo, {variant:"mark", finish:"white", height:40, assetBase:A})),
+        h(Logo, {variant:"mark", finish:"black", height:40, assetBase:A}))),
+    h("div", {className:"grp"}, h("div", {className:"lbl"}, "Wordmark — Figtree Bold, all caps, two lines"),
+      h("div", {className:"wm"}, "GREY/MATTER", h("span", null, "COFFEE WERKS")))
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(h(Demo));
+</script></body></html>

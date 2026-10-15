@@ -8,6 +8,16 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "check": "tsc --noEmit --pretty false",
+    "lint": "eslint .",
+    "test:unit": "vitest run tests/unit && npm --prefix functions test",
+    "test:rules": "firebase emulators:exec --project demo-werks-sessions --only firestore,storage \"node --test tests/rules/firebase-rules.test.cjs\"",
+    "security:secrets": "secretlint --no-color \"**/*.{ts,tsx,js,mjs,json,md,yml,yaml}\"",
+    "security:deps": "npm audit --omit=dev --audit-level=high && npm --prefix functions audit --omit=dev --audit-level=high",
+    "check:handoff": "node scripts/check-staged-handoff.mjs",
+    "verify": "npm run lint && npm run check && npm run test:unit && npm run test:rules && npm run build && npm run security:secrets && npm run security:deps",
+    "verify:staged": "npm run check:handoff && npm run verify",
+    "setup:hooks": "node scripts/setup-git-hooks.mjs",
+    "prepare": "node scripts/setup-git-hooks.mjs",
     "firebase": "firebase",
     "firebase:login": "firebase login",
     "firebase:projects": "firebase projects:list",
@@ -20,16 +30,27 @@
     "node": ">=20"
   },
   "dependencies": {
-    "firebase": "^10.14.1",
+    "firebase": "^13.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@firebase/rules-unit-testing": "^6.0.0",
+    "@secretlint/secretlint-rule-preset-recommend": "^9.3.4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.3",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.3",
+    "eslint": "^9.39.5",
     "firebase-tools": "latest",
+    "globals": "^15.15.0",
+    "jsdom": "^25.0.1",
+    "secretlint": "^9.3.4",
     "typescript": "^5.6.3",
-    "vite": "^5.4.10"
+    "typescript-eslint": "^8.71.2",
+    "vite": "^5.4.10",
+    "vitest": "^2.1.9"
   }
 }

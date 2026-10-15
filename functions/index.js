@@ -1,8 +1,10 @@
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
+const { isResourceEligible, personIdFor, requireAuth, requireRole } = require('./lib/authorization');
 const { defineSecret } = require('firebase-functions/params');
 const { initializeApp } = require('firebase-admin/app');
 const { getAuth } = require('firebase-admin/auth');
 const { FieldValue, getFirestore } = require('firebase-admin/firestore');
+const { getStorage } = require('firebase-admin/storage');
 const { randomUUID } = require('crypto');
 
 initializeApp();
@@ -10,16 +12,6 @@ const db = getFirestore();
 const resendKey = defineSecret('RESEND_API_KEY');
 const region = 'asia-southeast1';
 
-function requireAuth(request) {
-  if (!request.auth) throw new HttpsError('unauthenticated', 'Please sign in to continue.');
-  return request.auth;
-}
-function requireRole(request, roles) {
-  const auth = requireAuth(request);
-  if (!roles.includes(auth.token.role)) throw new HttpsError('permission-denied', 'You do not have access to this action.');
-  return auth;
-}
-function personIdFor(auth) { return auth.token.person_id || auth.uid; }
 function validText(value, label, max = 240) {
   if (typeof value !== 'string' || !value.trim() || value.trim().length > max) throw new HttpsError('invalid-argument', `${label} is required.`);
   return value.trim();
@@ -106,4 +98,30 @@ exports.reviewChallenge = onCall({ region }, async (request) => {
   await db.collection('challenges').doc(personId).set({ status: approved ? 'approved' : 'returned', reviewerNote: String(note).slice(0, 1200), reviewedBy: personIdFor(auth), reviewedAt: FieldValue.serverTimestamp() }, { merge: true });
   if (approved) await db.collection('learning_records').add({ personId, type: 'challenge_complete', title: 'Brew 101 · 30-day practice complete', issuer: 'Grey Matter Coffee Werks', issuedAt: FieldValue.serverTimestamp() });
   return { ok: true };
+});
+
+/**
+ * Resource documents live in `learning_resources` and are private. Expected shape:
+ * { offeringId, title, description, format, status: 'published', storagePath, updatedAt }
+ * The client receives only an expiring Storage URL after its enrolment is eligible.
+ */
+exports.listMyLearningResources = onCall({ region }, async (request) => {
+  const auth = requireAuth(request);
+  const personId = personIdFor(auth);
+  const enrolmentSnapshot = await db.collection('enrolments').where('personId', '==', personId).get();
+  const allowedOfferings = new Set(enrolmentSnapshot.docs
+    .map((doc) => doc.data())
+    .filter(isResourceEligible)
+    .map((enrolment) => enrolment.offeringId));
+  if (!allowedOfferings.size) return { resources: [] };
+
+  const resourcesSnapshot = await db.collection('learning_resources').where('status', '==', 'published').get();
+  const resources = await Promise.all(resourcesSnapshot.docs
+    .map((doc) => ({ id: doc.id, ...doc.data() }))
+    .filter((resource) => allowedOfferings.has(resource.offeringId) && typeof resource.storagePath === 'string')
+    .map(async (resource) => {
+      const [downloadUrl] = await getStorage().bucket().file(resource.storagePath).getSignedUrl({ action: 'read', expires: Date.now() + 15 * 60 * 1000 });
+      return { id: resource.id, title: resource.title, description: resource.description || '', format: resource.format || 'guide', updatedAt: resource.updatedAt || '', downloadUrl };
+    }));
+  return { resources };
 });

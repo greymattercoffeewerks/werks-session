@@ -1,0 +1,140 @@
+/* Grey Matter Coffee Werks — Design System — generated from tokens.json */
+:root, [data-theme="light"] {
+  --gm-cream: #fffeee;
+  --gm-cream-2: #f4f1e1;
+  --gm-cream-3: #e8e4d1;
+  --gm-paper: #f7f6f0;
+  --gm-black: #000000;
+  --gm-charcoal: #1a1a1a;
+  --gm-charcoal-2: #333333;
+  --gm-grey: #4d4d4d;
+  --gm-grey-2: #767676;
+  --gm-grey-3: #a6a6a6;
+  --gm-teal: #3b96a4;
+  --gm-teal-deep: #15707d;
+  --gm-teal-tint: #ddeef0;
+  --cert-ground: #fffff4;
+  --cert-teal: #108d99;
+  --cert-red: #cb0707;
+  --cert-grey: #9d9999;
+  --cert-charcoal: #3f4044;
+  --cert-navy: #112f49;
+  --cert-signature: #264158;
+  --bean-mana-saja: #141414;
+  --bean-iiwii: #fdde67;
+  --bean-ttku: #2d6c5e;
+  --bean-rbtl: #a11e41;
+  --bean-kiasu: #f0382e;
+  --bean-iykyk: #40b8f3;
+  --bean-aura: #fa8d2a;
+  --bean-xixu: #9926c2;
+  --bean-decaf: #d9d9d9;
+  --bean-fomo: #36bd69;
+  --bean-mana-saja-2: #4d4d4d;
+  --bean-iiwii-2: #454fb4;
+  --bean-ttku-2: #d36a92;
+  --bean-rbtl-2: #60d3d0;
+  --bean-kiasu-2: #135762;
+  --bean-iykyk-2: #b76934;
+  --bean-aura-2: #176793;
+  --bean-xixu-2: #7ec157;
+  --bean-decaf-2: #c3a98c;
+  --bean-fomo-2: #984090;
+  --bean-on: #fffeee;
+  --bean-on-ink: #141414;
+  --bean-iiwii-on: var(--bean-on-ink);
+  --bean-iykyk-on: var(--bean-on-ink);
+  --bean-aura-on: var(--bean-on-ink);
+  --bean-decaf-on: var(--bean-on-ink);
+  --bean-fomo-on: var(--bean-on-ink);
+  --bean-mana-saja-bw: #141414;
+  --bean-iiwii-bw: #dcdcdc;
+  --bean-ttku-bw: #5e5e5e;
+  --bean-rbtl-bw: #3d3d3d;
+  --bean-kiasu-bw: #5e5e5e;
+  --bean-iykyk-bw: #a3a3a3;
+  --bean-aura-bw: #9d9d9d;
+  --bean-xixu-bw: #4a4a4a;
+  --bean-decaf-bw: #d9d9d9;
+  --bean-fomo-bw: #9a9a9a;
+  --surface-page: var(--gm-cream);
+  --surface-card: var(--gm-cream);
+  --surface-sunk: var(--gm-cream-2);
+  --surface-invert: var(--gm-black);
+  --text-strong: var(--gm-charcoal);
+  --text-body: var(--gm-charcoal-2);
+  --text-muted: var(--gm-grey-2);
+  --text-invert: var(--gm-cream);
+  --border-hair: var(--gm-cream-3);
+  --border-ink: var(--gm-charcoal);
+  --accent-brand: var(--gm-teal);
+  --gm-shadow-none: none;
+  --gm-shadow-sm: 0 1px 2px rgba(20,20,20,0.06);
+  --gm-shadow-card: 0 2px 10px rgba(20,20,20,0.08);
+  --gm-shadow-pop: 0 8px 28px rgba(20,20,20,0.14);
+}
+:root {
+  --gm-space-0: 0;
+  --gm-space-1: 4px;
+  --gm-space-2: 8px;
+  --gm-space-3: 12px;
+  --gm-space-4: 16px;
+  --gm-space-5: 20px;
+  --gm-space-6: 24px;
+  --gm-space-8: 32px;
+  --gm-space-10: 40px;
+  --gm-space-12: 48px;
+  --gm-space-16: 64px;
+  --gm-space-20: 80px;
+  --gm-space-24: 96px;
+  --gm-space-32: 128px;
+  --gm-container: 1200px;
+  --gm-container-tight: 760px;
+  --gm-gutter: 24px;
+  --gm-gutter-lg: 48px;
+  --gm-radius-none: 0;
+  --gm-radius-sm: 2px;
+  --gm-radius-md: 4px;
+  --gm-radius-lg: 8px;
+  --gm-radius-pill: 999px;
+  --gm-text-2xs: 11px;
+  --gm-text-xs: 13px;
+  --gm-text-sm: 15px;
+  --gm-text-base: 17px;
+  --gm-text-md: 20px;
+  --gm-text-lg: 24px;
+  --gm-text-xl: 30px;
+  --gm-text-2xl: 40px;
+  --gm-text-3xl: 54px;
+  --gm-text-4xl: 72px;
+  --gm-text-5xl: 96px;
+  --gm-text-6xl: 128px;
+  --gm-w-regular: 400;
+  --gm-w-medium: 500;
+  --gm-w-semi: 600;
+  --gm-w-bold: 700;
+  --gm-w-heavy: 800;
+  --gm-w-black: 900;
+  --gm-leading-solid: 0.92;
+  --gm-leading-tight: 1.05;
+  --gm-leading-snug: 1.25;
+  --gm-leading-body: 1.5;
+  --gm-track-shout: 0.02em;
+  --gm-track-label: 0.14em;
+  --gm-track-normal: 0;
+  --gm-track-tight: -0.01em;
+  --font-brand-wordmark: "Figtree", system-ui, sans-serif;
+  --font-brand-display: "Figtree", system-ui, sans-serif;
+  --font-brand-text: "Archivo", system-ui, -apple-system, sans-serif;
+  --font-legacy-gotham: "Gotham", "Figtree", system-ui, sans-serif;
+}
+.hero { font-family: var(--font-brand-display); font-size: 128px; line-height: 0.92; font-weight: 900; }
+.display { font-family: var(--font-brand-display); font-size: 72px; line-height: 1.05; font-weight: 800; }
+.title { font-family: var(--font-brand-display); font-size: 40px; line-height: 1.05; font-weight: 700; }
+.heading { font-family: var(--font-brand-display); font-size: 24px; line-height: 1.25; font-weight: 700; }
+.body { font-family: var(--font-brand-text); font-size: 17px; line-height: 1.5; font-weight: 400; }
+.descriptor { font-family: var(--font-brand-text); font-size: 20px; line-height: 1.25; font-weight: 400; }
+.label { font-family: var(--font-brand-text); font-size: 13px; line-height: 1; font-weight: 600; }
+@font-face { font-family: "Gotham"; src: url("fonts/Gotham-Regular.otf") format("opentype"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Gotham"; src: url("fonts/Gotham-Bold.otf") format("opentype"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Gotham"; src: url("fonts/Gotham-Black.otf") format("opentype"); font-weight: 900; font-style: normal; font-display: swap; }

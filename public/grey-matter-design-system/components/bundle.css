@@ -1,0 +1,50 @@
+/* Grey Matter Coffee Werks — what tokens.json cannot declare.
+   Figtree carries the wordmark and display type; Archivo carries body and UI.
+   Two families only. Gotham stays in fonts/ for existing artwork. */
+@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800;900&family=Archivo:wght@400;500;600;700&display=swap');
+
+:root {
+  /* Families under their original names (values live in tokens.json type.families) */
+  --gm-font-wordmark: var(--font-brand-wordmark);
+  --gm-font-display:  var(--font-brand-display);
+  --gm-font-text:     var(--font-brand-text);
+
+  /* Borders (composite values) */
+  --gm-border-hair: 1px solid var(--border-hair);
+  --gm-border-ink:  1.5px solid var(--gm-charcoal);
+  --gm-rule-heavy:  3px solid var(--gm-charcoal);   /* bean-name underline */
+
+  /* Motion — quiet, no bounce */
+  --gm-ease:       cubic-bezier(0.22, 0.61, 0.36, 1);
+  --gm-ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+  --gm-dur-fast:   120ms;
+  --gm-dur:        200ms;
+  --gm-dur-slow:   360ms;
+
+  /* Paper texture (Old School Rich) — subtle tooth on cream */
+  --gm-paper-tooth: radial-gradient(rgba(120,110,80,0.05) 1px, transparent 1.4px);
+  --gm-paper-tooth-size: 4px 4px;
+
+  /* Semantic type roles as font shorthands */
+  --font-hero:    var(--gm-w-black) var(--gm-text-6xl)/var(--gm-leading-solid) var(--gm-font-display);
+  --font-display: var(--gm-w-heavy) var(--gm-text-4xl)/var(--gm-leading-tight) var(--gm-font-display);
+  --font-title:   var(--gm-w-bold)  var(--gm-text-2xl)/var(--gm-leading-tight) var(--gm-font-display);
+  --font-heading: var(--gm-w-bold)  var(--gm-text-lg)/var(--gm-leading-snug)  var(--gm-font-display);
+  --font-body:    var(--gm-w-regular) var(--gm-text-base)/var(--gm-leading-body) var(--gm-font-text);
+  --font-descriptor: var(--gm-w-regular) var(--gm-text-md)/var(--gm-leading-snug) var(--gm-font-text);
+  --font-label:   var(--gm-w-semi) var(--gm-text-xs)/1 var(--gm-font-text);
+}
+
+/* Utility classes — foundations & kits may use these */
+.gm-eyebrow {
+  font: var(--gm-w-semi) var(--gm-text-xs)/1 var(--gm-font-text);
+  letter-spacing: var(--gm-track-label);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.gm-shout {
+  font-family: var(--gm-font-display);
+  font-weight: var(--gm-w-heavy);
+  letter-spacing: var(--gm-track-shout);
+  line-height: var(--gm-leading-tight);
+}

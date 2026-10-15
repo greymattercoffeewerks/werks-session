@@ -1,0 +1,9 @@
+/* ============================================================
+   Grey Matter Coffee Werks — Design System
+   Global entry point. Consumers link THIS file only.
+   tokens.css is generated from tokens.json; components/bundle.css
+   holds the fonts import, the type-role shorthands, borders, motion
+   and the paper texture that tokens.json cannot declare.
+   ============================================================ */
+@import url("tokens.css");
+@import url("components/bundle.css");

@@ -1,0 +1,40 @@
+<!-- @dsCard group="Core" height=290 subtitle="Outline, flat and ink surfaces with a bean accent bar" -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8" />
+<style>
+  body{margin:0;padding:24px;background:var(--gm-cream);font-family:var(--gm-font-text);color:var(--gm-charcoal);}
+  .grp{margin-bottom:24px} .grp:last-child{margin-bottom:0}
+  .lbl{font:var(--gm-w-semi) 11px/1 var(--gm-font-text);letter-spacing:.14em;text-transform:uppercase;color:var(--gm-grey);margin-bottom:12px}
+  .row{display:flex;flex-wrap:wrap;gap:16px;align-items:center}
+  .dark{background:var(--gm-charcoal);padding:18px 22px;border-radius:4px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+
+  h3{font:var(--gm-w-bold) 24px/1 var(--gm-font-display);margin:6px 0 8px;letter-spacing:-.01em}
+  p{font:var(--gm-w-regular) 15px/1.4 var(--gm-font-text);color:var(--gm-grey);margin:0 0 12px}
+
+</style></head>
+<body><div id="root"></div>
+<script>
+const NS = window.DesignSystem_69d0e9, h = React.createElement;
+
+const { Card, Eyebrow, Rule, Badge } = NS;
+function Demo() {
+  return h("div", null,
+    h("div", {className:"lbl"}, "Card — outline · flat · ink, with bean accent"),
+    h("div", {className:"grid3"},
+      h(Card, {variant:"outline", bean:"ttku", interactive:true},
+        h(Eyebrow, null, "Single origin"), h("h3", null, "ttku"),
+        h(Rule, {weight:"heavy", color:"var(--bean-ttku)", style:{width:44}}),
+        h("p", {style:{marginTop:10}}, "Brazil Santos. Nutty, sweet caramel."), h(Badge, {variant:"outline"}, "Espresso roast")),
+      h(Card, {variant:"flat"},
+        h(Eyebrow, null, "Blend"), h("h3", null, "iiwii"),
+        h("p", null, "The original house blend. Indonesian & Colombian."),
+        h("div", {style:{display:"flex",gap:8}}, h(Badge, {variant:"default"}, "1kg"), h(Badge, {variant:"solid"}, "House"))),
+      h(Card, {variant:"ink"},
+        h(Eyebrow, {color:"var(--gm-teal)"}, "Grey Matter"), h("h3", {style:{color:"var(--gm-cream)"}}, "3C"),
+        h("p", {style:{color:"var(--gm-cream-3)"}}, "Quality, creativity, connection."), h(Badge, {variant:"teal"}, "Brand"))));
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(h(Demo));
+</script></body></html>

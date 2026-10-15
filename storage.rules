@@ -1,0 +1,10 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Student resources are delivered only through an expiring URL minted by
+    // listMyLearningResources after the server checks enrolment eligibility.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

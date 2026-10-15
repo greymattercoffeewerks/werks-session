@@ -1,0 +1,18 @@
+{
+  "description": "Injects read-only, repository-backed project context at Codex session start.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .codex/scripts/session-context.mjs",
+            "statusMessage": "Loading Grey Matter project memory",
+            "additionalContextLimit": 6000
+          }
+        ]
+      }
+    ]
+  }
+}
