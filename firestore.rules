@@ -1,0 +1,15 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isAdmin() { return signedIn() && request.auth.token.role == 'admin'; }
+    function isStaff() { return signedIn() && (request.auth.token.role == 'admin' || request.auth.token.role == 'instructor'); }
+    function owns(personId) { return signedIn() && request.auth.token.person_id == personId; }
+    match /courses/{course} { allow read: if true; allow write: if isAdmin(); }
+    match /sessions/{session} { allow read: if true; allow write: if isAdmin(); }
+    match /people/{personId} { allow read: if owns(personId) || isStaff(); allow write: if false; }
+    match /learning_records/{record} { allow read: if owns(resource.data.personId) || isStaff(); allow write: if false; }
+    match /challenges/{personId} { allow read: if owns(personId) || isStaff(); allow write: if false; }
+    match /{document=**} { allow read, write: if false; }
+  }
+}
