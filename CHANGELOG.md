@@ -14,6 +14,7 @@ All notable user-visible, operational, and security-impacting changes are record
 
 ### Changed
 
+- Added a Google sign-in foundation for confirmed Werks Sessions learners; signing in does not create access or an enrolment, and the public client no longer carries dormant callable-function code.
 - Replaced the public callable interest form with an offering-specific email enquiry so the live public path works without Cloud Functions.
 - Directed public Werks Sessions enquiries to `greymatter.cw@outlook.com`.
 - Replaced the email-link sign-in screen with truthful learner-access guidance; confirmed-booking access is now a staff-operated step.

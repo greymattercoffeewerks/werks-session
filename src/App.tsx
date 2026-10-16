@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import type { User } from 'firebase/auth';
 import { offerings } from './data/demo';
+import { authErrorMessage, observeAccount, signInWithGoogle, signOut } from './lib/google-auth';
 import type { OfferingKind } from './types';
 
 type View = 'home' | 'access';
@@ -109,14 +111,68 @@ function Home({ onInterest, onAbout }: { onInterest: (offering: OfferingKind) =>
 }
 
 function LearnerAccess() {
-  const href = `mailto:${sessionsEmail}?subject=${encodeURIComponent('Werks Sessions learner access')}`;
+  const [account, setAccount] = useState<User | null | undefined>(undefined);
+  const [isSigningIn, setIsSigningIn] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => observeAccount(setAccount), []);
+
+  const continueWithGoogle = async () => {
+    setError('');
+    setIsSigningIn(true);
+    try {
+      await signInWithGoogle();
+    } catch (signInError) {
+      setError(authErrorMessage(signInError));
+    } finally {
+      setIsSigningIn(false);
+    }
+  };
+
+  const leaveAccount = async () => {
+    setError('');
+    try {
+      await signOut();
+    } catch (signOutError) {
+      setError(authErrorMessage(signOutError));
+    }
+  };
+
+  if (account === undefined) {
+    return (
+      <main className="dashboard auth-page">
+        <DashboardHeader title="Checking learner access." subtitle="We are confirming whether this browser is already signed in." />
+      </main>
+    );
+  }
+
+  if (account) {
+    return (
+      <main className="dashboard auth-page">
+        <DashboardHeader title="Access is being arranged." subtitle={`Signed in as ${account.email ?? 'your Google account'}.`} />
+        <section className="panel auth-panel" aria-labelledby="pending-access-heading">
+          <p className="eyebrow">Booking confirmation required</p>
+          <h2 id="pending-access-heading">Signing in does not create learner access.</h2>
+          <p>Once your place is confirmed, Werks Sessions will add access to the session you have booked. Until then, there is no course material or cohort data here.</p>
+          <button className="button secondary" onClick={leaveAccount}>Sign out</button>
+          {error && <p className="auth-message" role="alert">{error}</p>}
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="dashboard auth-page">
-      <DashboardHeader title="Learner access is arranged with your booking." subtitle="Werks Sessions confirms access personally once your place and session are ready." />
+      <DashboardHeader title="Learner access follows a confirmed booking." subtitle="Sign in with the Google account you gave Werks Sessions. Signing in does not create a place or learner access." />
       <section className="panel auth-panel">
-        <h2>No account is needed to enquire.</h2>
-        <p>After your place is confirmed, we will send the appropriate learner access instructions directly. This keeps each small table deliberate and avoids an open, self-service course portal.</p>
-        <a className="button primary" href={href}>Ask about an existing booking</a>
+        <p className="eyebrow">Learner sign-in</p>
+        <h2>Use the Google account connected to your booking.</h2>
+        <p>Access is confirmed personally after payment and a place are agreed. There is no self-service enrolment or public course library.</p>
+        <button className="button primary" onClick={continueWithGoogle} disabled={isSigningIn}>
+          {isSigningIn ? 'Opening Google…' : 'Continue with Google'}
+        </button>
+        <p className="auth-note">Need to confirm your booking or the right email address? <a href={`mailto:${sessionsEmail}?subject=${encodeURIComponent('Werks Sessions learner access')}`}>Contact Werks Sessions</a>.</p>
+        {error && <p className="auth-message" role="alert">{error}</p>}
       </section>
     </main>
   );

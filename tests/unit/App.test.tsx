@@ -1,11 +1,26 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+const authMock = vi.hoisted(() => ({
+  observeAccount: vi.fn((callback: (user: null) => void) => {
+    callback(null);
+    return () => undefined;
+  }),
+  signInWithGoogle: vi.fn(),
+  signOut: vi.fn(),
+  authErrorMessage: vi.fn(() => 'We could not complete sign-in. Please try again or contact Werks Sessions.'),
+}));
+
+vi.mock('../../src/lib/google-auth', () => authMock);
 import App from '../../src/App';
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+});
 
 describe('portal navigation and interest registration', () => {
-  it('does not expose an unactionable sign-in or demo role switching', () => {
+  it('does not expose a learner workspace or demo role switching on the public page', () => {
     render(<App />);
     expect(screen.getByRole('button', { name: 'Learner access' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Sign in' })).not.toBeInTheDocument();
@@ -23,5 +38,21 @@ describe('portal navigation and interest registration', () => {
       'href',
       expect.stringContaining('Werks%20Sessions%20interest%20-%20Brew%20101'),
     );
+  });
+
+  it('offers Google sign-in without promising self-service learner access', async () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
+
+    const button = await screen.findByRole('button', { name: 'Continue with Google' });
+    expect(screen.getByRole('heading', { name: 'Learner access follows a confirmed booking.' })).toBeInTheDocument();
+    expect(screen.getByText(/Signing in does not create a place or learner access\./)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Contact Werks Sessions' })).toHaveAttribute(
+      'href',
+      expect.stringContaining('mailto:greymatter.cw@outlook.com'),
+    );
+
+    fireEvent.click(button);
+    expect(authMock.signInWithGoogle).toHaveBeenCalledTimes(1);
   });
 });

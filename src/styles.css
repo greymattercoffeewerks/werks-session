@@ -3,6 +3,7 @@
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 body { margin: 0; background: var(--surface-page); color: var(--text-body); font: var(--font-body); }
+.auth-panel { display: grid; gap: var(--gm-space-4); max-width: 610px; }.auth-panel > * { margin: 0; }.auth-note, .auth-message { font-size: var(--gm-text-sm); line-height: var(--gm-leading-body); }.auth-note { color: var(--text-muted); }.auth-note a { color: var(--gm-teal-deep); }.auth-message { background: var(--gm-cream-2); border-left: var(--gm-border-ink); color: var(--text-strong); padding: var(--gm-space-3); }
 button, input, select, textarea { font: inherit; }
 button { cursor: pointer; }
 button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visible { outline: var(--gm-border-ink); outline-offset: var(--gm-space-1); }
