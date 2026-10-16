@@ -1,57 +1,94 @@
-# Werks Sessions MVP Roadmap
+# Werks Sessions Spark MVP Roadmap
 
 ## Purpose
 
-This roadmap turns Werks Sessions from a public interest experience into a small, repeatable operating loop for real cohorts. It does not broaden the product into a general LMS, a public calendar, or a certification pathway.
+Launch a small, premium coffee-learning loop while keeping Firebase on Spark. The product remains Werks Sessions: Public Cupping and Brew 101, not a generic LMS, public calendar, or certification pathway.
+
+## Spark boundaries
+
+- Firebase Hosting, Authentication, and Firestore are available within Spark quotas.
+- Cloud Functions, trusted Admin SDK actions, custom-claim issuance, transactional email, Firebase Storage, and signed private downloads are out of scope because they require Blaze.
+- Firebase email-link sign-in is not an operational login channel on Spark because its email-send quota is too small for a real offering.
 
 ## MVP outcome
 
-One accepted learner can move safely from interest through manual payment, confirmed enrolment, account access, attendance, four-week practice, and instructor review. Staff can operate that flow without manually editing Firebase records.
+One learner can move from public enquiry through staff confirmation, payment, session attendance, and a four-week practice conversation. The initial cohort is intentionally concierge-operated; the portal earns complexity only where it improves the learner or instructor experience.
 
-## Phase 1 — Identity and controlled access
+## Phase 1 - Public enquiry and truthful access state
 
 ### Goal
 
-Replace public demo role switching with Firebase email-link sign-in and verified role-based access.
+Offer a public, production-safe way to enquire without implying an account system that Spark cannot operate.
 
 ### Included
 
-- Email-link request and completion screens.
-- First-sign-in learner activation and provider-neutral `person_id` claim creation, gated by a staff-created confirmed invitation.
-- Navigation and routes that derive access only from verified Firebase claims.
-- A truthful signed-in landing state while real learner, instructor, and admin data is added in later phases.
-- Clear signed-out, pending, and sign-in-error states.
-
-### Not included
-
-- Session, enrolment, payment, and roster management.
-- Real learner records, challenge persistence, or instructor review UI.
-- Course-material publication.
+- Firebase Hosting public Sessions and About pages.
+- Offering-specific email enquiry, with no Firestore write, automated email, or account creation.
+- Learner-access page that explains access follows a confirmed booking.
+- Manual staff handling of payment, dates, enrolment, attendance, and private resources.
 
 ### Done when
 
-- A signed-out visitor can use only public Sessions and About pages.
-- A learner can request and complete an email-link sign-in, receives a stable `person_id`, and sees a signed-in account state.
-- An uninvited email address cannot receive a learner claim or access a private portal state.
-- The browser does not choose a role; learner, instructor, and admin navigation comes only from server-issued claims.
-- Failed activation blocks private-area access rather than falling back to a Firebase UID.
+- The public site has no callable-Function dependency.
+- It no longer exposes email-link activation or a sign-in promise that cannot be fulfilled.
+- An enquiry clearly does not reserve a place or create an account.
 
-## Phase 2 — Cohort operations
+## Phase 2 - Manually seeded access grants
 
-Build the admin workflow for converting interest leads into paid, confirmed places: session creation, enrolment, manual payment confirmation, account invitation, capacity enforcement, and an auditable roster.
+### Goal
 
-## Phase 3 — Learner practice and instructor close-out
+Prepare a small authenticated portal without Cloud Functions or custom claims.
 
-Replace static portal data with server-authorised learner records. Persist the four-week practice card, support learner submission, instructor review and feedback, attendance, and truthful learning records.
+### Included
 
-## Phase 4 — Pilot release
+- Choose a Spark-suitable sign-in provider; prefer Google Sign-In or email/password over email links.
+- Keep every self-created account pending by default.
+- Staff manually seed immutable role and enrolment/access-grant documents in Firebase Console after payment and acceptance.
+- Rework Firestore schema and Rules so a learner can only read/write their own approved practice data, and staff roles cannot be granted by browser code.
+- Retain a provider-neutral `person_id` field, assigned by staff during this interim period.
 
-Configure and verify Firebase Authentication, Functions, Firestore Rules, Storage Rules, Resend, the first administrator, and an internal end-to-end pilot before accepting a paid cohort.
+### Not included
 
-## Deliberately deferred
+- Automated invitations, payments, capacity transactions, custom claims, or server-side account provisioning.
 
-- Automated payment processing.
-- A public calendar before demand is proven.
-- Public or direct Storage access to learner materials.
-- Brew 102 content, SeduhID migration, and advanced reporting.
-- Any implication that Brew 101 attendance or practice approval is a credential or certification.
+### Done when
+
+- A pending authenticated account cannot access cohort data.
+- A manually granted learner can access only their confirmed data.
+- Learners cannot modify role, enrolment, attendance, or instructor-review fields.
+- Rules tests cover every allowed direct-client path.
+
+## Phase 3 - Learner practice and instructor close-out
+
+### Goal
+
+Make the Brew 101 follow-through useful without overstating it as assessment or certification.
+
+### Included
+
+- Learner-owned four-week practice entries in Firestore.
+- Instructor cohort view, feedback, and review status through a manually seeded staff role.
+- Staff-entered attendance and factual learner records, guarded by Rules.
+
+### Not included
+
+- Private course-resource downloads, public Storage URLs, downloadable credentials, or automatic reminders.
+
+## Phase 4 - Small paid pilot
+
+### Goal
+
+Run one manually operated paid cohort end to end.
+
+### Pilot checklist
+
+1. Public enquiry arrives through the Hosting site.
+2. Staff confirm payment and place outside the portal.
+3. Staff seed the learner access grant and explain the chosen sign-in method.
+4. Learner completes one practice entry after Brew 101.
+5. Instructor adds feedback; staff records attendance.
+6. Private resources are delivered personally, not through Firebase Storage.
+
+## Revisit Blaze only when needed
+
+Move to Blaze when protected downloads, transactional email, server-side invitation activation, custom claims, rate limiting, automated payments, or SeduhID token bridging become necessary for the operating model.

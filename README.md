@@ -1,36 +1,38 @@
 # Werks Sessions
 
-Werks Sessions is Grey Matter Coffee Werks' operating and learning portal for small, hands-on coffee education. The first release supports Public Cupping and Brew 101—from interest through confirmed attendance and the Brew 101 30-day practice card.
+Werks Sessions is Grey Matter Coffee Werks' small, hands-on coffee-learning loop. It begins with Public Cupping and Brew 101, and stays focused on real tables, deliberate practice, and human follow-through rather than generic courseware.
 
-## What is implemented
+## Spark MVP
 
-- Public offering and interest-list experience without an account wall.
-- Learner, instructor, and admin portal views.
-- Manual payment / enrolment workflow, instructor attendance, and truthful learning-record states.
-- Four-week Brew 101 challenge with instructor approval as the Brew 102 eligibility gate.
-- Dedicated Firebase backend configuration: Hosting, Auth, Firestore rules, callable Functions, and emulator settings.
-- Provider-neutral `person_id` records so Firebase email-link login can later hand over to SeduhID on Supabase.
+The live MVP runs on Firebase Spark. The public site is hosted on Firebase Hosting; enquiries and the first cohort are operated personally by staff.
+
+- Visitors select a session and open a prefilled email enquiry. Enquiring does not create an account or reserve a place.
+- Staff confirm suitability, payment, a date, and learner access manually.
+- No Cloud Functions, Firebase Storage, signed downloads, transactional email, or email-link sign-in are part of the Spark launch.
+- Brew 101 remains non-assessed. Attendance and practice feedback are not certification or competency claims.
 
 ## Local setup
 
-1. Copy `.env.example` to `.env` and enter the dedicated Education Firebase web-app configuration. Set `VITE_AUTH_CONTINUE_URL` to the approved portal URL (for example, `https://werks-session.web.app`) before enabling email-link sign-in.
-2. Install root dependencies: `npm.cmd install`.
-3. Install Functions dependencies: `npm.cmd install --prefix functions`.
-4. Run `npm.cmd run dev` for the interface or `npm.cmd run build` for a production build.
+1. Install root dependencies: `npm.cmd install`.
+2. Install Functions dependencies only when working on the future Blaze-compatible backend: `npm.cmd install --prefix functions`.
+3. Run `npm.cmd run dev` for the interface or `npm.cmd run build` for a production build.
 
-The app remains safe to preview without `.env`: it renders realistic demonstration data but sends no Firebase requests.
+The public Spark launch does not require Firebase browser configuration. Do not deploy Functions from this repository while the project remains on Spark.
 
-## Firebase setup before deployment
+## Spark operating model
 
-1. Create and select the dedicated Education Firebase project: `npm.cmd run firebase:use`.
-2. Enable Email Link sign-in in Firebase Authentication and add the `VITE_AUTH_CONTINUE_URL` domain to Firebase Authentication's authorised domains.
-3. Configure `RESEND_API_KEY` as a Functions secret and verify the sender domain before enabling transactional email.
-4. Before sending a learner account link, create a server-only `account_invites/{lowercase-email}` document with the same `email`, `role: "learner"`, and `status: "ready"`. Create it only after staff has confirmed the learner's place; the Phase 2 operations workspace will replace this temporary administrative step.
-5. Deploy Firestore rules, Functions, and Hosting after testing with the Firebase Emulator Suite.
-6. Bootstrap the first administrator by adding `role: "admin"` and a provider-neutral `person_id` custom claim in Firebase Auth; all further sensitive actions are protected by those claims.
+1. A visitor sends an enquiry from the public site.
+2. Staff handle payment, confirmation, and cohort placement outside the portal.
+3. Only after a learner is accepted will a future Spark portal create a manually seeded Firestore access grant.
+4. Learner practice and instructor feedback will use direct Firestore access protected by deny-by-default Rules; clients will never be able to grant themselves a role or enrolment.
+5. Private materials are delivered personally after confirmation. They must not be served from Firebase Storage or public Hosting while on Spark.
 
-## SeduhID handoff
+## Future SeduhID handoff
 
-Firebase is temporary for portal sign-in. Every Education record is keyed by a provider-neutral `person_id`, while `identity_links` stores the temporary Firebase mapping. When SeduhID is live on Supabase, its verified `person_id` becomes the central identity; a server-side token bridge will exchange a valid Supabase session for a Firebase custom token so existing Firestore rules remain intact during transition.
+Firebase is still a temporary identity provider. Domain records retain a provider-neutral `person_id`, rather than treating the Firebase UID as the long-term identity. The Spark MVP deliberately postpones automated identity provisioning until a trusted server-side bridge is available.
 
-Do not publish Brew 101 as a competency credential. `attended` and `challenge_complete` are distinct record types; `credential` is reserved for future assessed, licensed delivery.
+## Safety notes
+
+- Do not commit `.env`, service-account JSON, private contact lists, or course materials.
+- Keep Firestore and Storage Rules deny-by-default. Add emulator coverage before allowing any new client path.
+- Do not publish Brew 101 as a competency credential. `attended` and practice feedback are distinct from any future credential.

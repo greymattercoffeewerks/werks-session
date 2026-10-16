@@ -9,10 +9,12 @@ All notable user-visible, operational, and security-impacting changes are record
 - Added the persistent Codex development protocol, local commit gate, and GitHub Actions verification baseline.
 - Added a full-screen Werks Sessions hero and About section to the public landing experience.
 - Added the approved Grey Matter Design System tokens, typography, logo, and botanical assets used by the portal.
-- Added the versioned MVP roadmap and the first identity-and-access phase: password-free email-link sign-in, staff-invitation-gated learner activation, and claim-derived private navigation.
+- Added the versioned Firebase Spark MVP roadmap, centred on concierge cohort operations and later manually seeded Firestore access grants.
 
 ### Changed
 
+- Replaced the public callable interest form with an offering-specific email enquiry so the live public path works without Cloud Functions.
+- Replaced the email-link sign-in screen with truthful learner-access guidance; confirmed-booking access is now a staff-operated step.
 - Refreshed the responsive public portal around the coffee-tasting workshop experience while preserving existing session and dashboard content.
 - Refined display scale, font weight, rules, and decorative contrast for a quieter, more controlled reading experience.
 - Published the Werks Sessions production build to Firebase Hosting.

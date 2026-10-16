@@ -1,73 +1,26 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { offerings } from './data/demo';
-import { firebaseConfigured } from './lib/firebase';
-import {
-  completeEmailLink,
-  firebaseIdentity,
-  isEmailLink,
-  pendingSignInEmail,
-  requestEmailLink,
-} from './lib/identity';
-import { submitInterest } from './lib/portal';
-import type { Actor, OfferingKind } from './types';
+import type { OfferingKind } from './types';
 
-type View = 'home' | 'auth' | 'account';
-type AuthState = 'idle' | 'sending' | 'sent' | 'completing' | 'error';
+type View = 'home' | 'access';
+
+const sessionsEmail = 'sessions@greymatter.coffee';
+
+function interestEmailHref(offering: OfferingKind): string {
+  const course = offerings.find((item) => item.id === offering)!;
+  const subject = `Werks Sessions interest - ${course.title}`;
+  const body = `Hello Werks Sessions,\n\nI would like to hear about ${course.title}.\n\nName:\nPreferred contact:\n\nThank you.`;
+  return `mailto:${sessionsEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
 
 function App() {
   const [view, setView] = useState<View>('home');
-  const [actor, setActor] = useState<Actor | null>(null);
-  const [authError, setAuthError] = useState('');
   const [interestOffering, setInterestOffering] = useState<OfferingKind>('cupping');
-  const [interestMessage, setInterestMessage] = useState('');
-
-  useEffect(() => firebaseIdentity.observe((nextActor, error) => {
-    setActor(nextActor);
-    if (nextActor) {
-      setAuthError('');
-      setView('account');
-    } else if (error) {
-      setAuthError(error);
-      setView('auth');
-    }
-  }), []);
-
-  useEffect(() => {
-    if (isEmailLink()) setView('auth');
-  }, []);
-
   const course = offerings.find((item) => item.id === interestOffering)!;
   const scrollToHomeSection = (sectionId: string) => {
     setView('home');
     window.setTimeout(() => document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
   };
-
-  async function onInterest(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const formElement = event.currentTarget;
-    const form = new FormData(formElement);
-    try {
-      await submitInterest({
-        offeringId: interestOffering,
-        name: String(form.get('name') || ''),
-        email: String(form.get('email') || ''),
-        whatsapp: String(form.get('whatsapp') || ''),
-        marketingConsent: form.get('marketingConsent') === 'on',
-      });
-      setInterestMessage(`You’re on the ${course.title} interest list. We’ll only ask you to create an account after your place is confirmed.`);
-      formElement.reset();
-    } catch {
-      setInterestMessage('We could not save your interest right now. Please try again shortly.');
-    }
-  }
-
-  async function onSignOut() {
-    await firebaseIdentity.signOut();
-    setActor(null);
-    setView('home');
-  }
-
-  const privateLabel = actor?.role === 'admin' ? 'Manage' : actor?.role === 'instructor' ? 'Teach' : 'My practice';
 
   return (
     <div className="app-shell">
@@ -78,20 +31,12 @@ function App() {
         <nav aria-label="Primary navigation">
           <button className={view === 'home' ? 'active' : ''} onClick={() => setView('home')}>Sessions</button>
           <button onClick={() => scrollToHomeSection('about')}>About</button>
-          {actor ? (
-            <>
-              <button className={view === 'account' ? 'active' : ''} onClick={() => setView('account')}>{privateLabel}</button>
-              <button onClick={onSignOut}>Sign out</button>
-            </>
-          ) : (
-            <button className={view === 'auth' ? 'active' : ''} onClick={() => setView('auth')}>Sign in</button>
-          )}
+          <button className={view === 'access' ? 'active' : ''} onClick={() => setView('access')}>Learner access</button>
         </nav>
       </header>
 
       {view === 'home' && <Home onAbout={() => scrollToHomeSection('about')} onInterest={(offering) => { setInterestOffering(offering); document.getElementById('interest')?.scrollIntoView({ behavior: 'smooth' }); }} />}
-      {view === 'auth' && <SignIn error={authError} />}
-      {view === 'account' && actor && <Account actor={actor} />}
+      {view === 'access' && <LearnerAccess />}
 
       {view === 'home' && (
         <section id="interest" className="interest-section" aria-labelledby="interest-heading">
@@ -100,15 +45,12 @@ function App() {
             <h2 id="interest-heading">Register your interest.</h2>
             <p>We announce a date only when the right group is ready. No cancelled public calendar; no unnecessary account wall.</p>
           </div>
-          <form className="interest-form" onSubmit={onInterest}>
+          <div className="interest-form">
             <label>Session<select value={interestOffering} onChange={(event) => setInterestOffering(event.target.value as OfferingKind)}><option value="cupping">Public Cupping</option><option value="brew101">Brew 101</option></select></label>
-            <label>Name<input required name="name" autoComplete="name" /></label>
-            <label>Email<input required type="email" name="email" autoComplete="email" /></label>
-            <label>WhatsApp number <span className="optional">optional</span><input name="whatsapp" inputMode="tel" autoComplete="tel" /></label>
-            <label className="check"><input type="checkbox" name="marketingConsent" /> Send me occasional Werks Sessions news and future course updates.</label>
-            <button className="button primary" type="submit">Join the interest list</button>
-            {interestMessage && <p className="form-success" role="status">{interestMessage}</p>}
-          </form>
+            <p>Tell us which session you are considering. We will confirm the right table, date, and next step personally.</p>
+            <a className="button primary" href={interestEmailHref(interestOffering)}>Email us about {course.title}</a>
+            <p className="form-success">This opens your email app. It does not create an account or reserve a place.</p>
+          </div>
         </section>
       )}
 
@@ -166,69 +108,15 @@ function Home({ onInterest, onAbout }: { onInterest: (offering: OfferingKind) =>
   );
 }
 
-function SignIn({ error }: { error: string }) {
-  const [completing, setCompleting] = useState(() => isEmailLink());
-  const [email, setEmail] = useState(() => pendingSignInEmail());
-  const [state, setState] = useState<AuthState>('idle');
-  const [message, setMessage] = useState('');
-
-  useEffect(() => {
-    if (error) {
-      setState('error');
-      setMessage(error);
-    }
-  }, [error]);
-
-  async function onSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setState(completing ? 'completing' : 'sending');
-    setMessage('');
-    try {
-      if (completing) {
-        await completeEmailLink(email);
-      } else {
-        await requestEmailLink(email);
-        setState('sent');
-        setMessage('Check your email for a secure sign-in link. It may take a few minutes to arrive.');
-      }
-    } catch (submissionError) {
-      setState('error');
-      setMessage(submissionError instanceof Error ? submissionError.message : 'We could not complete sign-in. Please try again.');
-      if (completing) setCompleting(false);
-    }
-  }
-
+function LearnerAccess() {
+  const href = `mailto:${sessionsEmail}?subject=${encodeURIComponent('Werks Sessions learner access')}`;
   return (
     <main className="dashboard auth-page">
-      <DashboardHeader title={completing ? 'Complete your sign-in.' : 'Your account, when your place is ready.'} subtitle="Werks Sessions uses a password-free sign-in link sent to the email used for your booking." />
+      <DashboardHeader title="Learner access is arranged with your booking." subtitle="Werks Sessions confirms access personally once your place and session are ready." />
       <section className="panel auth-panel">
-        {!firebaseConfigured ? <p className="form-success" role="status">Account access is not configured in this preview. The public sessions experience remains available.</p> : (
-          <form className="interest-form" onSubmit={onSubmit}>
-            <label>Email used for your booking<input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" /></label>
-            <button className="button primary" type="submit" disabled={state === 'sending' || state === 'completing'}>
-              {state === 'sending' ? 'Sending secure link…' : state === 'completing' ? 'Completing sign-in…' : completing ? 'Complete sign-in' : 'Email me a sign-in link'}
-            </button>
-            {message && <p className="form-success" role="status">{message}</p>}
-          </form>
-        )}
-      </section>
-    </main>
-  );
-}
-
-function Account({ actor }: { actor: Actor }) {
-  const isLearner = actor.role === 'learner';
-  const roleTitle = actor.role === 'admin' ? 'Operations access' : actor.role === 'instructor' ? 'Teaching access' : 'Learner access';
-  return (
-    <main className="dashboard">
-      <DashboardHeader title={`Welcome, ${actor.displayName}.`} subtitle="Your access is linked to the email you used for Werks Sessions." />
-      <section className="panel">
-        <p className="eyebrow">{roleTitle}</p>
-        <h2>Your account is active.</h2>
-        <p>{isLearner
-          ? 'Your confirmed booking, session materials, and practice card will appear here once staff have prepared your place.'
-          : 'Your private workspace will appear here as the cohort operations tools are introduced.'}</p>
-        <p className="muted">Signed in as {actor.email}.</p>
+        <h2>No account is needed to enquire.</h2>
+        <p>After your place is confirmed, we will send the appropriate learner access instructions directly. This keeps each small table deliberate and avoids an open, self-service course portal.</p>
+        <a className="button primary" href={href}>Ask about an existing booking</a>
       </section>
     </main>
   );

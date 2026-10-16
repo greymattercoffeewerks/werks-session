@@ -19,3 +19,9 @@ The dependency gate runs `npm audit --omit=dev --audit-level=high` for the root 
 ## 2026-10-16: Pin Firebase Firestore's gRPC transport to a patched release
 
 Firebase 13.0.0 currently requests `@grpc/grpc-js` `~1.9.0` through `@firebase/firestore`, while the security advisory is fixed in 1.13.6 and later. The root `overrides` field pins every `@grpc/grpc-js` instance to 1.14.6, which is already compatible with the rest of the dependency tree. This is a narrow security remediation, not an audit exception: `npm audit --omit=dev --audit-level=high` now passes. Revisit and remove the override when Firebase updates its own Firestore dependency range.
+
+## 2026-10-16: Spark MVP uses concierge operations at trust boundaries
+
+The project will remain on Firebase Spark for the initial MVP. Public Hosting is permitted, but Cloud Functions, Admin SDK claims, Storage, signed downloads, transactional mail, and automated invitation activation are not. Enquiries, payment confirmation, cohort placement, and private resource delivery are handled personally by staff.
+
+The future authenticated Spark portal will use direct Firestore access only after staff manually seed immutable role and enrolment/access-grant records. Firebase Auth authenticates a person; it does not itself confirm a paid or accepted place. Browser code must never create or alter privileged grants. The provider-neutral `person_id` remains a domain field for the eventual SeduhID bridge.
