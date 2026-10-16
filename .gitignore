@@ -16,6 +16,14 @@ Thumbs.db
 serviceAccountKey.json
 *-firebase-adminsdk-*.json
 
+# Gated course-work originals stay outside Git and are published only through
+# the server-authorised private Firebase Storage flow after approval.
+GMCW_Brew101_Student_Takeaway_Card.pdf
+/Handoff and Planning Docs/*
+!/Handoff and Planning Docs/README.md
+/content-drafts/*
+!/content-drafts/README.md
+
 # Local environment configuration (keep the documented template)
 .env
 .env.*

@@ -36,6 +36,13 @@ The visual hierarchy was subsequently refined without changing the design direct
 - Verified: `https://werks-session.web.app` returned HTTP 200 with the Vite React root and a versioned JavaScript bundle.
 - Scope: Hosting only; no Functions, Firestore Rules, or Storage Rules release was performed.
 
+## 2026-10-16 gated course-material source control
+
+- Removed the course-work originals from version control while leaving their local copies intact and ignored for future commits: the Brew 101 takeaway PDF, manual-brew curriculum, planning archive, and Public Cupping participant-guide draft.
+- Added non-content placeholders that document the private Firebase Storage publication flow. No learner material is publicly served by Hosting or GitHub.
+- Security review: the public portal contains only its existing gated-resource placeholder state. The private Storage, callable-function authorisation, and Rules behavior are unchanged.
+- Verification: lint, type-checking, unit tests, Firebase Rules tests, build, and secret scanning passed. The only full-gate failure remains the documented Firebase Firestore transitive dependency audit finding; no audit exception was added.
+
 ## Protocol baseline
 
 - Repository memory, session hook, review playbooks, local pre-commit hook, and GitHub Actions verification are installed.
