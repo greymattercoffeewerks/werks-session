@@ -23,8 +23,8 @@ The public Spark launch does not require Firebase browser configuration. Do not 
 
 1. A visitor sends an enquiry from the public site.
 2. Staff handle payment, confirmation, and cohort placement outside the portal.
-3. Only after a learner is accepted will a future Spark portal create a manually seeded Firestore access grant.
-4. Learner practice and instructor feedback will use direct Firestore access protected by deny-by-default Rules; clients will never be able to grant themselves a role or enrolment.
+3. After a learner is accepted, staff manually seed the documented Firestore access grant and confirmed enrolment. The Rules are implemented but not yet deployed.
+4. Learner practice and instructor feedback use direct Firestore access protected by deny-by-default Rules; clients can never grant themselves a role or enrolment.
 5. Private materials are delivered personally after confirmation. They must not be served from Firebase Storage or public Hosting while on Spark.
 
 ## Future SeduhID handoff

@@ -2,14 +2,95 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
-    function isAdmin() { return signedIn() && request.auth.token.role == 'admin'; }
-    function isStaff() { return signedIn() && (request.auth.token.role == 'admin' || request.auth.token.role == 'instructor'); }
-    function owns(personId) { return signedIn() && request.auth.token.person_id == personId; }
-    match /courses/{course} { allow read: if true; allow write: if isAdmin(); }
-    match /sessions/{session} { allow read: if true; allow write: if isAdmin(); }
-    match /people/{personId} { allow read: if owns(personId) || isStaff(); allow write: if false; }
-    match /learning_records/{record} { allow read: if owns(resource.data.personId) || isStaff(); allow write: if false; }
-    match /challenges/{personId} { allow read: if owns(personId) || isStaff(); allow write: if false; }
+    function accessGrant() { return get(/databases/$(database)/documents/access_grants/$(request.auth.uid)); }
+    function hasActiveGrant() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/access_grants/$(request.auth.uid))
+        && accessGrant().data.status == 'active';
+    }
+    function isAdmin() { return hasActiveGrant() && accessGrant().data.role == 'admin'; }
+    function isInstructor() { return hasActiveGrant() && accessGrant().data.role == 'instructor'; }
+    function ownsPerson(personId) { return hasActiveGrant() && accessGrant().data.personId == personId; }
+    function enrolment(sessionId, uid) { return get(/databases/$(database)/documents/enrolments/$(sessionId + '_' + uid)); }
+    function hasConfirmedEnrolment(sessionId, uid) {
+      return hasActiveGrant()
+        && request.auth.uid == uid
+        && exists(/databases/$(database)/documents/enrolments/$(sessionId + '_' + uid))
+        && enrolment(sessionId, uid).data.status == 'confirmed'
+        && enrolment(sessionId, uid).data.personId == accessGrant().data.personId;
+    }
+    function teaches(sessionId) {
+      return isAdmin()
+        || (isInstructor()
+          && exists(/databases/$(database)/documents/teaching_assignments/$(sessionId + '_' + request.auth.uid))
+          && get(/databases/$(database)/documents/teaching_assignments/$(sessionId + '_' + request.auth.uid)).data.status == 'active');
+    }
+    function validNewChallenge(sessionId, uid) {
+      return request.resource.data.keys().hasOnly(['sessionId', 'ownerUid', 'personId', 'status', 'weeks', 'createdAt', 'updatedAt'])
+        && request.resource.data.sessionId == sessionId
+        && request.resource.data.ownerUid == uid
+        && request.resource.data.personId == accessGrant().data.personId
+        && request.resource.data.status == 'in_progress';
+    }
+    function completedWeek(week) {
+      return week.keys().hasAll(['focus', 'coffee', 'recipe', 'tastingNote', 'changeMade', 'complete'])
+        && nonBlank(week.focus)
+        && nonBlank(week.coffee)
+        && nonBlank(week.recipe)
+        && nonBlank(week.tastingNote)
+        && nonBlank(week.changeMade)
+        && week.complete == true;
+    }
+    function nonBlank(value) { return value is string && value.matches('.*[^\\s].*'); }
+    function hasCompletedPractice() {
+      return request.resource.data.weeks.keys().hasAll(['week1', 'week2', 'week3', 'week4'])
+        && completedWeek(request.resource.data.weeks.week1)
+        && completedWeek(request.resource.data.weeks.week2)
+        && completedWeek(request.resource.data.weeks.week3)
+        && completedWeek(request.resource.data.weeks.week4);
+    }
+    function validLearnerChallengeUpdate() {
+      return request.resource.data.sessionId == resource.data.sessionId
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.personId == resource.data.personId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['weeks', 'status', 'updatedAt', 'submittedAt'])
+        && resource.data.status in ['in_progress', 'returned']
+        && (request.resource.data.status == 'in_progress'
+          || (request.resource.data.status == 'submitted' && hasCompletedPractice()));
+    }
+    function validStaffChallengeReview() {
+      return request.resource.data.sessionId == resource.data.sessionId
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.personId == resource.data.personId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'reviewerNote', 'reviewedAt'])
+        && resource.data.status == 'submitted'
+        && request.resource.data.status in ['approved', 'returned'];
+    }
+
+    match /courses/{course} { allow get, list: if isAdmin(); allow write: if false; }
+    match /sessions/{sessionId} {
+      allow get: if hasConfirmedEnrolment(sessionId, request.auth.uid) || teaches(sessionId);
+      allow list: if false;
+      allow write: if false;
+
+      match /challenges/{uid} {
+        allow get, list: if hasConfirmedEnrolment(sessionId, uid) || teaches(sessionId);
+        allow create: if hasConfirmedEnrolment(sessionId, uid) && validNewChallenge(sessionId, uid);
+        allow update: if (hasConfirmedEnrolment(sessionId, uid) && validLearnerChallengeUpdate())
+          || (teaches(sessionId) && validStaffChallengeReview());
+        allow delete: if false;
+      }
+    }
+    match /access_grants/{uid} { allow get: if signedIn() && request.auth.uid == uid; allow list, write: if false; }
+    match /teaching_assignments/{assignmentId} { allow get: if isAdmin() || (isInstructor() && resource.data.uid == request.auth.uid); allow list, write: if false; }
+    match /enrolments/{enrolmentId} {
+      allow get: if hasActiveGrant()
+        && ((resource.data.uid == request.auth.uid && resource.data.personId == accessGrant().data.personId)
+          || teaches(resource.data.sessionId));
+      allow list, write: if false;
+    }
+    match /people/{personId} { allow get: if ownsPerson(personId) || isAdmin(); allow list, write: if false; }
+    match /learning_records/{record} { allow get: if ownsPerson(resource.data.personId) || isAdmin(); allow list, write: if false; }
     match /{document=**} { allow read, write: if false; }
   }
 }

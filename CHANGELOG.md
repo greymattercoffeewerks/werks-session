@@ -10,6 +10,7 @@ All notable user-visible, operational, and security-impacting changes are record
 - Added a full-screen Werks Sessions hero and About section to the public landing experience.
 - Added the approved Grey Matter Design System tokens, typography, logo, and botanical assets used by the portal.
 - Added the versioned Firebase Spark MVP roadmap, centred on concierge cohort operations and later manually seeded Firestore access grants.
+- Added the Spark access-grant schema, staff operations guide, and emulator-verified Rules for learner practice and instructor review.
 
 ### Changed
 
