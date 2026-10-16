@@ -1,11 +1,11 @@
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
-const { isResourceEligible, personIdFor, requireAuth, requireRole } = require('./lib/authorization');
+const { isAccountInviteEligible, isResourceEligible, personIdFor, requireAuth, requireRole } = require('./lib/authorization');
 const { defineSecret } = require('firebase-functions/params');
 const { initializeApp } = require('firebase-admin/app');
 const { getAuth } = require('firebase-admin/auth');
 const { FieldValue, getFirestore } = require('firebase-admin/firestore');
 const { getStorage } = require('firebase-admin/storage');
-const { randomUUID } = require('crypto');
+const { createHash, randomUUID } = require('crypto');
 
 initializeApp();
 const db = getFirestore();
@@ -15,6 +15,26 @@ const region = 'asia-southeast1';
 function validText(value, label, max = 240) {
   if (typeof value !== 'string' || !value.trim() || value.trim().length > max) throw new HttpsError('invalid-argument', `${label} is required.`);
   return value.trim();
+}
+function escapeHtml(value) {
+  return String(value).replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
+}
+async function enforceInterestRateLimit(email, ip) {
+  const key = createHash('sha256').update(`${email}|${ip || 'unknown'}`).digest('hex');
+  const ref = db.collection('interest_rate_limits').doc(key);
+  const now = Date.now();
+  await db.runTransaction(async (transaction) => {
+    const current = await transaction.get(ref);
+    const data = current.exists ? current.data() : null;
+    const windowStartedAt = Number(data?.windowStartedAt || 0);
+    const count = Number(data?.count || 0);
+    if (windowStartedAt && now - windowStartedAt < 60 * 60 * 1000 && count >= 3) {
+      throw new HttpsError('resource-exhausted', 'Please wait before submitting another interest request.');
+    }
+    transaction.set(ref, windowStartedAt && now - windowStartedAt < 60 * 60 * 1000
+      ? { count: count + 1, updatedAt: FieldValue.serverTimestamp() }
+      : { count: 1, windowStartedAt: now, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+  });
 }
 async function sendEmail({ to, subject, html }) {
   if (!process.env.RESEND_API_KEY) { console.info('Email not sent: RESEND_API_KEY is not configured.', { to, subject }); return; }
@@ -29,26 +49,40 @@ exports.submitInterest = onCall({ region, secrets: [resendKey] }, async (request
   const name = validText(data.name, 'Name');
   const email = validText(data.email, 'Email', 320).toLowerCase();
   if (!/^\S+@\S+\.\S+$/.test(email)) throw new HttpsError('invalid-argument', 'Enter a valid email address.');
+  await enforceInterestRateLimit(email, request.rawRequest?.ip);
   const whatsapp = typeof data.whatsapp === 'string' ? data.whatsapp.trim().slice(0, 50) : '';
   const lead = { offeringId, name, email, whatsapp, marketingConsent: data.marketingConsent === true, status: 'interested', createdAt: FieldValue.serverTimestamp(), source: 'public_web' };
   await db.collection('interest_leads').add(lead);
-  await sendEmail({ to: email, subject: 'You’re on the Werks Sessions interest list', html: `<p>Hi ${name},</p><p>Thanks for raising your hand for ${offeringId === 'cupping' ? 'Public Cupping' : 'Brew 101'}. We will be in touch when a table is ready.</p><p>— Grey Matter Coffee Werks</p>` });
+  await sendEmail({ to: email, subject: 'You’re on the Werks Sessions interest list', html: `<p>Hi ${escapeHtml(name)},</p><p>Thanks for raising your hand for ${offeringId === 'cupping' ? 'Public Cupping' : 'Brew 101'}. We will be in touch when a table is ready.</p><p>— Grey Matter Coffee Werks</p>` });
   return { ok: true };
 });
 
 exports.activateLearner = onCall({ region }, async (request) => {
   const auth = requireAuth(request);
+  const email = typeof auth.token.email === 'string' ? auth.token.email.trim().toLowerCase() : '';
+  if (!/^\S+@\S+\.\S+$/.test(email)) throw new HttpsError('permission-denied', 'Use the email address invited by Werks Sessions.');
   const linkRef = db.collection('identity_links').doc(auth.uid);
-  const existing = await linkRef.get();
-  if (existing.exists) return { personId: existing.data().personId, role: existing.data().role };
-  const personId = randomUUID();
-  const role = 'learner';
+  const inviteRef = db.collection('account_invites').doc(email);
+  let identity = null;
   await db.runTransaction(async (transaction) => {
+    const existing = await transaction.get(linkRef);
+    if (existing.exists) {
+      identity = { personId: existing.data().personId, role: existing.data().role };
+      return;
+    }
+    const invite = await transaction.get(inviteRef);
+    if (!invite.exists || !isAccountInviteEligible(invite.data(), email)) {
+      throw new HttpsError('permission-denied', 'This email does not have a confirmed Werks Sessions invitation.');
+    }
+    const personId = randomUUID();
+    const role = 'learner';
     transaction.set(db.collection('people').doc(personId), { personId, email: auth.token.email || '', displayName: auth.token.name || '', createdAt: FieldValue.serverTimestamp(), status: 'active' });
     transaction.set(linkRef, { provider: 'firebase', providerSubject: auth.uid, personId, role, createdAt: FieldValue.serverTimestamp() });
+    transaction.update(inviteRef, { status: 'claimed', personId, claimedAt: FieldValue.serverTimestamp() });
+    identity = { personId, role };
   });
-  await getAuth().setCustomUserClaims(auth.uid, { person_id: personId, role });
-  return { personId, role, refreshRequired: true };
+  await getAuth().setCustomUserClaims(auth.uid, { person_id: identity.personId, role: identity.role });
+  return { ...identity, refreshRequired: true };
 });
 
 exports.confirmEnrolment = onCall({ region }, async (request) => {
@@ -84,7 +118,13 @@ exports.recordAttendance = onCall({ region }, async (request) => {
 });
 
 exports.submitChallenge = onCall({ region }, async (request) => {
-  const auth = requireAuth(request); const personId = personIdFor(auth);
+  const auth = requireRole(request, ['learner']); const personId = personIdFor(auth);
+  const enrolments = await db.collection('enrolments').where('personId', '==', personId).get();
+  const attendedBrew101 = enrolments.docs.some((document) => {
+    const enrolment = document.data();
+    return enrolment.offeringId === 'brew101' && enrolment.status === 'attended';
+  });
+  if (!attendedBrew101) throw new HttpsError('failed-precondition', 'Attend Brew 101 before submitting your practice card.');
   const weeks = request.data?.weeks;
   if (!Array.isArray(weeks) || weeks.length !== 4 || weeks.some((week) => !week.complete || !week.coffee || !week.recipe || !week.tastingNote || !week.changeMade)) throw new HttpsError('failed-precondition', 'Complete all four practice weeks before submitting.');
   await db.collection('challenges').doc(personId).set({ personId, weeks, status: 'submitted', submittedAt: FieldValue.serverTimestamp() }, { merge: true });

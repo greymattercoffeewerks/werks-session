@@ -8,15 +8,27 @@ function requireAuth(request) {
 function requireRole(request, roles) {
   const auth = requireAuth(request);
   if (!roles.includes(auth.token.role)) throw new HttpsError('permission-denied', 'You do not have access to this action.');
+  personIdFor(auth);
   return auth;
 }
 
 function personIdFor(auth) {
-  return auth.token.person_id || auth.uid;
+  if (typeof auth?.token?.person_id !== 'string' || !auth.token.person_id) {
+    throw new HttpsError('permission-denied', 'Your account is not ready for this action.');
+  }
+  return auth.token.person_id;
 }
 
 function isResourceEligible(enrolment) {
   return ['confirmed', 'attended'].includes(enrolment.status) || ['deposit_paid', 'paid'].includes(enrolment.paymentStatus);
 }
 
-module.exports = { isResourceEligible, personIdFor, requireAuth, requireRole };
+function isAccountInviteEligible(invite, email) {
+  return Boolean(invite
+    && invite.status === 'ready'
+    && invite.role === 'learner'
+    && typeof invite.email === 'string'
+    && invite.email.trim().toLowerCase() === email);
+}
+
+module.exports = { isAccountInviteEligible, isResourceEligible, personIdFor, requireAuth, requireRole };

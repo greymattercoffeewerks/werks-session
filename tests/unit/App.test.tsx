@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from '../../src/App';
 
 const portal = vi.hoisted(() => ({
@@ -12,18 +12,22 @@ vi.mock('../../src/lib/portal', () => ({
   listMyLearningResources: portal.listMyLearningResources,
 }));
 
+afterEach(() => cleanup());
+
 describe('portal navigation and interest registration', () => {
-  it('switches to the learner view', () => {
+  it('does not expose demo role switching before authentication', () => {
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: 'My practice' }));
-    expect(screen.getByRole('heading', { name: 'Welcome back, Maya.' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sign in' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'My practice' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Teach' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Manage' })).not.toBeInTheDocument();
   });
 
   it('submits a selected interest offering', async () => {
-    render(<App />);
-    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Maya Lau' } });
-    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'maya@example.com' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Join the interest list' }));
+    const app = render(<App />);
+    fireEvent.change(app.getByLabelText('Name'), { target: { value: 'Maya Lau' } });
+    fireEvent.change(app.getByLabelText('Email'), { target: { value: 'maya@example.com' } });
+    fireEvent.click(app.getByRole('button', { name: 'Join the interest list' }));
 
     await waitFor(() => expect(portal.submitInterest).toHaveBeenCalledWith(expect.objectContaining({
       offeringId: 'cupping',
@@ -31,6 +35,6 @@ describe('portal navigation and interest registration', () => {
       email: 'maya@example.com',
       marketingConsent: false,
     })));
-    expect(await screen.findByRole('status')).toHaveTextContent('interest list');
+    expect(await app.findByRole('status')).toHaveTextContent('interest list');
   });
 });

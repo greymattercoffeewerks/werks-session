@@ -29,6 +29,9 @@
   "engines": {
     "node": ">=20"
   },
+  "overrides": {
+    "@grpc/grpc-js": "1.14.6"
+  },
   "dependencies": {
     "firebase": "^13.0.0",
     "react": "^18.3.1",

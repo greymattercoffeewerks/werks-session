@@ -9,6 +9,7 @@ All notable user-visible, operational, and security-impacting changes are record
 - Added the persistent Codex development protocol, local commit gate, and GitHub Actions verification baseline.
 - Added a full-screen Werks Sessions hero and About section to the public landing experience.
 - Added the approved Grey Matter Design System tokens, typography, logo, and botanical assets used by the portal.
+- Added the versioned MVP roadmap and the first identity-and-access phase: password-free email-link sign-in, staff-invitation-gated learner activation, and claim-derived private navigation.
 
 ### Changed
 
@@ -20,6 +21,7 @@ All notable user-visible, operational, and security-impacting changes are record
 ### Security
 
 - Removed all gated course-work originals and planning archives from version control; added ignored paths and non-content placeholders for the private Firebase Storage publication flow.
+- Pinned Firebase Firestore's transitive gRPC transport to the patched 1.14.6 release, clearing the production dependency-audit gate without suppressing findings.
 
 ## [2026-10-15]
 

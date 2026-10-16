@@ -2,6 +2,17 @@
 
 ## Current state
 
+Phase 1 of the versioned MVP roadmap is implemented locally: public visitors now see only Sessions, About, and Sign in. Firebase email-link sign-in creates or retrieves the provider-neutral `person_id` through `activateLearner`, refreshes the claim token, and only then renders a signed-in private state. The callable requires a staff-created, confirmed `account_invites/{lowercase-email}` record before issuing a learner claim; uninvited email-link users are signed out and denied portal access. The activation transaction re-reads its identity link so concurrent sign-ins cannot create multiple people for one Firebase subject. The former public role-switching demo dashboards are not exposed. Real cohort, learner-practice, and instructor-workspace data remain Phase 2 and Phase 3 work; the current private view is intentionally truthful about that state.
+
+The new `docs/ROADMAP.md` records the approved MVP sequence: controlled identity, cohort operations, learner/instructor loop, then pilot release. The roadmap explicitly keeps automated payments, a public calendar, resource publication, Brew 102, and SeduhID migration out of the immediate MVP scope.
+
+## 2026-10-16 Phase 1 validation
+
+- Passed: lint, strict type-checking, frontend unit tests (2), Functions authorization tests (4), Firebase Rules tests (3), secret scanning, and `node --check functions/index.js`.
+- Passed: production build in an isolated temporary output directory. The normal `npm.cmd run build` cannot replace the pre-existing locked `dist/404.html` in this sandbox; no source or generated production asset was changed as a workaround.
+- Passed: the root and Functions production dependency audits after a root npm override pinned Firestore's vulnerable transitive `@grpc/grpc-js` dependency to 1.14.6. This is a version pin, not an audit exception; revisit it when Firebase updates its own range.
+- Next action: commit the verified Phase 1 and dependency remediation, then configure Firebase Email Link sign-in, create one confirmed test invitation, and run the first controlled learner sign-in before beginning Phase 2 cohort operations.
+
 The portal has pre-existing uncommitted product work in Firebase configuration, Functions, app UI, portal client code, styles, types, Storage Rules, `.firebaserc`, and `content-drafts/`. Protocol work was added without resetting, staging, or overwriting that work.
 
 The landing experience has been redesigned as a responsive, full-viewport Werks Sessions website. It retains the existing Public Cupping and Brew 101 content and all learner, instructor, and admin flows, while adding a full-screen tasting-table hero and an About section that explains the practice-first format. No Firebase, authorization, content-publication, or resource-access behavior changed.
@@ -61,8 +72,8 @@ The visual hierarchy was subsequently refined without changing the design direct
 - GitHub branch protection must be enabled by an administrator after the verification workflow is pushed.
 - The first Codex session in this clone must review and trust `.codex/hooks.json`; repository trust is intentionally a manual security decision.
 - The Firebase project ID/account permission requires confirmation before any deployment.
-- The strict dependency gate prevents commits and merges until Firebase publishes a dependency graph without the remaining high-severity gRPC audit finding.
+- Revisit the root `@grpc/grpc-js` override when Firebase updates Firestore's dependency range, and remove it after the production audit remains clear without the pin.
 
 ## Next action
 
-Monitor Firebase release notes for a Firestore release that updates its Node-only gRPC dependency; upgrade it, rerun `npm.cmd run verify`, then enable the required GitHub Actions status check on `main`.
+Configure Firebase Email Link sign-in and run the controlled first-learner sign-in; retain the gRPC override until Firebase updates Firestore's own range, then remove it after verification.

@@ -1,24 +1,41 @@
-import { FormEvent, useMemo, useState } from 'react';
-import { demoChallenge, demoEnrolment, demoRecords, offerings, sessions } from './data/demo';
-import { listMyLearningResources, submitInterest } from './lib/portal';
-import type { Challenge, LearningResource, OfferingKind, Role } from './types';
+import { FormEvent, useEffect, useState } from 'react';
+import { offerings } from './data/demo';
+import { firebaseConfigured } from './lib/firebase';
+import {
+  completeEmailLink,
+  firebaseIdentity,
+  isEmailLink,
+  pendingSignInEmail,
+  requestEmailLink,
+} from './lib/identity';
+import { submitInterest } from './lib/portal';
+import type { Actor, OfferingKind } from './types';
 
-type View = 'home' | 'learn' | 'teach' | 'manage';
-type ResourceState = 'idle' | 'loading' | 'loaded' | 'error';
-
-const viewForRole: Record<Role, View> = {
-  learner: 'learn',
-  instructor: 'teach',
-  admin: 'manage',
-};
+type View = 'home' | 'auth' | 'account';
+type AuthState = 'idle' | 'sending' | 'sent' | 'completing' | 'error';
 
 function App() {
   const [view, setView] = useState<View>('home');
+  const [actor, setActor] = useState<Actor | null>(null);
+  const [authError, setAuthError] = useState('');
   const [interestOffering, setInterestOffering] = useState<OfferingKind>('cupping');
   const [interestMessage, setInterestMessage] = useState('');
-  const [challenge, setChallenge] = useState<Challenge>(demoChallenge);
 
-  const openRole = (role: Role) => setView(viewForRole[role]);
+  useEffect(() => firebaseIdentity.observe((nextActor, error) => {
+    setActor(nextActor);
+    if (nextActor) {
+      setAuthError('');
+      setView('account');
+    } else if (error) {
+      setAuthError(error);
+      setView('auth');
+    }
+  }), []);
+
+  useEffect(() => {
+    if (isEmailLink()) setView('auth');
+  }, []);
+
   const course = offerings.find((item) => item.id === interestOffering)!;
   const scrollToHomeSection = (sectionId: string) => {
     setView('home');
@@ -29,16 +46,28 @@ function App() {
     event.preventDefault();
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
-    await submitInterest({
-      offeringId: interestOffering,
-      name: String(form.get('name') || ''),
-      email: String(form.get('email') || ''),
-      whatsapp: String(form.get('whatsapp') || ''),
-      marketingConsent: form.get('marketingConsent') === 'on',
-    });
-    setInterestMessage(`You’re on the ${course.title} interest list. We’ll only ask you to create an account after your place is confirmed.`);
-    formElement.reset();
+    try {
+      await submitInterest({
+        offeringId: interestOffering,
+        name: String(form.get('name') || ''),
+        email: String(form.get('email') || ''),
+        whatsapp: String(form.get('whatsapp') || ''),
+        marketingConsent: form.get('marketingConsent') === 'on',
+      });
+      setInterestMessage(`You’re on the ${course.title} interest list. We’ll only ask you to create an account after your place is confirmed.`);
+      formElement.reset();
+    } catch {
+      setInterestMessage('We could not save your interest right now. Please try again shortly.');
+    }
   }
+
+  async function onSignOut() {
+    await firebaseIdentity.signOut();
+    setActor(null);
+    setView('home');
+  }
+
+  const privateLabel = actor?.role === 'admin' ? 'Manage' : actor?.role === 'instructor' ? 'Teach' : 'My practice';
 
   return (
     <div className="app-shell">
@@ -49,16 +78,20 @@ function App() {
         <nav aria-label="Primary navigation">
           <button className={view === 'home' ? 'active' : ''} onClick={() => setView('home')}>Sessions</button>
           <button onClick={() => scrollToHomeSection('about')}>About</button>
-          <button className={view === 'learn' ? 'active' : ''} onClick={() => openRole('learner')}>My practice</button>
-          <button className={view === 'teach' ? 'active' : ''} onClick={() => openRole('instructor')}>Teach</button>
-          <button className={view === 'manage' ? 'active' : ''} onClick={() => openRole('admin')}>Manage</button>
+          {actor ? (
+            <>
+              <button className={view === 'account' ? 'active' : ''} onClick={() => setView('account')}>{privateLabel}</button>
+              <button onClick={onSignOut}>Sign out</button>
+            </>
+          ) : (
+            <button className={view === 'auth' ? 'active' : ''} onClick={() => setView('auth')}>Sign in</button>
+          )}
         </nav>
       </header>
 
       {view === 'home' && <Home onAbout={() => scrollToHomeSection('about')} onInterest={(offering) => { setInterestOffering(offering); document.getElementById('interest')?.scrollIntoView({ behavior: 'smooth' }); }} />}
-      {view === 'learn' && <Learner challenge={challenge} setChallenge={setChallenge} />}
-      {view === 'teach' && <Instructor />}
-      {view === 'manage' && <Admin />}
+      {view === 'auth' && <SignIn error={authError} />}
+      {view === 'account' && actor && <Account actor={actor} />}
 
       {view === 'home' && (
         <section id="interest" className="interest-section" aria-labelledby="interest-heading">
@@ -133,72 +166,72 @@ function Home({ onInterest, onAbout }: { onInterest: (offering: OfferingKind) =>
   );
 }
 
-function Learner({ challenge, setChallenge }: { challenge: Challenge; setChallenge: (challenge: Challenge) => void }) {
-  const completed = challenge.weeks.filter((week) => week.complete).length;
-  const canSubmit = completed === 4;
-  const [resources, setResources] = useState<LearningResource[]>([]);
-  const [resourceState, setResourceState] = useState<ResourceState>('idle');
+function SignIn({ error }: { error: string }) {
+  const [completing, setCompleting] = useState(() => isEmailLink());
+  const [email, setEmail] = useState(() => pendingSignInEmail());
+  const [state, setState] = useState<AuthState>('idle');
+  const [message, setMessage] = useState('');
 
-  const updateWeek = (weekNumber: number, field: 'coffee' | 'recipe' | 'tastingNote' | 'changeMade', value: string) => {
-    setChallenge({ ...challenge, weeks: challenge.weeks.map((week) => week.week === weekNumber ? { ...week, [field]: value } : week) });
-  };
-  const finishWeek = (weekNumber: number) => {
-    setChallenge({ ...challenge, weeks: challenge.weeks.map((week) => week.week === weekNumber ? { ...week, complete: true } : week) });
-  };
-  async function loadResources() {
-    setResourceState('loading');
-    try { setResources(await listMyLearningResources()); setResourceState('loaded'); }
-    catch { setResourceState('error'); }
+  useEffect(() => {
+    if (error) {
+      setState('error');
+      setMessage(error);
+    }
+  }, [error]);
+
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setState(completing ? 'completing' : 'sending');
+    setMessage('');
+    try {
+      if (completing) {
+        await completeEmailLink(email);
+      } else {
+        await requestEmailLink(email);
+        setState('sent');
+        setMessage('Check your email for a secure sign-in link. It may take a few minutes to arrive.');
+      }
+    } catch (submissionError) {
+      setState('error');
+      setMessage(submissionError instanceof Error ? submissionError.message : 'We could not complete sign-in. Please try again.');
+      if (completing) setCompleting(false);
+    }
   }
 
   return (
-    <main className="dashboard">
-      <DashboardHeader title="Welcome back, Maya." subtitle="Your next good cup is a small experiment." />
-      <div className="dashboard-grid">
-        <section className="panel span-2"><p className="eyebrow">Your next session</p><h2>Manual Brew Foundations</h2><p className="status confirmed">Confirmed · payment received</p><p>We’ll send your exact session time after the second group seat is confirmed. Your account is now ready for the practice that follows.</p><button className="button secondary">View booking details</button></section>
-        <section className="panel"><p className="eyebrow">Your record</p>{demoRecords.map((record) => <div className="record" key={record.id}><strong>{record.title}</strong><span>{record.type.replace('_', ' ')} · {record.issuedAt}</span></div>)}<p className="muted">Attendance is a record of taking part, not a competency certificate.</p></section>
-      </div>
-      <ResourcePanel resources={resources} state={resourceState} eligible={demoEnrolment.status === 'confirmed' || demoEnrolment.status === 'attended' || ['deposit_paid', 'paid'].includes(demoEnrolment.paymentStatus)} onCheck={loadResources} />
-      <section className="practice">
-        <div className="section-heading"><div><p className="eyebrow">30-day practice</p><h2>Build your own baseline.</h2></div><span className="progress-label">{completed} / 4 weeks recorded</span></div>
-        <p>Keep one thing steady, make one change, then write down what you noticed. This completed practice card is the entry point for Brew 102.</p>
-        <div className="week-grid">
-          {challenge.weeks.map((week) => (
-            <article className={week.complete ? 'week-card done' : 'week-card'} key={week.week}>
-              <div className="week-title"><span>Week {week.week}</span><strong>{week.focus}</strong></div>
-              <label>Coffee<input value={week.coffee} onChange={(event) => updateWeek(week.week, 'coffee', event.target.value)} placeholder="What did you brew?" /></label>
-              <label>Recipe<input value={week.recipe} onChange={(event) => updateWeek(week.week, 'recipe', event.target.value)} placeholder="Dose, water, grind" /></label>
-              <label>What changed?<textarea value={week.changeMade} onChange={(event) => updateWeek(week.week, 'changeMade', event.target.value)} /></label>
-              <label>What did you taste?<textarea value={week.tastingNote} onChange={(event) => updateWeek(week.week, 'tastingNote', event.target.value)} /></label>
-              {!week.complete ? <button className="text-button" onClick={() => finishWeek(week.week)}>Mark this week recorded →</button> : <span className="status complete">Recorded</span>}
-            </article>
-          ))}
-        </div>
-        <button className="button primary" disabled={!canSubmit || challenge.status === 'submitted'} onClick={() => setChallenge({ ...challenge, status: 'submitted' })}>{challenge.status === 'submitted' ? 'Submitted for review' : 'Submit practice card for review'}</button>
-        {!canSubmit && <p className="muted">Complete all four weeks before submitting your practice card.</p>}
+    <main className="dashboard auth-page">
+      <DashboardHeader title={completing ? 'Complete your sign-in.' : 'Your account, when your place is ready.'} subtitle="Werks Sessions uses a password-free sign-in link sent to the email used for your booking." />
+      <section className="panel auth-panel">
+        {!firebaseConfigured ? <p className="form-success" role="status">Account access is not configured in this preview. The public sessions experience remains available.</p> : (
+          <form className="interest-form" onSubmit={onSubmit}>
+            <label>Email used for your booking<input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" /></label>
+            <button className="button primary" type="submit" disabled={state === 'sending' || state === 'completing'}>
+              {state === 'sending' ? 'Sending secure link…' : state === 'completing' ? 'Completing sign-in…' : completing ? 'Complete sign-in' : 'Email me a sign-in link'}
+            </button>
+            {message && <p className="form-success" role="status">{message}</p>}
+          </form>
+        )}
       </section>
     </main>
   );
 }
 
-function ResourcePanel({ resources, state, eligible, onCheck }: { resources: LearningResource[]; state: ResourceState; eligible: boolean; onCheck: () => void }) {
+function Account({ actor }: { actor: Actor }) {
+  const isLearner = actor.role === 'learner';
+  const roleTitle = actor.role === 'admin' ? 'Operations access' : actor.role === 'instructor' ? 'Teaching access' : 'Learner access';
   return (
-    <section className="panel resource-panel">
-      <div><p className="eyebrow">Session materials</p><h2>Made available after acceptance.</h2><p>Guides and worksheets are visible only to learners with a paid or confirmed place. Nothing is published here yet.</p></div>
-      <div className="resource-actions"><span className={eligible ? 'status confirmed' : 'status proposed'}>{eligible ? 'Accepted learner' : 'Access pending'}</span><button className="button secondary" onClick={onCheck} disabled={state === 'loading'}>{state === 'loading' ? 'Checking materials…' : 'Check my materials'}</button></div>
-      {state === 'loaded' && (resources.length ? <ul className="resource-list">{resources.map((resource) => <li key={resource.id}><div><strong>{resource.title}</strong><span>{resource.description} · {resource.format.replace('_', ' ')}</span></div><a className="text-button" href={resource.downloadUrl} target="_blank" rel="noreferrer">Open guide ↗</a></li>)}</ul> : <p className="muted resource-empty">No session material has been published to your account yet.</p>)}
-      {state === 'error' && <p className="form-success">We could not confirm resource access. Please sign in with the account used for your booking and try again.</p>}
-    </section>
+    <main className="dashboard">
+      <DashboardHeader title={`Welcome, ${actor.displayName}.`} subtitle="Your access is linked to the email you used for Werks Sessions." />
+      <section className="panel">
+        <p className="eyebrow">{roleTitle}</p>
+        <h2>Your account is active.</h2>
+        <p>{isLearner
+          ? 'Your confirmed booking, session materials, and practice card will appear here once staff have prepared your place.'
+          : 'Your private workspace will appear here as the cohort operations tools are introduced.'}</p>
+        <p className="muted">Signed in as {actor.email}.</p>
+      </section>
+    </main>
   );
-}
-
-function Instructor() {
-  return <main className="dashboard"><DashboardHeader title="Teaching table" subtitle="Prepare the next comparison before anyone notices it is coming." /><div className="dashboard-grid"><section className="panel span-2"><p className="eyebrow">Assigned session</p><h2>Manual Brew Foundations</h2><p className="status proposed">1 paid seat · minimum 2 before date confirmation</p><dl className="facts"><div><dt>Venue</dt><dd>Noice, after hours</dd></div><div><dt>Format</dt><dd>3.5 hours · cap 3</dd></div><div><dt>Next action</dt><dd>Follow up with interest list</dd></div></dl><button className="button secondary">Open session checklist</button></section><section className="panel"><p className="eyebrow">Practice review</p><h2>1 waiting</h2><p>Maya Lau submitted all four weeks. Review before opening the Brew 102 interest route.</p><button className="text-button">Review practice card →</button></section></div><section className="panel"><p className="eyebrow">Roster</p><table><thead><tr><th>Learner</th><th>Payment</th><th>Invite</th><th>Attendance</th></tr></thead><tbody><tr><td>Maya Lau</td><td><span className="status confirmed">Paid</span></td><td>Sent</td><td><button className="table-action">Mark when live</button></td></tr><tr><td>Seat 2</td><td>Awaiting confirmation</td><td>—</td><td>—</td></tr></tbody></table></section></main>;
-}
-
-function Admin() {
-  const proposed = useMemo(() => sessions.filter((session) => session.status === 'proposed'), []);
-  return <main className="dashboard"><DashboardHeader title="Operations" subtitle="Keep the calendar honest. Confirm a table only when it is ready." /><div className="metrics"><article><span>Interest leads</span><strong>18</strong><small>7 this month</small></article><article><span>Confirmed learners</span><strong>8</strong><small>Across two sessions</small></article><article><span>Practice completion</span><strong>62%</strong><small>of eligible learners</small></article><article><span>Repeat interest</span><strong>38%</strong><small>101 → next step</small></article></div><section className="panel"><p className="eyebrow">Session readiness</p><table><thead><tr><th>Session</th><th>Status</th><th>Seats</th><th>Decision</th></tr></thead><tbody>{proposed.map((session) => <tr key={session.id}><td>{session.title}</td><td><span className="status proposed">Proposed</span></td><td>{session.confirmedSeats} of {session.minimum} minimum · {session.capacity} cap</td><td><button className="table-action">Open enrolments</button></td></tr>)}</tbody></table></section><section className="dashboard-grid"><section className="panel"><p className="eyebrow">Record integrity</p><h2>Originals are not credentials.</h2><p>Issue attendance after a completed session. Issue challenge completion only after instructor approval. Keep the credential type locked until an assessed, licensed pathway exists.</p></section><section className="panel"><p className="eyebrow">90-day follow-up</p><h2>Measure the real return.</h2><p>Export confirmed cohorts and redemption codes for manual bean-reorder and CafePartners reconciliation. Do not manufacture sales data in the portal.</p></section></section></main>;
 }
 
 function DashboardHeader({ title, subtitle }: { title: string; subtitle: string }) {
