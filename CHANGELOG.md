@@ -15,6 +15,7 @@ All notable user-visible, operational, and security-impacting changes are record
 ### Changed
 
 - Replaced the public callable interest form with an offering-specific email enquiry so the live public path works without Cloud Functions.
+- Directed public Werks Sessions enquiries to `greymatter.cw@outlook.com`.
 - Replaced the email-link sign-in screen with truthful learner-access guidance; confirmed-booking access is now a staff-operated step.
 - Refreshed the responsive public portal around the coffee-tasting workshop experience while preserving existing session and dashboard content.
 - Refined display scale, font weight, rules, and decorative contrast for a quieter, more controlled reading experience.

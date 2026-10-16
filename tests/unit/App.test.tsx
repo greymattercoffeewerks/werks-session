@@ -17,7 +17,9 @@ describe('portal navigation and interest registration', () => {
   it('creates a staff-operated email enquiry for the selected offering', () => {
     const app = render(<App />);
     fireEvent.change(app.getByLabelText('Session'), { target: { value: 'brew101' } });
-    expect(app.getByRole('link', { name: 'Email us about Brew 101' })).toHaveAttribute(
+    const enquiryLink = app.getByRole('link', { name: 'Email us about Brew 101' });
+    expect(enquiryLink).toHaveAttribute('href', expect.stringContaining('mailto:greymatter.cw@outlook.com'));
+    expect(enquiryLink).toHaveAttribute(
       'href',
       expect.stringContaining('Werks%20Sessions%20interest%20-%20Brew%20101'),
     );

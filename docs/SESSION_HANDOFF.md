@@ -2,7 +2,7 @@
 
 ## Current state
 
-Werks Sessions is being delivered as a Firebase Spark MVP. The public path is deliberately simple: Hosting presents Public Cupping and Brew 101, then opens an offering-specific email enquiry. It does not write to Firestore, call a Function, create an account, reserve a place, or imply an automated reply.
+Werks Sessions is being delivered as a Firebase Spark MVP. The public path is deliberately simple: Hosting presents Public Cupping and Brew 101, then opens an offering-specific enquiry to `greymatter.cw@outlook.com`. It does not write to Firestore, call a Function, create an account, reserve a place, or imply an automated reply.
 
 The former public email-link sign-in and activation route is no longer exposed. It required a callable Function to validate invitations and issue custom claims, which cannot deploy on Spark. Learner access is now arranged by staff after a confirmed booking.
 

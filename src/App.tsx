@@ -4,7 +4,7 @@ import type { OfferingKind } from './types';
 
 type View = 'home' | 'access';
 
-const sessionsEmail = 'sessions@greymatter.coffee';
+const sessionsEmail = 'greymatter.cw@outlook.com';
 
 function interestEmailHref(offering: OfferingKind): string {
   const course = offerings.find((item) => item.id === offering)!;
