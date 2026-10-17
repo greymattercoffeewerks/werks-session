@@ -36,6 +36,8 @@ Valid roles are `learner`, `instructor`, and `admin`. Only active grants are aut
 
 Create this only after payment and a place are confirmed. A learner requires it before reading, creating, or updating their challenge for that session.
 
+The learner portal can query only confirmed enrolments whose Firebase UID and provider-neutral `personId` match the active access grant. Pending or mismatched enrolments cannot be read or listed by the learner browser.
+
 ### `teaching_assignments/{sessionId}_{uid}`
 
 ```json

@@ -1,5 +1,6 @@
 import { getApps, initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
 
 /**
  * This is Firebase's public web-app configuration, not a credential. Environment
@@ -26,3 +27,4 @@ const config = {
 export const firebaseConfigured = Boolean(config.apiKey && config.projectId && config.appId);
 const app = firebaseConfigured ? (getApps()[0] ?? initializeApp(config)) : undefined;
 export const auth = app ? getAuth(app) : undefined;
+export const firestore = app ? getFirestore(app) : undefined;

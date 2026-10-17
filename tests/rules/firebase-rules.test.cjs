@@ -50,6 +50,7 @@ before(async () => {
     await db.doc('access_grants/unassigned-instructor-uid').set({ personId: 'person-789', role: 'instructor', status: 'active' });
     await db.doc('enrolments/brew101-01_learner-uid').set({ sessionId: 'brew101-01', uid: 'learner-uid', personId: 'person-123', status: 'confirmed' });
     await db.doc('enrolments/brew101-02_learner-uid').set({ sessionId: 'brew101-02', uid: 'learner-uid', personId: 'person-123', status: 'confirmed' });
+    await db.doc('enrolments/brew101-pending_learner-uid').set({ sessionId: 'brew101-pending', uid: 'learner-uid', personId: 'person-123', status: 'pending' });
     await db.doc('teaching_assignments/brew101-01_instructor-uid').set({ sessionId: 'brew101-01', uid: 'instructor-uid', status: 'active' });
     await db.doc('sessions/brew101-01/challenges/learner-uid').set(challenge());
   });
@@ -64,6 +65,13 @@ describe('Spark access grants and learner practice', () => {
     await assertSucceeds(db.doc('people/person-123').get());
     await assertSucceeds(db.doc('sessions/brew101-01').get());
     await assertSucceeds(db.doc('sessions/brew101-01/challenges/learner-uid').get());
+    await assertFails(db.doc('enrolments/brew101-pending_learner-uid').get());
+    await assertSucceeds(db.collection('enrolments')
+      .where('uid', '==', 'learner-uid')
+      .where('personId', '==', 'person-123')
+      .where('status', '==', 'confirmed')
+      .get());
+    await assertFails(db.collection('enrolments').where('uid', '==', 'learner-uid').get());
     await assertFails(db.doc('access_grants/instructor-uid').get());
     await assertFails(db.doc('people/person-456').get());
   });

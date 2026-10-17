@@ -4,7 +4,7 @@
 
 Werks Sessions is being delivered as a Firebase Spark MVP. The public path is deliberately simple: Hosting presents Public Cupping and Brew 101, then opens an offering-specific enquiry to `greymatter.cw@outlook.com`. It does not write to Firestore, call a Function, create an account, reserve a place, or imply an automated reply.
 
-Phase 2.1 adds a Google account foundation at Learner access. Its Firebase web-app configuration is public, production configuration; the screen supports Google sign-in and sign-out but does not query Firestore, call a Function, or expose learner data. A signed-in account remains pending until staff separately confirm a booking and seed its manual access documents. The dormant browser email-link/custom-claim and callable helpers were removed. The current client will therefore continue to show its pending state even after staff seed a grant; exposing learner data is a later phase.
+Phase 3.1 adds the first learner-facing Firestore reads at Learner access. A signed-in account remains pending unless staff seed an active grant and confirmed enrolment. A granted learner can see only their confirmed session title and a read-only four-week Brew 101 practice preview. The browser cannot write practice, roles, enrolments, attendance, or staff records. The dormant browser email-link/custom-claim and callable helpers remain removed.
 
 Firestore now has a live Spark access-grant model in the default Standard database in `asia-southeast1`, with production-mode deny-by-default rules. It uses manually seeded `access_grants`, confirmed enrolments, and teaching assignments rather than custom claims. The staff procedure is in `docs/SPARK_ACCESS_GRANTS.md`. No browser client can grant a role, person mapping, enrolment, attendance, or instructor status.
 
@@ -28,8 +28,12 @@ The trusted Functions, private Storage flow, and unpublished resource code remai
 - Passed: provisioned the Firebase Spark Cloud Firestore default database in `asia-southeast1` with production-mode rules and no backups.
 - Passed: released `firestore.rules` to the production Firestore database. The Rules Playground allowed the scoped test learner to read `sessions/brew101-test-01` and denied the identical read to an authenticated, ungranted UID.
 - Passed: manually seeded only the scoped test learner grant, confirmed Brew 101 test enrolment, and minimal test session record needed for this verification.
-- Not performed: a Functions release or a Storage release. Hosting is unchanged from Phase 2.1.
+- Passed: full Phase 3.1 verification - lint, strict type checking, frontend unit tests (4), Functions authorization tests (4), Firebase Rules emulator tests (4), production build, secret scan, and both production dependency audits (0 vulnerabilities).
+- Passed: manual quality and security review found no release blocker. The learner client has no write path; Firestore Rules independently restrict enrolment reads and queries to the active learner's confirmed records.
+- Passed: deployed the Phase 3.1 Hosting build and Firestore Rules/indexes; `https://werks-session.web.app` returned HTTP 200 and served the new Phase 3.1 bundle.
+- Non-blocking: Vite reports an 841 kB minified JavaScript chunk. Frontend owner should assess code splitting before Phase 3.2 expands the learner workspace.
+- Not performed: a Functions release or a Storage release.
 
 ## Next action
 
-Phase 2.2 is complete. Begin Phase 3 only when ready to add the first learner-facing Firestore reads and practice experience; retain staff-only manual grant creation during Spark operation.
+Ask the staff-controlled test learner to sign in at `https://werks-session.web.app` and confirm the Brew 101 test session renders. Then Phase 3.2 can add learner-owned four-week practice entry and submission while retaining staff-only manual grant creation during Spark operation.

@@ -7,10 +7,16 @@ All notable user-visible, operational, and security-impacting changes are record
 ### Added
 
 - Provisioned the Firebase Spark Cloud Firestore default database in `asia-southeast1` in production mode for manually granted learner access.
+- Added the first learner-facing Firestore read: confirmed Brew 101 sessions and a read-only four-week practice preview.
+
+### Changed
+
+- Replaced the granted learner's generic pending screen with a confirmed-session view; accounts without a confirmed enrolment remain pending.
 
 ### Security
 
 - Released the deny-by-default Firestore Rules and verified in the live Rules Playground that the scoped learner can read its confirmed test session while an authenticated, ungranted UID is denied.
+- Scoped Firestore enrolment queries to the active learner's UID, provider-neutral person ID, and confirmed status before exposing a session title.
 
 ## [2026-10-16]
 

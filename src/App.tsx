@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { User } from 'firebase/auth';
 import { offerings } from './data/demo';
 import { authErrorMessage, observeAccount, signInWithGoogle, signOut } from './lib/google-auth';
+import { loadLearnerAccess, type LearnerAccess as LearnerAccessState } from './lib/learner-access';
 import type { OfferingKind } from './types';
 
 type View = 'home' | 'access';
@@ -112,10 +113,38 @@ function Home({ onInterest, onAbout }: { onInterest: (offering: OfferingKind) =>
 
 function LearnerAccess() {
   const [account, setAccount] = useState<User | null | undefined>(undefined);
+  const [learnerAccess, setLearnerAccess] = useState<LearnerAccessState | undefined>(undefined);
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => observeAccount(setAccount), []);
+
+  useEffect(() => {
+    if (!account) {
+      setLearnerAccess(undefined);
+      return undefined;
+    }
+
+    let cancelled = false;
+    setLearnerAccess(undefined);
+    setError('');
+    loadLearnerAccess(account.uid)
+      .then((access) => {
+        if (!cancelled) {
+          setLearnerAccess(access);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setError('We could not check your learner access. Please try again or contact Werks Sessions.');
+          setLearnerAccess({ state: 'pending' });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [account]);
 
   const continueWithGoogle = async () => {
     setError('');
@@ -147,13 +176,49 @@ function LearnerAccess() {
   }
 
   if (account) {
+    if (learnerAccess === undefined) {
+      return (
+        <main className="dashboard auth-page">
+          <DashboardHeader title="Checking confirmed sessions." subtitle={`Signed in as ${account.email ?? 'your Google account'}.`} />
+          <section className="panel auth-panel" aria-live="polite"><p>Reading the sessions staff have confirmed for you.</p></section>
+        </main>
+      );
+    }
+
+    if (learnerAccess.state === 'confirmed' && learnerAccess.sessions.length > 0) {
+      return (
+        <main className="dashboard learner-page">
+          <DashboardHeader title="Your confirmed sessions." subtitle="Your table details are ready. Practice will open here after Brew 101." />
+          <section className="session-list" aria-labelledby="confirmed-sessions-heading">
+            <div className="session-list-heading"><p className="eyebrow">Confirmed booking</p><h2 id="confirmed-sessions-heading">Your table</h2></div>
+            {learnerAccess.sessions.map((session) => (
+              <article className="panel session-card" key={session.id}>
+                <div><p className="eyebrow">Werks Sessions</p><h3>{session.title}</h3><p>This session is confirmed for the Google account you signed in with.</p></div>
+                <span className="status confirmed">Confirmed</span>
+              </article>
+            ))}
+          </section>
+          <section className="practice-preview" aria-labelledby="practice-preview-heading">
+            <div><p className="eyebrow">Brew 101 follow-through</p><h2 id="practice-preview-heading">Four weeks of closer cups.</h2><p>After your table, this is where you will record one useful observation and one deliberate change each week. There is nothing to submit yet.</p></div>
+            <ol className="practice-weeks">
+              {['Notice the cup', 'Change one thing', 'Compare the result', 'Keep the next step'].map((label, index) => (
+                <li key={label}><span>Week {index + 1}</span><strong>{label}</strong><small>Opens after Brew 101</small></li>
+              ))}
+            </ol>
+          </section>
+          <button className="button secondary learner-sign-out" onClick={leaveAccount}>Sign out</button>
+          {error && <p className="auth-message" role="alert">{error}</p>}
+        </main>
+      );
+    }
+
     return (
       <main className="dashboard auth-page">
         <DashboardHeader title="Access is being arranged." subtitle={`Signed in as ${account.email ?? 'your Google account'}.`} />
         <section className="panel auth-panel" aria-labelledby="pending-access-heading">
           <p className="eyebrow">Booking confirmation required</p>
           <h2 id="pending-access-heading">Signing in does not create learner access.</h2>
-          <p>Once your place is confirmed, Werks Sessions will add access to the session you have booked. Until then, there is no course material or cohort data here.</p>
+          <p>{learnerAccess.state === 'confirmed' ? 'Your learner access is active, but there are no confirmed sessions to show yet. Werks Sessions will add the agreed session personally.' : 'Once your place is confirmed, Werks Sessions will add access to the session you have booked. Until then, there is no course material or cohort data here.'}</p>
           <button className="button secondary" onClick={leaveAccount}>Sign out</button>
           {error && <p className="auth-message" role="alert">{error}</p>}
         </section>

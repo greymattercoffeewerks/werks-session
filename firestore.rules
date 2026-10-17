@@ -84,10 +84,16 @@ service cloud.firestore {
     match /access_grants/{uid} { allow get: if signedIn() && request.auth.uid == uid; allow list, write: if false; }
     match /teaching_assignments/{assignmentId} { allow get: if isAdmin() || (isInstructor() && resource.data.uid == request.auth.uid); allow list, write: if false; }
     match /enrolments/{enrolmentId} {
-      allow get: if hasActiveGrant()
-        && ((resource.data.uid == request.auth.uid && resource.data.personId == accessGrant().data.personId)
-          || teaches(resource.data.sessionId));
-      allow list, write: if false;
+      allow get: if (hasActiveGrant()
+        && resource.data.uid == request.auth.uid
+        && resource.data.personId == accessGrant().data.personId
+        && resource.data.status == 'confirmed')
+        || teaches(resource.data.sessionId);
+      allow list: if hasActiveGrant()
+        && resource.data.uid == request.auth.uid
+        && resource.data.personId == accessGrant().data.personId
+        && resource.data.status == 'confirmed';
+      allow write: if false;
     }
     match /people/{personId} { allow get: if ownsPerson(personId) || isAdmin(); allow list, write: if false; }
     match /learning_records/{record} { allow get: if ownsPerson(resource.data.personId) || isAdmin(); allow list, write: if false; }
