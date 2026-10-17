@@ -39,10 +39,11 @@ The trusted Functions, private Storage flow, and unpublished resource code remai
 - Passed: full Phase 3.2.1 verification - lint, strict type checking, frontend unit tests (5), Functions authorization tests (4), Firebase Rules emulator tests (4), production build, secret scan, and both production dependency audits (0 vulnerabilities).
 - Passed: independent quality review found no correctness, accessibility, or regression blocker. The visible completion control is a normal keyboard-focusable checkbox, and each week has its own clear save and submit action.
 - Passed: independent security review found no authorization bypass, new public path, secret, or production dependency finding. Emulator coverage proves a learner can continue drafting later weeks after submission but cannot alter an already submitted week.
-- Pending release approval: Phase 3.2.1 corrects the visual completion checkbox and changes practice to independently submitted, learner-locked weeks. Deploy both Firebase Hosting and Firestore Rules; indexes are unchanged.
+- Passed: deployed the Phase 3.2.1 Hosting build. `https://werks-session.web.app` returned HTTP 200 and served bundle `index-BRm-E5jq.js` with the per-week submit action.
+- Passed: released the Phase 3.2.1 Firestore Rules. The CLI compiled and released `firestore.rules`; Firestore indexes are unchanged and were not deployed.
 - Non-blocking: Vite reports an 860 kB minified JavaScript chunk. Frontend owner should assess code splitting before Phase 3.3 expands the learner workspace.
 - Not performed: a Functions release or a Storage release.
 
 ## Next action
 
-Approve the Phase 3.2.1 Firebase Hosting and Firestore Rules deployment, then have the staff-controlled test learner save a draft and submit Week 1 while retaining access to Weeks 2–4. Firestore indexes are unchanged. After the smoke test, Phase 3.3 can add the instructor review surface while retaining staff-only manual grant creation during Spark operation.
+Have the staff-controlled test learner save a draft and submit Week 1 at `https://werks-session.web.app`, while retaining access to Weeks 2–4. After the smoke test, Phase 3.3 can add the instructor review surface while retaining staff-only manual grant creation during Spark operation.
