@@ -16,6 +16,8 @@ Phase 3.4.2 refines the public hero learning-table card. Its large statement and
 
 Phase 3.4.3 restores two restrained Grey Matter turquoise brand cues: the hero identity label on charcoal and the About marker in teal-deep on cream. It does not repurpose teal as a generic UI or status colour.
 
+Phase 3.4.4a clarifies the learner-facing Brew 101 practice journey. It explains the four-week cadence, independent save, submit, and review states, and next steps without changing any Spark access or review behaviour.
+
 ## Spark architecture decision
 
 - Keep Firebase Hosting for the public offer.
@@ -71,6 +73,11 @@ Phase 3.4.3 restores two restrained Grey Matter turquoise brand cues: the hero i
 - Passed: deployed Phase 3.4.2 Hosting. `https://werks-session.web.app` returned HTTP 200 and served the refined hero-card CSS bundle `index-D-IFA7ls.css`.
 - Not deployed: Firestore Rules, indexes, Functions, and Storage. They are unchanged.
 
+- Passed: Phase 3.4.4a focused verification — lint, strict type checking, seven frontend unit tests, four Functions authorization tests, and a production build.
+- Passed: the Impeccable UI consistency detector reported no issues. Quality review found the copy matches the existing individual-week workflow; security review found no new write, access, secret, Rules, or backend path.
+- Passed: deployed Phase 3.4.4a Hosting. `https://werks-session.web.app` returned HTTP 200 and served bundle `index-DwkyvUgi.js` containing the learner practice, submission, and returned-for-revision copy.
+- Not to deploy: Firestore Rules, indexes, Functions, and Storage. They are unchanged.
+
 ## Next action
 
-Prepare the remaining learner and instructor content batches before the paid pilot. Retain the documented one-document-per-learner limitation until practice weeks are split into individually protected documents.
+Prepare the instructor-facing content batch before the paid pilot. Retain the documented one-document-per-learner limitation until practice weeks are split into individually protected documents.

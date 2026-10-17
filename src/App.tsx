@@ -213,7 +213,7 @@ function LearnerAccess() {
     if (learnerAccess.state === 'confirmed' && learnerAccess.sessions.length > 0) {
       return (
         <main className="dashboard learner-page">
-          <DashboardHeader title="Your confirmed sessions." subtitle="Your table details are ready. Practice will open here after Brew 101." />
+          <DashboardHeader title="Your Brew 101 table." subtitle="Your booking is confirmed. After the table, use this space to notice one useful change each week and keep a practical record of the cups you make." />
           <section className="session-list" aria-labelledby="confirmed-sessions-heading">
             <div className="session-list-heading"><p className="eyebrow">Confirmed booking</p><h2 id="confirmed-sessions-heading">Your table</h2></div>
             {learnerAccess.sessions.map((session) => (
@@ -311,7 +311,7 @@ function PracticeWorkspace({ sessionId, sessionTitle, uid }: { sessionId: string
     try {
       const startedChallenge = await startPracticeChallenge(sessionId, uid);
       setChallenge(startedChallenge);
-      setMessage('Your practice record is ready. Save whenever you want to keep a draft.');
+      setMessage('Your practice record is ready. Save a draft whenever you need more time.');
     } catch {
       setError('We could not start practice. Please try again or contact Werks Sessions.');
     } finally {
@@ -347,7 +347,7 @@ function PracticeWorkspace({ sessionId, sessionTitle, uid }: { sessionId: string
     try {
       await submitPracticeWeek(sessionId, uid, weekId, challenge.weeks);
       setChallenge({ ...challenge, weeks: { ...challenge.weeks, [weekId]: { ...challenge.weeks[weekId], status: 'submitted' } } });
-      setMessage(`Week ${practiceWeekIds.indexOf(weekId) + 1} submitted. It is now locked for instructor review.`);
+      setMessage(`Week ${practiceWeekIds.indexOf(weekId) + 1} submitted. It is now locked while your instructor responds.`);
     } catch {
       setError('We could not submit this practice record. Please try again.');
     } finally {
@@ -362,8 +362,8 @@ function PracticeWorkspace({ sessionId, sessionTitle, uid }: { sessionId: string
   if (challenge === null) {
     return (
       <section className="practice-workspace practice-start" aria-labelledby={`practice-${sessionId}`}>
-        <div><p className="eyebrow">Brew 101 follow-through</p><h2 id={`practice-${sessionId}`}>Four weeks, one useful change at a time.</h2><p>Keep a small record of what you tasted and what you changed. It is a practice conversation, not an assessment.</p></div>
-        <div className="practice-start-action"><button className="button primary" onClick={startPractice} disabled={busy === 'start'}>{busy === 'start' ? 'Starting practice…' : 'Start four-week practice'}</button></div>
+        <div><p className="eyebrow">After Brew 101</p><h2 id={`practice-${sessionId}`}>Keep the next four cups useful.</h2><p>Once a week, brew at home, notice one thing, and write the next adjustment you want to test. There is no right score, and you do not need to finish all four weeks at once.</p></div>
+        <div className="practice-start-action"><button className="button primary" onClick={startPractice} disabled={busy === 'start'}>{busy === 'start' ? 'Starting practice…' : 'Start my practice'}</button></div>
         {error && <p className="auth-message" role="alert">{error}</p>}
       </section>
     );
@@ -373,7 +373,7 @@ function PracticeWorkspace({ sessionId, sessionTitle, uid }: { sessionId: string
 
   return (
     <section className="practice-workspace" aria-labelledby={`practice-${sessionId}`}>
-      <div className="practice-intro"><div><p className="eyebrow">Brew 101 follow-through</p><h2 id={`practice-${sessionId}`}>Your four-week practice.</h2><p>Write what happened at the cup, then submit each week when it is ready for review.</p></div><p className="progress-label">{submittedWeeks} of 4 weeks submitted</p></div>
+      <div className="practice-intro"><div><p className="eyebrow">Brew 101 follow-through</p><h2 id={`practice-${sessionId}`}>Your four-week practice.</h2><p>Work one week at a time. Save a draft when you need more time. Submit a week when the observation is complete; it locks while your instructor responds.</p></div><p className="progress-label">{submittedWeeks} of 4 weeks submitted for review</p></div>
       <div className="week-grid">
         {practiceWeekIds.map((weekId, index) => <PracticeWeekCard key={weekId} index={index + 1} weekId={weekId} week={challenge.weeks[weekId]} busy={busy === weekId} onSave={saveWeek} onSubmit={submitWeek} onChange={updateWeek} />)}
       </div>
@@ -397,9 +397,9 @@ function PracticeWeekCard({ index, weekId, week, busy, onSave, onSubmit, onChang
       <label htmlFor={`${prefix}change`}>One change<input id={`${prefix}change`} value={week.changeMade} onChange={(event) => onChange(weekId, { changeMade: event.target.value })} placeholder="What will you change next time?" /></label>
       <label className="check" htmlFor={`${prefix}complete`}><input id={`${prefix}complete`} type="checkbox" checked={week.complete} onChange={(event) => onChange(weekId, { complete: event.target.checked })} />This week is complete</label>
       {!locked && <div className="week-actions"><button className="button secondary" type="button" onClick={() => onSave(weekId)}>{busy ? 'Saving…' : 'Save week'}</button><button className="button primary" type="button" onClick={() => onSubmit(weekId)} disabled={!ready}>{busy ? 'Submitting…' : `Submit week ${index}`}</button></div>}
-      {week.status === 'submitted' && <p className="week-submitted" role="status">Submitted for instructor review.</p>}
-      {week.status === 'approved' && <p className="week-reviewed" role="status">Approved by your instructor.{week.reviewerNote && ` ${week.reviewerNote}`}</p>}
-      {week.status === 'returned' && <p className="week-returned" role="status">Returned for revision.{week.reviewerNote && ` ${week.reviewerNote}`}</p>}
+      {week.status === 'submitted' && <p className="week-submitted" role="status">With your instructor. You can keep working on later weeks while this one is reviewed.</p>}
+      {week.status === 'approved' && <p className="week-reviewed" role="status">Reviewed. Keep this note in mind for your next cup.{week.reviewerNote && ` ${week.reviewerNote}`}</p>}
+      {week.status === 'returned' && <p className="week-returned" role="status">Your instructor has sent this back for one more try. Update the entry, save it, and submit it again when ready.{week.reviewerNote && ` ${week.reviewerNote}`}</p>}
     </fieldset>
   );
 }

@@ -89,10 +89,10 @@ describe('portal navigation and interest registration', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
 
-    expect(await screen.findByRole('heading', { name: 'Your confirmed sessions.' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Your Brew 101 table.' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Manual Brew Foundations' })).toBeInTheDocument();
-    expect(await screen.findByRole('heading', { name: 'Four weeks, one useful change at a time.' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Start four-week practice' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Keep the next four cups useful.' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Start my practice' })).toBeInTheDocument();
     expect(learnerAccessMock.loadLearnerAccess).toHaveBeenCalledWith('learner-uid');
   });
 
@@ -118,7 +118,7 @@ describe('portal navigation and interest registration', () => {
 
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Start four-week practice' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Start my practice' }));
 
     expect((await screen.findAllByLabelText('Focus'))).toHaveLength(4);
     expect(screen.getAllByLabelText('This week is complete')).toHaveLength(4);
@@ -138,7 +138,7 @@ describe('portal navigation and interest registration', () => {
       week1: expect.objectContaining({ focus: 'Ratio' }),
     }));
     fireEvent.click(within(weekOne).getByRole('button', { name: 'Submit week 1' }));
-    expect(await screen.findByText('Week 1 submitted. It is now locked for instructor review.')).toBeInTheDocument();
+    expect(await screen.findByText('Week 1 submitted. It is now locked while your instructor responds.')).toBeInTheDocument();
     expect(practiceMock.submitPracticeWeek).toHaveBeenCalledWith('brew101-01', 'learner-uid', 'week1', expect.objectContaining({
       week1: expect.objectContaining({ status: 'draft' }),
     }));
@@ -214,7 +214,7 @@ describe('portal navigation and interest registration', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
 
     const weekOne = await screen.findByRole('group', { name: 'Week 1 Notice the cup' });
-    expect(within(weekOne).getByText('Returned for revision. Compare this ratio one more time.')).toBeInTheDocument();
+    expect(within(weekOne).getByText('Your instructor has sent this back for one more try. Update the entry, save it, and submit it again when ready. Compare this ratio one more time.')).toBeInTheDocument();
     fireEvent.click(within(weekOne).getByRole('button', { name: 'Save week' }));
 
     expect(practiceMock.savePracticeChallenge).toHaveBeenCalledWith('brew101-01', 'learner-uid', expect.objectContaining({
