@@ -34,10 +34,11 @@ The trusted Functions, private Storage flow, and unpublished resource code remai
 - Passed: full Phase 3.2 verification - lint, strict type checking, frontend unit tests (5), Functions authorization tests (4), Firebase Rules emulator tests (4), production build, secret scan, and both production dependency audits (0 vulnerabilities).
 - Passed: independent quality review found no correctness, type-safety, accessibility, or regression blocker. The learner form uses labelled inputs, semantic fieldsets, and a disabled submit action until all four weeks are complete.
 - Passed: independent security review found no authorization bypass, new public path, secret, or production dependency finding. The existing Rules independently enforce confirmed enrolment, immutable ownership, and complete-week submission.
-- Pending release approval: Phase 3.2 Hosting deployment. Firestore Rules and indexes are unchanged, so no Firestore Rules deployment is required for this phase.
+- Passed: deployed the Phase 3.2 Hosting build. `https://werks-session.web.app` returned HTTP 200 and served the new bundle containing the four-week practice workflow.
+- Not deployed: Firestore Rules and indexes. They are unchanged from the previously released access model and did not require a deployment for this phase.
 - Non-blocking: Vite reports an 860 kB minified JavaScript chunk. Frontend owner should assess code splitting before Phase 3.3 expands the learner workspace.
 - Not performed: a Functions release or a Storage release.
 
 ## Next action
 
-Approve a Phase 3.2 Firebase Hosting deployment, then have the staff-controlled test learner start, save, and submit a four-week Brew 101 practice record. Do not deploy Firestore Rules or indexes: they are unchanged. After the smoke test, Phase 3.3 can add the instructor review surface while retaining staff-only manual grant creation during Spark operation.
+Have the staff-controlled test learner start, save, and submit a four-week Brew 101 practice record at `https://werks-session.web.app`. Do not deploy Firestore Rules or indexes: they are unchanged. After the smoke test, Phase 3.3 can add the instructor review surface while retaining staff-only manual grant creation during Spark operation.
