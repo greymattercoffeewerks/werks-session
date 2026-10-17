@@ -17,6 +17,7 @@ All notable user-visible, operational, and security-impacting changes are record
 - Replaced the read-only Brew 101 practice preview with the active weekly record; submitted records become read-only until instructor review.
 - Corrected Brew 101 practice to save and submit each week independently; submitted weeks are learner-locked while the remaining weeks stay available.
 - Added instructor feedback outcomes: approved weeks remain locked, while returned weeks retain feedback and may be revised and resubmitted by the learner.
+- Corrected the live instructor test assignment to the seeded Brew 101 session and completed the end-to-end returned-for-revision smoke test.
 
 ### Security
 

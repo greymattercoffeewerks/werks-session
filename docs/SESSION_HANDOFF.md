@@ -48,9 +48,10 @@ The trusted Functions, private Storage flow, and unpublished resource code remai
 - Passed: independent security review found no role-write or cross-session review bypass. Rules require an active assignment, one submitted target week, a server timestamp, and non-blank feedback; they preserve all learner observations and lock approved weeks.
 - Non-blocking: the current one-document-per-learner challenge model grants assigned instructors trusted read access to all four weeks in an assigned session. The portal queue renders only submitted weeks; split weeks into separate documents before a policy that requires database-level draft secrecy.
 - Passed: deployed Phase 3.3 Hosting and Firestore Rules. `https://werks-session.web.app` returned HTTP 200 and served bundle `index-CxITGnoV.js`, including the instructor review, approval, and returned-for-revision paths. Firestore compiled and released `firestore.rules`; indexes, Functions, and Storage were not deployed.
+- Passed: live Phase 3.3 instructor smoke test. The assigned instructor saw the learner's submitted Week 1 and returned it with feedback; the returned-week state is now available to the learner for revision and resubmission.
 - Non-blocking: Vite reports an 860 kB minified JavaScript chunk. Frontend owner should assess code splitting before Phase 3.3 expands the learner workspace.
 - Not performed: a Functions release or a Storage release.
 
 ## Next action
 
-Before live smoke testing, staff must create an active instructor grant and teaching assignment for a chosen Google-authenticated instructor account. Confirm that the instructor can approve or return the learner’s already-submitted Week 1, then verify the learner’s resulting locked or returned state.
+Phase 3.3 is complete. Begin the next approved MVP roadmap phase; retain the documented one-document-per-learner limitation until practice weeks are split into individually protected documents.
