@@ -41,9 +41,10 @@ The trusted Functions, private Storage flow, and unpublished resource code remai
 - Passed: independent security review found no authorization bypass, new public path, secret, or production dependency finding. Emulator coverage proves a learner can continue drafting later weeks after submission but cannot alter an already submitted week.
 - Passed: deployed the Phase 3.2.1 Hosting build. `https://werks-session.web.app` returned HTTP 200 and served bundle `index-BRm-E5jq.js` with the per-week submit action.
 - Passed: released the Phase 3.2.1 Firestore Rules. The CLI compiled and released `firestore.rules`; Firestore indexes are unchanged and were not deployed.
+- Passed: staff-controlled learner smoke test saved and submitted Week 1 in the live portal. The learner received the submitted-and-locked confirmation while later weeks remained available.
 - Non-blocking: Vite reports an 860 kB minified JavaScript chunk. Frontend owner should assess code splitting before Phase 3.3 expands the learner workspace.
 - Not performed: a Functions release or a Storage release.
 
 ## Next action
 
-Have the staff-controlled test learner save a draft and submit Week 1 at `https://werks-session.web.app`, while retaining access to Weeks 2–4. After the smoke test, Phase 3.3 can add the instructor review surface while retaining staff-only manual grant creation during Spark operation.
+Begin Phase 3.3: add the instructor review surface for individually submitted weeks while retaining staff-only manual grant creation during Spark operation.
