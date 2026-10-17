@@ -15,8 +15,17 @@ const learnerAccessMock = vi.hoisted(() => ({
   loadLearnerAccess: vi.fn(),
 }));
 
+const practiceMock = vi.hoisted(() => ({
+  loadPracticeChallenge: vi.fn(() => Promise.resolve(null)),
+  startPracticeChallenge: vi.fn(),
+  savePracticeChallenge: vi.fn(),
+  submitPracticeChallenge: vi.fn(),
+  practiceWeekIds: ['week1', 'week2', 'week3', 'week4'],
+}));
+
 vi.mock('../../src/lib/google-auth', () => authMock);
 vi.mock('../../src/lib/learner-access', () => learnerAccessMock);
+vi.mock('../../src/lib/practice', () => practiceMock);
 import App from '../../src/App';
 
 afterEach(() => {
@@ -61,7 +70,7 @@ describe('portal navigation and interest registration', () => {
     expect(authMock.signInWithGoogle).toHaveBeenCalledTimes(1);
   });
 
-  it('shows only staff-confirmed sessions and the read-only practice preview for a granted learner', async () => {
+  it('shows only staff-confirmed sessions and lets a granted learner start a practice draft', async () => {
     authMock.observeAccount.mockImplementationOnce((callback: (user: { uid: string; email: string }) => void) => {
       callback({ uid: 'learner-uid', email: 'maya@example.com' });
       return () => undefined;
@@ -76,9 +85,45 @@ describe('portal navigation and interest registration', () => {
 
     expect(await screen.findByRole('heading', { name: 'Your confirmed sessions.' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Manual Brew Foundations' })).toBeInTheDocument();
-    expect(screen.getByText('Four weeks of closer cups.')).toBeInTheDocument();
-    expect(screen.getAllByText('Opens after Brew 101')).toHaveLength(4);
-    expect(screen.queryByRole('button', { name: /submit/i })).not.toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Four weeks, one useful change at a time.' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Start four-week practice' })).toBeInTheDocument();
     expect(learnerAccessMock.loadLearnerAccess).toHaveBeenCalledWith('learner-uid');
+  });
+
+  it('starts an owned draft and reveals the four editable week records', async () => {
+    authMock.observeAccount.mockImplementationOnce((callback: (user: { uid: string; email: string }) => void) => {
+      callback({ uid: 'learner-uid', email: 'maya@example.com' });
+      return () => undefined;
+    });
+    learnerAccessMock.loadLearnerAccess.mockResolvedValueOnce({
+      state: 'confirmed',
+      sessions: [{ id: 'brew101-01', title: 'Manual Brew Foundations' }],
+    });
+    practiceMock.loadPracticeChallenge.mockResolvedValueOnce(null);
+    practiceMock.startPracticeChallenge.mockResolvedValueOnce({
+      status: 'in_progress',
+      weeks: {
+        week1: { focus: '', coffee: '', recipe: '', tastingNote: '', changeMade: '', complete: false },
+        week2: { focus: '', coffee: '', recipe: '', tastingNote: '', changeMade: '', complete: false },
+        week3: { focus: '', coffee: '', recipe: '', tastingNote: '', changeMade: '', complete: false },
+        week4: { focus: '', coffee: '', recipe: '', tastingNote: '', changeMade: '', complete: false },
+      },
+    });
+
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Start four-week practice' }));
+
+    expect((await screen.findAllByLabelText('Focus'))).toHaveLength(4);
+    expect(screen.getAllByLabelText('This week is complete')).toHaveLength(4);
+    expect(screen.getByRole('button', { name: 'Save draft' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Submit practice' })).toBeDisabled();
+    fireEvent.change(screen.getAllByLabelText('Focus')[0], { target: { value: 'Ratio' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save draft' }));
+    expect(await screen.findByText('Draft saved.')).toBeInTheDocument();
+    expect(practiceMock.savePracticeChallenge).toHaveBeenCalledWith('brew101-01', 'learner-uid', expect.objectContaining({
+      week1: expect.objectContaining({ focus: 'Ratio' }),
+    }));
+    expect(practiceMock.startPracticeChallenge).toHaveBeenCalledWith('brew101-01', 'learner-uid');
   });
 });

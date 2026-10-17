@@ -8,10 +8,12 @@ All notable user-visible, operational, and security-impacting changes are record
 
 - Provisioned the Firebase Spark Cloud Firestore default database in `asia-southeast1` in production mode for manually granted learner access.
 - Added the first learner-facing Firestore read: confirmed Brew 101 sessions and a read-only four-week practice preview.
+- Added a learner-owned four-week Brew 101 practice record with draft saving and guarded submission.
 
 ### Changed
 
 - Replaced the granted learner's generic pending screen with a confirmed-session view; accounts without a confirmed enrolment remain pending.
+- Replaced the read-only Brew 101 practice preview with the active weekly record; submitted records become read-only until instructor review.
 
 ### Security
 

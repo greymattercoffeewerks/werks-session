@@ -3,6 +3,7 @@ import type { User } from 'firebase/auth';
 import { offerings } from './data/demo';
 import { authErrorMessage, observeAccount, signInWithGoogle, signOut } from './lib/google-auth';
 import { loadLearnerAccess, type LearnerAccess as LearnerAccessState } from './lib/learner-access';
+import { loadPracticeChallenge, practiceWeekIds, savePracticeChallenge, startPracticeChallenge, submitPracticeChallenge, type PracticeChallenge, type PracticeWeek, type PracticeWeekId } from './lib/practice';
 import type { OfferingKind } from './types';
 
 type View = 'home' | 'access';
@@ -198,14 +199,7 @@ function LearnerAccess() {
               </article>
             ))}
           </section>
-          <section className="practice-preview" aria-labelledby="practice-preview-heading">
-            <div><p className="eyebrow">Brew 101 follow-through</p><h2 id="practice-preview-heading">Four weeks of closer cups.</h2><p>After your table, this is where you will record one useful observation and one deliberate change each week. There is nothing to submit yet.</p></div>
-            <ol className="practice-weeks">
-              {['Notice the cup', 'Change one thing', 'Compare the result', 'Keep the next step'].map((label, index) => (
-                <li key={label}><span>Week {index + 1}</span><strong>{label}</strong><small>Opens after Brew 101</small></li>
-              ))}
-            </ol>
-          </section>
+          {learnerAccess.sessions.map((session) => <PracticeWorkspace key={session.id} sessionId={session.id} sessionTitle={session.title} uid={account.uid} />)}
           <button className="button secondary learner-sign-out" onClick={leaveAccount}>Sign out</button>
           {error && <p className="auth-message" role="alert">{error}</p>}
         </main>
@@ -240,6 +234,139 @@ function LearnerAccess() {
         {error && <p className="auth-message" role="alert">{error}</p>}
       </section>
     </main>
+  );
+}
+
+const weekNames: Record<PracticeWeekId, string> = {
+  week1: 'Notice the cup',
+  week2: 'Change one thing',
+  week3: 'Compare the result',
+  week4: 'Keep the next step',
+};
+
+function weekIsReady(week: PracticeWeek): boolean {
+  return week.complete && [week.focus, week.coffee, week.recipe, week.tastingNote, week.changeMade].every((value) => value.trim().length > 0);
+}
+
+function PracticeWorkspace({ sessionId, sessionTitle, uid }: { sessionId: string; sessionTitle: string; uid: string }) {
+  const [challenge, setChallenge] = useState<PracticeChallenge | null | undefined>(undefined);
+  const [busy, setBusy] = useState<'start' | 'save' | 'submit' | null>(null);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    setChallenge(undefined);
+    setError('');
+    loadPracticeChallenge(sessionId, uid)
+      .then((loadedChallenge) => {
+        if (!cancelled) {
+          setChallenge(loadedChallenge);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setError('We could not load this practice record. Please refresh or contact Werks Sessions.');
+          setChallenge(null);
+        }
+      });
+    return () => { cancelled = true; };
+  }, [sessionId, uid]);
+
+  const updateWeek = (weekId: PracticeWeekId, change: Partial<PracticeWeek>) => {
+    setChallenge((current) => current ? {
+      ...current,
+      weeks: { ...current.weeks, [weekId]: { ...current.weeks[weekId], ...change } },
+    } : current);
+    setMessage('');
+  };
+
+  const startPractice = async () => {
+    setBusy('start');
+    setError('');
+    try {
+      const startedChallenge = await startPracticeChallenge(sessionId, uid);
+      setChallenge(startedChallenge);
+      setMessage('Your practice record is ready. Save whenever you want to keep a draft.');
+    } catch {
+      setError('We could not start practice. Please try again or contact Werks Sessions.');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const savePractice = async () => {
+    if (!challenge) return;
+    setBusy('save');
+    setError('');
+    try {
+      await savePracticeChallenge(sessionId, uid, challenge.weeks);
+      setMessage('Draft saved.');
+    } catch {
+      setError('We could not save this draft. Please try again.');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const submitPractice = async () => {
+    if (!challenge || !practiceWeekIds.every((weekId) => weekIsReady(challenge.weeks[weekId]))) return;
+    setBusy('submit');
+    setError('');
+    try {
+      await submitPracticeChallenge(sessionId, uid, challenge.weeks);
+      setChallenge({ ...challenge, status: 'submitted' });
+      setMessage('Practice submitted. An instructor can review it in a later phase.');
+    } catch {
+      setError('We could not submit this practice record. Please try again.');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  if (challenge === undefined) {
+    return <section className="practice-workspace" aria-live="polite"><p>Loading practice for {sessionTitle}.</p></section>;
+  }
+
+  if (challenge === null) {
+    return (
+      <section className="practice-workspace practice-start" aria-labelledby={`practice-${sessionId}`}>
+        <div><p className="eyebrow">Brew 101 follow-through</p><h2 id={`practice-${sessionId}`}>Four weeks, one useful change at a time.</h2><p>Keep a small record of what you tasted and what you changed. It is a practice conversation, not an assessment.</p></div>
+        <div className="practice-start-action"><button className="button primary" onClick={startPractice} disabled={busy === 'start'}>{busy === 'start' ? 'Starting practice…' : 'Start four-week practice'}</button></div>
+        {error && <p className="auth-message" role="alert">{error}</p>}
+      </section>
+    );
+  }
+
+  const readyWeeks = practiceWeekIds.filter((weekId) => weekIsReady(challenge.weeks[weekId])).length;
+  const submitted = challenge.status === 'submitted';
+
+  return (
+    <section className="practice-workspace" aria-labelledby={`practice-${sessionId}`}>
+      <div className="practice-intro"><div><p className="eyebrow">Brew 101 follow-through</p><h2 id={`practice-${sessionId}`}>Your four-week practice.</h2><p>Write what happened at the cup, then keep one deliberate next step.</p></div><p className="progress-label">{submitted ? 'Submitted' : `${readyWeeks} of 4 weeks ready`}</p></div>
+      <div className="week-grid">
+        {practiceWeekIds.map((weekId, index) => <PracticeWeekCard key={weekId} index={index + 1} weekId={weekId} week={challenge.weeks[weekId]} readOnly={submitted} onChange={updateWeek} />)}
+      </div>
+      {!submitted && <div className="practice-actions"><button className="button secondary" onClick={savePractice} disabled={busy !== null}>{busy === 'save' ? 'Saving draft…' : 'Save draft'}</button><button className="button primary" onClick={submitPractice} disabled={busy !== null || readyWeeks !== 4}>{busy === 'submit' ? 'Submitting practice…' : 'Submit practice'}</button><p>Submission opens when all four weeks are marked complete.</p></div>}
+      {submitted && <p className="form-success">Practice submitted. You can read your notes, but they are now locked for instructor review.</p>}
+      {message && <p className="form-success" role="status">{message}</p>}
+      {error && <p className="auth-message" role="alert">{error}</p>}
+    </section>
+  );
+}
+
+function PracticeWeekCard({ index, weekId, week, readOnly, onChange }: { index: number; weekId: PracticeWeekId; week: PracticeWeek; readOnly: boolean; onChange: (weekId: PracticeWeekId, change: Partial<PracticeWeek>) => void }) {
+  const prefix = `${weekId}-`;
+  return (
+    <fieldset className={`week-card${weekIsReady(week) ? ' done' : ''}`} disabled={readOnly}>
+      <legend className="week-title"><span>Week {index}</span><strong>{weekNames[weekId]}</strong></legend>
+      <label htmlFor={`${prefix}focus`}>Focus<input id={`${prefix}focus`} value={week.focus} onChange={(event) => onChange(weekId, { focus: event.target.value })} placeholder="What were you paying attention to?" /></label>
+      <label htmlFor={`${prefix}coffee`}>Coffee<input id={`${prefix}coffee`} value={week.coffee} onChange={(event) => onChange(weekId, { coffee: event.target.value })} placeholder="Coffee or roast" /></label>
+      <label htmlFor={`${prefix}recipe`}>Recipe<input id={`${prefix}recipe`} value={week.recipe} onChange={(event) => onChange(weekId, { recipe: event.target.value })} placeholder="e.g. 15 g : 250 g" /></label>
+      <label htmlFor={`${prefix}tasting-note`}>What you tasted<textarea id={`${prefix}tasting-note`} value={week.tastingNote} onChange={(event) => onChange(weekId, { tastingNote: event.target.value })} placeholder="Describe the cup in your own words." /></label>
+      <label htmlFor={`${prefix}change`}>One change<input id={`${prefix}change`} value={week.changeMade} onChange={(event) => onChange(weekId, { changeMade: event.target.value })} placeholder="What will you change next time?" /></label>
+      <label className="check" htmlFor={`${prefix}complete`}><input id={`${prefix}complete`} type="checkbox" checked={week.complete} onChange={(event) => onChange(weekId, { complete: event.target.checked })} />This week is complete</label>
+    </fieldset>
   );
 }
 
