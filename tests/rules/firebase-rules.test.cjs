@@ -8,30 +8,28 @@ const {
 
 let testEnv;
 
+const draftWeeks = {
+  week1: { focus: '', coffee: '', recipe: '', tastingNote: '', changeMade: '', complete: false, status: 'draft' },
+  week2: { focus: '', coffee: '', recipe: '', tastingNote: '', changeMade: '', complete: false, status: 'draft' },
+  week3: { focus: '', coffee: '', recipe: '', tastingNote: '', changeMade: '', complete: false, status: 'draft' },
+  week4: { focus: '', coffee: '', recipe: '', tastingNote: '', changeMade: '', complete: false, status: 'draft' },
+};
+
+const submittedWeek1 = {
+  ...draftWeeks,
+  week1: { focus: 'Ratio', coffee: 'ttku', recipe: '15g : 250g', tastingNote: 'Sweeter at 1:16.', changeMade: 'Held grind steady.', complete: true, status: 'submitted' },
+};
+
 const challenge = (overrides = {}) => ({
   sessionId: 'brew101-01',
   ownerUid: 'learner-uid',
   personId: 'person-123',
   status: 'in_progress',
-  weeks: { week1: { focus: 'Ratio', note: 'Sweeter at 1:16.' } },
+  weeks: draftWeeks,
   createdAt: '2026-10-16T00:00:00.000Z',
   updatedAt: '2026-10-16T00:00:00.000Z',
   ...overrides,
 });
-
-const completedWeeks = {
-  week1: { focus: 'Ratio', coffee: 'ttku', recipe: '15g : 250g', tastingNote: 'Sweeter at 1:16.', changeMade: 'Held grind steady.', complete: true },
-  week2: { focus: 'Grind', coffee: 'ttku', recipe: '15g : 250g', tastingNote: 'Cleaner finish.', changeMade: 'Moved one notch finer.', complete: true },
-  week3: { focus: 'Beans', coffee: 'ttku', recipe: '15g : 250g', tastingNote: 'More floral.', changeMade: 'Changed coffee.', complete: true },
-  week4: { focus: 'Technique', coffee: 'ttku', recipe: '15g : 250g', tastingNote: 'Even extraction.', changeMade: 'Poured more slowly.', complete: true },
-};
-
-const blankCompletedWeeks = {
-  week1: { focus: ' ', coffee: ' ', recipe: ' ', tastingNote: ' ', changeMade: ' ', complete: true },
-  week2: { focus: ' ', coffee: ' ', recipe: ' ', tastingNote: ' ', changeMade: ' ', complete: true },
-  week3: { focus: ' ', coffee: ' ', recipe: ' ', tastingNote: ' ', changeMade: ' ', complete: true },
-  week4: { focus: ' ', coffee: ' ', recipe: ' ', tastingNote: ' ', changeMade: ' ', complete: true },
-};
 
 before(async () => {
   testEnv = await initializeTestEnvironment({
@@ -76,13 +74,15 @@ describe('Spark access grants and learner practice', () => {
     await assertFails(db.doc('people/person-456').get());
   });
 
-  test('allows a confirmed learner to create and submit only their own challenge', async () => {
+  test('allows a confirmed learner to submit each complete week and locks that week', async () => {
     const db = testEnv.authenticatedContext('learner-uid').firestore();
     const draft = challenge({ sessionId: 'brew101-02', status: 'in_progress' });
     await assertSucceeds(db.doc('sessions/brew101-02/challenges/learner-uid').set(draft));
     await assertFails(db.doc('sessions/brew101-01/challenges/learner-uid').update({ status: 'submitted', submittedAt: '2026-10-16T00:30:00.000Z' }));
-    await assertFails(db.doc('sessions/brew101-01/challenges/learner-uid').update({ weeks: blankCompletedWeeks, status: 'submitted', submittedAt: '2026-10-16T00:30:00.000Z' }));
-    await assertSucceeds(db.doc('sessions/brew101-01/challenges/learner-uid').update({ weeks: completedWeeks, status: 'submitted', submittedAt: '2026-10-16T00:30:00.000Z' }));
+    await assertFails(db.doc('sessions/brew101-01/challenges/learner-uid').update({ weeks: { ...draftWeeks, week1: { ...draftWeeks.week1, status: 'submitted' } } }));
+    await assertSucceeds(db.doc('sessions/brew101-01/challenges/learner-uid').update({ weeks: submittedWeek1 }));
+    await assertSucceeds(db.doc('sessions/brew101-01/challenges/learner-uid').update({ weeks: { ...submittedWeek1, week2: { ...submittedWeek1.week2, focus: 'Grind' } } }));
+    await assertFails(db.doc('sessions/brew101-01/challenges/learner-uid').update({ weeks: { ...submittedWeek1, week1: { ...submittedWeek1.week1, focus: 'Changed after submission' } } }));
     await assertFails(db.doc('sessions/brew101-01/challenges/learner-uid').update({ reviewerNote: 'Self-approved' }));
     await assertFails(db.doc('access_grants/learner-uid').set({ personId: 'person-123', role: 'admin', status: 'active' }));
   });
@@ -90,6 +90,9 @@ describe('Spark access grants and learner practice', () => {
   test('allows only the assigned instructor to review a submitted challenge', async () => {
     const instructor = testEnv.authenticatedContext('instructor-uid').firestore();
     const unassigned = testEnv.authenticatedContext('unassigned-instructor-uid').firestore();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc('sessions/brew101-01/challenges/learner-uid').update({ status: 'submitted' });
+    });
     await assertSucceeds(instructor.doc('sessions/brew101-01/challenges/learner-uid').get());
     await assertSucceeds(instructor.doc('sessions/brew101-01/challenges/learner-uid').update({ status: 'approved', reviewerNote: 'Clear observation and a useful next change.', reviewedAt: '2026-10-16T01:00:00.000Z' }));
     await assertFails(instructor.doc('teaching_assignments/brew101-01_instructor-uid').set({ status: 'active' }));

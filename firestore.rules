@@ -33,30 +33,34 @@ service cloud.firestore {
         && request.resource.data.status == 'in_progress';
     }
     function completedWeek(week) {
-      return week.keys().hasAll(['focus', 'coffee', 'recipe', 'tastingNote', 'changeMade', 'complete'])
+      return week.keys().hasAll(['focus', 'coffee', 'recipe', 'tastingNote', 'changeMade', 'complete', 'status'])
         && nonBlank(week.focus)
         && nonBlank(week.coffee)
         && nonBlank(week.recipe)
         && nonBlank(week.tastingNote)
         && nonBlank(week.changeMade)
-        && week.complete == true;
+        && week.complete == true
+        && week.status == 'submitted';
     }
     function nonBlank(value) { return value is string && value.matches('.*[^\\s].*'); }
-    function hasCompletedPractice() {
-      return request.resource.data.weeks.keys().hasAll(['week1', 'week2', 'week3', 'week4'])
-        && completedWeek(request.resource.data.weeks.week1)
-        && completedWeek(request.resource.data.weeks.week2)
-        && completedWeek(request.resource.data.weeks.week3)
-        && completedWeek(request.resource.data.weeks.week4);
+    function weekStatus(week) { return week.keys().hasAll(['status']) ? week.status : 'draft'; }
+    function learnerCanChangeWeek(before, after) {
+      return (weekStatus(before) == 'submitted' && before.diff(after).affectedKeys().size() == 0)
+        || (weekStatus(before) != 'submitted'
+          && (weekStatus(after) == 'draft'
+            || (weekStatus(after) == 'submitted' && completedWeek(after))));
     }
     function validLearnerChallengeUpdate() {
       return request.resource.data.sessionId == resource.data.sessionId
         && request.resource.data.ownerUid == resource.data.ownerUid
         && request.resource.data.personId == resource.data.personId
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['weeks', 'status', 'updatedAt', 'submittedAt'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['weeks', 'status', 'updatedAt'])
         && resource.data.status in ['in_progress', 'returned']
-        && (request.resource.data.status == 'in_progress'
-          || (request.resource.data.status == 'submitted' && hasCompletedPractice()));
+        && request.resource.data.status == 'in_progress'
+        && learnerCanChangeWeek(resource.data.weeks.week1, request.resource.data.weeks.week1)
+        && learnerCanChangeWeek(resource.data.weeks.week2, request.resource.data.weeks.week2)
+        && learnerCanChangeWeek(resource.data.weeks.week3, request.resource.data.weeks.week3)
+        && learnerCanChangeWeek(resource.data.weeks.week4, request.resource.data.weeks.week4);
     }
     function validStaffChallengeReview() {
       return request.resource.data.sessionId == resource.data.sessionId

@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const authMock = vi.hoisted(() => ({
@@ -19,7 +19,7 @@ const practiceMock = vi.hoisted(() => ({
   loadPracticeChallenge: vi.fn(() => Promise.resolve(null)),
   startPracticeChallenge: vi.fn(),
   savePracticeChallenge: vi.fn(),
-  submitPracticeChallenge: vi.fn(),
+  submitPracticeWeek: vi.fn(),
   practiceWeekIds: ['week1', 'week2', 'week3', 'week4'],
 }));
 
@@ -103,10 +103,10 @@ describe('portal navigation and interest registration', () => {
     practiceMock.startPracticeChallenge.mockResolvedValueOnce({
       status: 'in_progress',
       weeks: {
-        week1: { focus: '', coffee: '', recipe: '', tastingNote: '', changeMade: '', complete: false },
-        week2: { focus: '', coffee: '', recipe: '', tastingNote: '', changeMade: '', complete: false },
-        week3: { focus: '', coffee: '', recipe: '', tastingNote: '', changeMade: '', complete: false },
-        week4: { focus: '', coffee: '', recipe: '', tastingNote: '', changeMade: '', complete: false },
+        week1: { focus: '', coffee: '', recipe: '', tastingNote: '', changeMade: '', complete: false, status: 'draft' },
+        week2: { focus: '', coffee: '', recipe: '', tastingNote: '', changeMade: '', complete: false, status: 'draft' },
+        week3: { focus: '', coffee: '', recipe: '', tastingNote: '', changeMade: '', complete: false, status: 'draft' },
+        week4: { focus: '', coffee: '', recipe: '', tastingNote: '', changeMade: '', complete: false, status: 'draft' },
       },
     });
 
@@ -116,13 +116,25 @@ describe('portal navigation and interest registration', () => {
 
     expect((await screen.findAllByLabelText('Focus'))).toHaveLength(4);
     expect(screen.getAllByLabelText('This week is complete')).toHaveLength(4);
-    expect(screen.getByRole('button', { name: 'Save draft' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Submit practice' })).toBeDisabled();
-    fireEvent.change(screen.getAllByLabelText('Focus')[0], { target: { value: 'Ratio' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save draft' }));
-    expect(await screen.findByText('Draft saved.')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Save week' })).toHaveLength(4);
+    const weekOne = screen.getByRole('group', { name: 'Week 1 Notice the cup' });
+    expect(within(weekOne).getByRole('button', { name: 'Submit week 1' })).toBeDisabled();
+    fireEvent.change(within(weekOne).getByLabelText('Focus'), { target: { value: 'Ratio' } });
+    fireEvent.change(within(weekOne).getByLabelText('Coffee'), { target: { value: 'Konga' } });
+    fireEvent.change(within(weekOne).getByLabelText('Recipe'), { target: { value: '15 g : 250 g' } });
+    fireEvent.change(within(weekOne).getByLabelText('What you tasted'), { target: { value: 'Sweet and clear.' } });
+    fireEvent.change(within(weekOne).getByLabelText('One change'), { target: { value: 'Grind finer' } });
+    fireEvent.click(within(weekOne).getByLabelText('This week is complete'));
+    expect(within(weekOne).getByRole('button', { name: 'Submit week 1' })).toBeEnabled();
+    fireEvent.click(within(weekOne).getByRole('button', { name: 'Save week' }));
+    expect(await screen.findByText('Week 1 draft saved.')).toBeInTheDocument();
     expect(practiceMock.savePracticeChallenge).toHaveBeenCalledWith('brew101-01', 'learner-uid', expect.objectContaining({
       week1: expect.objectContaining({ focus: 'Ratio' }),
+    }));
+    fireEvent.click(within(weekOne).getByRole('button', { name: 'Submit week 1' }));
+    expect(await screen.findByText('Week 1 submitted. It is now locked for instructor review.')).toBeInTheDocument();
+    expect(practiceMock.submitPracticeWeek).toHaveBeenCalledWith('brew101-01', 'learner-uid', 'week1', expect.objectContaining({
+      week1: expect.objectContaining({ status: 'draft' }),
     }));
     expect(practiceMock.startPracticeChallenge).toHaveBeenCalledWith('brew101-01', 'learner-uid');
   });

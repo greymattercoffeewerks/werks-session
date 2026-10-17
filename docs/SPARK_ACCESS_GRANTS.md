@@ -52,7 +52,7 @@ An instructor needs an active assignment before viewing or reviewing that sessio
 
 ## Challenge path and permitted changes
 
-Practice is stored at `sessions/{sessionId}/challenges/{learnerUid}`. A learner can create an `in_progress` challenge and edit only their practice weeks. The learner portal starts a blank four-week record, saves drafts, and enables submission only after all four weeks contain a focus, coffee, recipe, tasting note, change made, and a completed flag. Once submitted, only an assigned instructor or administrator can set it to `approved` or `returned` and add review feedback. Neither party can change its owner, session, or provider-neutral person mapping.
+Practice is stored at `sessions/{sessionId}/challenges/{learnerUid}`. A learner can create an `in_progress` challenge and edit only their practice weeks. The learner portal starts a blank four-week record and saves each week as a draft. A learner may submit a week independently after that week contains a focus, coffee, recipe, tasting note, change made, and completed flag. A submitted week is locked to the learner while the other weeks remain drafts. Instructor review of submitted weeks is the next phase. Neither party can change the challenge owner, session, or provider-neutral person mapping.
 
 Session documents are not a public calendar. A confirmed learner can read only a session for which they have an enrolment; an assigned instructor or administrator can read the session they operate. Public offer copy remains static on Firebase Hosting.
 

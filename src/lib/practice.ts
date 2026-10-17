@@ -11,6 +11,7 @@ export type PracticeWeek = {
   tastingNote: string;
   changeMade: string;
   complete: boolean;
+  status: 'draft' | 'submitted';
 };
 
 export type PracticeWeeks = Record<PracticeWeekId, PracticeWeek>;
@@ -27,6 +28,7 @@ const weekTemplate = (): PracticeWeek => ({
   tastingNote: '',
   changeMade: '',
   complete: false,
+  status: 'draft',
 });
 
 export function emptyPracticeWeeks(): PracticeWeeks {
@@ -51,6 +53,7 @@ function practiceWeek(value: unknown): PracticeWeek {
     tastingNote: nonBlankString(source.tastingNote) ? source.tastingNote : '',
     changeMade: nonBlankString(source.changeMade) ? source.changeMade : '',
     complete: source.complete === true,
+    status: source.status === 'submitted' ? 'submitted' : 'draft',
   };
 }
 
@@ -113,11 +116,14 @@ export async function savePracticeChallenge(sessionId: string, uid: string, week
   });
 }
 
-export async function submitPracticeChallenge(sessionId: string, uid: string, weeks: PracticeWeeks): Promise<void> {
+export async function submitPracticeWeek(sessionId: string, uid: string, weekId: PracticeWeekId, weeks: PracticeWeeks): Promise<void> {
+  const submittedWeeks: PracticeWeeks = {
+    ...weeks,
+    [weekId]: { ...weeks[weekId], status: 'submitted' },
+  };
   await updateDoc(challengeRef(sessionId, uid), {
-    weeks,
-    status: 'submitted',
+    weeks: submittedWeeks,
+    status: 'in_progress',
     updatedAt: serverTimestamp(),
-    submittedAt: serverTimestamp(),
   });
 }

@@ -3,7 +3,7 @@ import type { User } from 'firebase/auth';
 import { offerings } from './data/demo';
 import { authErrorMessage, observeAccount, signInWithGoogle, signOut } from './lib/google-auth';
 import { loadLearnerAccess, type LearnerAccess as LearnerAccessState } from './lib/learner-access';
-import { loadPracticeChallenge, practiceWeekIds, savePracticeChallenge, startPracticeChallenge, submitPracticeChallenge, type PracticeChallenge, type PracticeWeek, type PracticeWeekId } from './lib/practice';
+import { loadPracticeChallenge, practiceWeekIds, savePracticeChallenge, startPracticeChallenge, submitPracticeWeek, type PracticeChallenge, type PracticeWeek, type PracticeWeekId } from './lib/practice';
 import type { OfferingKind } from './types';
 
 type View = 'home' | 'access';
@@ -250,7 +250,7 @@ function weekIsReady(week: PracticeWeek): boolean {
 
 function PracticeWorkspace({ sessionId, sessionTitle, uid }: { sessionId: string; sessionTitle: string; uid: string }) {
   const [challenge, setChallenge] = useState<PracticeChallenge | null | undefined>(undefined);
-  const [busy, setBusy] = useState<'start' | 'save' | 'submit' | null>(null);
+  const [busy, setBusy] = useState<'start' | PracticeWeekId | null>(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
@@ -295,13 +295,13 @@ function PracticeWorkspace({ sessionId, sessionTitle, uid }: { sessionId: string
     }
   };
 
-  const savePractice = async () => {
+  const saveWeek = async (weekId: PracticeWeekId) => {
     if (!challenge) return;
-    setBusy('save');
+    setBusy(weekId);
     setError('');
     try {
       await savePracticeChallenge(sessionId, uid, challenge.weeks);
-      setMessage('Draft saved.');
+      setMessage(`Week ${practiceWeekIds.indexOf(weekId) + 1} draft saved.`);
     } catch {
       setError('We could not save this draft. Please try again.');
     } finally {
@@ -309,14 +309,14 @@ function PracticeWorkspace({ sessionId, sessionTitle, uid }: { sessionId: string
     }
   };
 
-  const submitPractice = async () => {
-    if (!challenge || !practiceWeekIds.every((weekId) => weekIsReady(challenge.weeks[weekId]))) return;
-    setBusy('submit');
+  const submitWeek = async (weekId: PracticeWeekId) => {
+    if (!challenge || !weekIsReady(challenge.weeks[weekId])) return;
+    setBusy(weekId);
     setError('');
     try {
-      await submitPracticeChallenge(sessionId, uid, challenge.weeks);
-      setChallenge({ ...challenge, status: 'submitted' });
-      setMessage('Practice submitted. An instructor can review it in a later phase.');
+      await submitPracticeWeek(sessionId, uid, weekId, challenge.weeks);
+      setChallenge({ ...challenge, weeks: { ...challenge.weeks, [weekId]: { ...challenge.weeks[weekId], status: 'submitted' } } });
+      setMessage(`Week ${practiceWeekIds.indexOf(weekId) + 1} submitted. It is now locked for instructor review.`);
     } catch {
       setError('We could not submit this practice record. Please try again.');
     } finally {
@@ -338,27 +338,26 @@ function PracticeWorkspace({ sessionId, sessionTitle, uid }: { sessionId: string
     );
   }
 
-  const readyWeeks = practiceWeekIds.filter((weekId) => weekIsReady(challenge.weeks[weekId])).length;
-  const submitted = challenge.status === 'submitted';
+  const submittedWeeks = practiceWeekIds.filter((weekId) => challenge.weeks[weekId].status === 'submitted').length;
 
   return (
     <section className="practice-workspace" aria-labelledby={`practice-${sessionId}`}>
-      <div className="practice-intro"><div><p className="eyebrow">Brew 101 follow-through</p><h2 id={`practice-${sessionId}`}>Your four-week practice.</h2><p>Write what happened at the cup, then keep one deliberate next step.</p></div><p className="progress-label">{submitted ? 'Submitted' : `${readyWeeks} of 4 weeks ready`}</p></div>
+      <div className="practice-intro"><div><p className="eyebrow">Brew 101 follow-through</p><h2 id={`practice-${sessionId}`}>Your four-week practice.</h2><p>Write what happened at the cup, then submit each week when it is ready for review.</p></div><p className="progress-label">{submittedWeeks} of 4 weeks submitted</p></div>
       <div className="week-grid">
-        {practiceWeekIds.map((weekId, index) => <PracticeWeekCard key={weekId} index={index + 1} weekId={weekId} week={challenge.weeks[weekId]} readOnly={submitted} onChange={updateWeek} />)}
+        {practiceWeekIds.map((weekId, index) => <PracticeWeekCard key={weekId} index={index + 1} weekId={weekId} week={challenge.weeks[weekId]} busy={busy === weekId} onSave={saveWeek} onSubmit={submitWeek} onChange={updateWeek} />)}
       </div>
-      {!submitted && <div className="practice-actions"><button className="button secondary" onClick={savePractice} disabled={busy !== null}>{busy === 'save' ? 'Saving draft…' : 'Save draft'}</button><button className="button primary" onClick={submitPractice} disabled={busy !== null || readyWeeks !== 4}>{busy === 'submit' ? 'Submitting practice…' : 'Submit practice'}</button><p>Submission opens when all four weeks are marked complete.</p></div>}
-      {submitted && <p className="form-success">Practice submitted. You can read your notes, but they are now locked for instructor review.</p>}
       {message && <p className="form-success" role="status">{message}</p>}
       {error && <p className="auth-message" role="alert">{error}</p>}
     </section>
   );
 }
 
-function PracticeWeekCard({ index, weekId, week, readOnly, onChange }: { index: number; weekId: PracticeWeekId; week: PracticeWeek; readOnly: boolean; onChange: (weekId: PracticeWeekId, change: Partial<PracticeWeek>) => void }) {
+function PracticeWeekCard({ index, weekId, week, busy, onSave, onSubmit, onChange }: { index: number; weekId: PracticeWeekId; week: PracticeWeek; busy: boolean; onSave: (weekId: PracticeWeekId) => void; onSubmit: (weekId: PracticeWeekId) => void; onChange: (weekId: PracticeWeekId, change: Partial<PracticeWeek>) => void }) {
   const prefix = `${weekId}-`;
+  const submitted = week.status === 'submitted';
+  const ready = weekIsReady(week);
   return (
-    <fieldset className={`week-card${weekIsReady(week) ? ' done' : ''}`} disabled={readOnly}>
+    <fieldset className={`week-card${ready ? ' done' : ''}`} disabled={submitted || busy}>
       <legend className="week-title"><span>Week {index}</span><strong>{weekNames[weekId]}</strong></legend>
       <label htmlFor={`${prefix}focus`}>Focus<input id={`${prefix}focus`} value={week.focus} onChange={(event) => onChange(weekId, { focus: event.target.value })} placeholder="What were you paying attention to?" /></label>
       <label htmlFor={`${prefix}coffee`}>Coffee<input id={`${prefix}coffee`} value={week.coffee} onChange={(event) => onChange(weekId, { coffee: event.target.value })} placeholder="Coffee or roast" /></label>
@@ -366,6 +365,8 @@ function PracticeWeekCard({ index, weekId, week, readOnly, onChange }: { index: 
       <label htmlFor={`${prefix}tasting-note`}>What you tasted<textarea id={`${prefix}tasting-note`} value={week.tastingNote} onChange={(event) => onChange(weekId, { tastingNote: event.target.value })} placeholder="Describe the cup in your own words." /></label>
       <label htmlFor={`${prefix}change`}>One change<input id={`${prefix}change`} value={week.changeMade} onChange={(event) => onChange(weekId, { changeMade: event.target.value })} placeholder="What will you change next time?" /></label>
       <label className="check" htmlFor={`${prefix}complete`}><input id={`${prefix}complete`} type="checkbox" checked={week.complete} onChange={(event) => onChange(weekId, { complete: event.target.checked })} />This week is complete</label>
+      {!submitted && <div className="week-actions"><button className="button secondary" type="button" onClick={() => onSave(weekId)}>{busy ? 'Saving…' : 'Save week'}</button><button className="button primary" type="button" onClick={() => onSubmit(weekId)} disabled={!ready}>{busy ? 'Submitting…' : `Submit week ${index}`}</button></div>}
+      {submitted && <p className="week-submitted" role="status">Submitted for instructor review.</p>}
     </fieldset>
   );
 }
