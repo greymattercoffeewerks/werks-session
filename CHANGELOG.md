@@ -2,6 +2,16 @@
 
 All notable user-visible, operational, and security-impacting changes are recorded by completion date.
 
+## [2026-10-17]
+
+### Added
+
+- Provisioned the Firebase Spark Cloud Firestore default database in `asia-southeast1` in production mode for manually granted learner access.
+
+### Security
+
+- Released the deny-by-default Firestore Rules and verified in the live Rules Playground that the scoped learner can read its confirmed test session while an authenticated, ungranted UID is denied.
+
 ## [2026-10-16]
 
 ### Added
