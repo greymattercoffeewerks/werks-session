@@ -5,6 +5,7 @@ const {
   assertSucceeds,
   initializeTestEnvironment,
 } = require('@firebase/rules-unit-testing');
+const { serverTimestamp } = require('firebase/firestore');
 
 let testEnv;
 
@@ -87,14 +88,32 @@ describe('Spark access grants and learner practice', () => {
     await assertFails(db.doc('access_grants/learner-uid').set({ personId: 'person-123', role: 'admin', status: 'active' }));
   });
 
-  test('allows only the assigned instructor to review a submitted challenge', async () => {
+  test('allows only the assigned instructor to review one submitted week at a time', async () => {
     const instructor = testEnv.authenticatedContext('instructor-uid').firestore();
+    const learner = testEnv.authenticatedContext('learner-uid').firestore();
     const unassigned = testEnv.authenticatedContext('unassigned-instructor-uid').firestore();
     await testEnv.withSecurityRulesDisabled(async (context) => {
-      await context.firestore().doc('sessions/brew101-01/challenges/learner-uid').update({ status: 'submitted' });
+      await context.firestore().doc('sessions/brew101-01/challenges/learner-uid').update({ weeks: submittedWeek1 });
     });
     await assertSucceeds(instructor.doc('sessions/brew101-01/challenges/learner-uid').get());
-    await assertSucceeds(instructor.doc('sessions/brew101-01/challenges/learner-uid').update({ status: 'approved', reviewerNote: 'Clear observation and a useful next change.', reviewedAt: '2026-10-16T01:00:00.000Z' }));
+    await assertSucceeds(instructor.collection('teaching_assignments').where('uid', '==', 'instructor-uid').where('status', '==', 'active').get());
+    const returnedWeek1 = {
+      ...submittedWeek1,
+      week1: { ...submittedWeek1.week1, status: 'returned', reviewerNote: 'Try the same ratio once more and compare the sweetness.', reviewedAt: serverTimestamp() },
+    };
+    await assertSucceeds(instructor.doc('sessions/brew101-01/challenges/learner-uid').update({ weeks: returnedWeek1, updatedAt: serverTimestamp() }));
+    const storedReturnedWeek1 = (await instructor.doc('sessions/brew101-01/challenges/learner-uid').get()).data().weeks;
+    const resubmittedWeek1 = {
+      ...storedReturnedWeek1,
+      week1: { ...storedReturnedWeek1.week1, status: 'submitted' },
+    };
+    await assertSucceeds(learner.doc('sessions/brew101-01/challenges/learner-uid').update({ weeks: resubmittedWeek1 }));
+    const approvedWeek1 = {
+      ...resubmittedWeek1,
+      week1: { ...resubmittedWeek1.week1, status: 'approved', reviewerNote: 'Clear observation and a useful next change.', reviewedAt: serverTimestamp() },
+    };
+    await assertSucceeds(instructor.doc('sessions/brew101-01/challenges/learner-uid').update({ weeks: approvedWeek1, updatedAt: serverTimestamp() }));
+    await assertFails(instructor.doc('sessions/brew101-01/challenges/learner-uid').update({ weeks: { ...approvedWeek1, week1: { ...approvedWeek1.week1, reviewerNote: 'Changed after approval.' } }, updatedAt: serverTimestamp() }));
     await assertFails(instructor.doc('teaching_assignments/brew101-01_instructor-uid').set({ status: 'active' }));
     await assertFails(unassigned.doc('sessions/brew101-01/challenges/learner-uid').get());
   });

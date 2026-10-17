@@ -45,8 +45,10 @@ service cloud.firestore {
     function nonBlank(value) { return value is string && value.matches('.*[^\\s].*'); }
     function weekStatus(week) { return week.keys().hasAll(['status']) ? week.status : 'draft'; }
     function learnerCanChangeWeek(before, after) {
-      return (weekStatus(before) == 'submitted' && before.diff(after).affectedKeys().size() == 0)
-        || (weekStatus(before) != 'submitted'
+      return ((weekStatus(before) == 'submitted' || weekStatus(before) == 'approved')
+          && before.diff(after).affectedKeys().size() == 0)
+        || ((weekStatus(before) == 'draft' || weekStatus(before) == 'returned')
+          && before.diff(after).affectedKeys().hasOnly(['focus', 'coffee', 'recipe', 'tastingNote', 'changeMade', 'complete', 'status'])
           && (weekStatus(after) == 'draft'
             || (weekStatus(after) == 'submitted' && completedWeek(after))));
     }
@@ -66,9 +68,33 @@ service cloud.firestore {
       return request.resource.data.sessionId == resource.data.sessionId
         && request.resource.data.ownerUid == resource.data.ownerUid
         && request.resource.data.personId == resource.data.personId
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'reviewerNote', 'reviewedAt'])
-        && resource.data.status == 'submitted'
-        && request.resource.data.status in ['approved', 'returned'];
+        && request.resource.data.status == resource.data.status
+        && request.resource.data.status == 'in_progress'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['weeks', 'updatedAt'])
+        && ((validStaffWeekReview(resource.data.weeks.week1, request.resource.data.weeks.week1)
+            && unchangedWeek(resource.data.weeks.week2, request.resource.data.weeks.week2)
+            && unchangedWeek(resource.data.weeks.week3, request.resource.data.weeks.week3)
+            && unchangedWeek(resource.data.weeks.week4, request.resource.data.weeks.week4))
+          || (unchangedWeek(resource.data.weeks.week1, request.resource.data.weeks.week1)
+            && validStaffWeekReview(resource.data.weeks.week2, request.resource.data.weeks.week2)
+            && unchangedWeek(resource.data.weeks.week3, request.resource.data.weeks.week3)
+            && unchangedWeek(resource.data.weeks.week4, request.resource.data.weeks.week4))
+          || (unchangedWeek(resource.data.weeks.week1, request.resource.data.weeks.week1)
+            && unchangedWeek(resource.data.weeks.week2, request.resource.data.weeks.week2)
+            && validStaffWeekReview(resource.data.weeks.week3, request.resource.data.weeks.week3)
+            && unchangedWeek(resource.data.weeks.week4, request.resource.data.weeks.week4))
+          || (unchangedWeek(resource.data.weeks.week1, request.resource.data.weeks.week1)
+            && unchangedWeek(resource.data.weeks.week2, request.resource.data.weeks.week2)
+            && unchangedWeek(resource.data.weeks.week3, request.resource.data.weeks.week3)
+            && validStaffWeekReview(resource.data.weeks.week4, request.resource.data.weeks.week4)));
+    }
+    function unchangedWeek(before, after) { return before.diff(after).affectedKeys().size() == 0; }
+    function validStaffWeekReview(before, after) {
+      return weekStatus(before) == 'submitted'
+        && before.diff(after).affectedKeys().hasOnly(['status', 'reviewerNote', 'reviewedAt'])
+        && weekStatus(after) in ['approved', 'returned']
+        && nonBlank(after.reviewerNote)
+        && after.reviewedAt == request.time;
     }
 
     match /courses/{course} { allow get, list: if isAdmin(); allow write: if false; }
@@ -86,7 +112,7 @@ service cloud.firestore {
       }
     }
     match /access_grants/{uid} { allow get: if signedIn() && request.auth.uid == uid; allow list, write: if false; }
-    match /teaching_assignments/{assignmentId} { allow get: if isAdmin() || (isInstructor() && resource.data.uid == request.auth.uid); allow list, write: if false; }
+    match /teaching_assignments/{assignmentId} { allow get, list: if isAdmin() || (isInstructor() && resource.data.uid == request.auth.uid); allow write: if false; }
     match /enrolments/{enrolmentId} {
       allow get: if (hasActiveGrant()
         && resource.data.uid == request.auth.uid

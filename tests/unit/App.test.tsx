@@ -15,6 +15,11 @@ const learnerAccessMock = vi.hoisted(() => ({
   loadLearnerAccess: vi.fn(),
 }));
 
+const instructorAccessMock = vi.hoisted(() => ({
+  loadInstructorAccess: vi.fn(() => Promise.resolve({ state: 'not_instructor' })),
+  reviewPracticeWeek: vi.fn(),
+}));
+
 const practiceMock = vi.hoisted(() => ({
   loadPracticeChallenge: vi.fn(() => Promise.resolve(null)),
   startPracticeChallenge: vi.fn(),
@@ -24,6 +29,7 @@ const practiceMock = vi.hoisted(() => ({
 }));
 
 vi.mock('../../src/lib/google-auth', () => authMock);
+vi.mock('../../src/lib/instructor-access', () => instructorAccessMock);
 vi.mock('../../src/lib/learner-access', () => learnerAccessMock);
 vi.mock('../../src/lib/practice', () => practiceMock);
 import App from '../../src/App';
@@ -137,5 +143,82 @@ describe('portal navigation and interest registration', () => {
       week1: expect.objectContaining({ status: 'draft' }),
     }));
     expect(practiceMock.startPracticeChallenge).toHaveBeenCalledWith('brew101-01', 'learner-uid');
+  });
+
+  it('lets an assigned instructor review one submitted week with feedback', async () => {
+    authMock.observeAccount.mockImplementationOnce((callback: (user: { uid: string; email: string }) => void) => {
+      callback({ uid: 'instructor-uid', email: 'teacher@example.com' });
+      return () => undefined;
+    });
+    learnerAccessMock.loadLearnerAccess.mockResolvedValueOnce({ state: 'pending' });
+    instructorAccessMock.loadInstructorAccess.mockResolvedValueOnce({
+      state: 'assigned',
+      sessions: [{
+        id: 'brew101-01',
+        title: 'Manual Brew Foundations',
+        reviews: [{
+          learnerUid: 'learner-uid',
+          weekId: 'week1',
+          week: { focus: 'Ratio', coffee: 'Konga', recipe: '15 g : 250 g', tastingNote: 'Sweet and clear.', changeMade: 'Grind finer', complete: true, status: 'submitted' },
+          weeks: {
+            week1: { focus: 'Ratio', coffee: 'Konga', recipe: '15 g : 250 g', tastingNote: 'Sweet and clear.', changeMade: 'Grind finer', complete: true, status: 'submitted' },
+            week2: { focus: '', coffee: '', recipe: '', tastingNote: '', changeMade: '', complete: false, status: 'draft' },
+            week3: { focus: '', coffee: '', recipe: '', tastingNote: '', changeMade: '', complete: false, status: 'draft' },
+            week4: { focus: '', coffee: '', recipe: '', tastingNote: '', changeMade: '', complete: false, status: 'draft' },
+          },
+        }],
+      }],
+    });
+    instructorAccessMock.reviewPracticeWeek.mockResolvedValueOnce(undefined);
+
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
+
+    expect(await screen.findByRole('heading', { name: 'Instructor review.' })).toBeInTheDocument();
+    expect(screen.getByText('Sweet and clear.')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Feedback for the learner'), { target: { value: 'Clear observation. Keep this ratio for one more brew.' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Approve week 1' }));
+
+    expect(await screen.findByRole('heading', { name: 'No submitted weeks are waiting.' })).toBeInTheDocument();
+    expect(instructorAccessMock.reviewPracticeWeek).toHaveBeenCalledWith(
+      'brew101-01',
+      'learner-uid',
+      'week1',
+      expect.objectContaining({ week1: expect.objectContaining({ status: 'submitted' }) }),
+      'approved',
+      'Clear observation. Keep this ratio for one more brew.',
+    );
+  });
+
+  it('keeps instructor feedback metadata when a returned week becomes a learner draft', async () => {
+    authMock.observeAccount.mockImplementationOnce((callback: (user: { uid: string; email: string }) => void) => {
+      callback({ uid: 'learner-uid', email: 'maya@example.com' });
+      return () => undefined;
+    });
+    learnerAccessMock.loadLearnerAccess.mockResolvedValueOnce({
+      state: 'confirmed',
+      sessions: [{ id: 'brew101-01', title: 'Manual Brew Foundations' }],
+    });
+    practiceMock.loadPracticeChallenge.mockResolvedValueOnce({
+      status: 'in_progress',
+      weeks: {
+        week1: { focus: 'Ratio', coffee: 'Konga', recipe: '15 g : 250 g', tastingNote: 'Sweet and clear.', changeMade: 'Grind finer', complete: true, status: 'returned', reviewerNote: 'Compare this ratio one more time.', reviewedAt: 'reviewed-at' },
+        week2: { focus: '', coffee: '', recipe: '', tastingNote: '', changeMade: '', complete: false, status: 'draft' },
+        week3: { focus: '', coffee: '', recipe: '', tastingNote: '', changeMade: '', complete: false, status: 'draft' },
+        week4: { focus: '', coffee: '', recipe: '', tastingNote: '', changeMade: '', complete: false, status: 'draft' },
+      },
+    });
+    practiceMock.savePracticeChallenge.mockResolvedValueOnce(undefined);
+
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
+
+    const weekOne = await screen.findByRole('group', { name: 'Week 1 Notice the cup' });
+    expect(within(weekOne).getByText('Returned for revision. Compare this ratio one more time.')).toBeInTheDocument();
+    fireEvent.click(within(weekOne).getByRole('button', { name: 'Save week' }));
+
+    expect(practiceMock.savePracticeChallenge).toHaveBeenCalledWith('brew101-01', 'learner-uid', expect.objectContaining({
+      week1: expect.objectContaining({ status: 'draft', reviewerNote: 'Compare this ratio one more time.', reviewedAt: 'reviewed-at' }),
+    }));
   });
 });

@@ -9,18 +9,21 @@ All notable user-visible, operational, and security-impacting changes are record
 - Provisioned the Firebase Spark Cloud Firestore default database in `asia-southeast1` in production mode for manually granted learner access.
 - Added the first learner-facing Firestore read: confirmed Brew 101 sessions and a read-only four-week practice preview.
 - Added a learner-owned four-week Brew 101 practice record with draft saving and guarded submission.
+- Added an assigned-instructor review queue for individually submitted Brew 101 practice weeks.
 
 ### Changed
 
 - Replaced the granted learner's generic pending screen with a confirmed-session view; accounts without a confirmed enrolment remain pending.
 - Replaced the read-only Brew 101 practice preview with the active weekly record; submitted records become read-only until instructor review.
 - Corrected Brew 101 practice to save and submit each week independently; submitted weeks are learner-locked while the remaining weeks stay available.
+- Added instructor feedback outcomes: approved weeks remain locked, while returned weeks retain feedback and may be revised and resubmitted by the learner.
 
 ### Security
 
 - Released the deny-by-default Firestore Rules and verified in the live Rules Playground that the scoped learner can read its confirmed test session while an authenticated, ungranted UID is denied.
 - Scoped Firestore enrolment queries to the active learner's UID, provider-neutral person ID, and confirmed status before exposing a session title.
 - Enforced per-week completion and learner locking in Firestore Rules so a submitted week cannot be altered through the browser.
+- Limited instructor reviews to one submitted week in an assigned session, preserving the learner’s observation and requiring feedback for an approve or return outcome.
 
 ## [2026-10-16]
 

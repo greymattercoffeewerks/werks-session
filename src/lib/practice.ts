@@ -11,7 +11,9 @@ export type PracticeWeek = {
   tastingNote: string;
   changeMade: string;
   complete: boolean;
-  status: 'draft' | 'submitted';
+  status: 'draft' | 'submitted' | 'returned' | 'approved';
+  reviewerNote?: string;
+  reviewedAt?: unknown;
 };
 
 export type PracticeWeeks = Record<PracticeWeekId, PracticeWeek>;
@@ -44,8 +46,11 @@ function nonBlankString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
-function practiceWeek(value: unknown): PracticeWeek {
+export function practiceWeek(value: unknown): PracticeWeek {
   const source = value && typeof value === 'object' ? value as Record<string, unknown> : {};
+  const status = source.status === 'submitted' || source.status === 'returned' || source.status === 'approved'
+    ? source.status
+    : 'draft';
   return {
     focus: nonBlankString(source.focus) ? source.focus : '',
     coffee: nonBlankString(source.coffee) ? source.coffee : '',
@@ -53,7 +58,9 @@ function practiceWeek(value: unknown): PracticeWeek {
     tastingNote: nonBlankString(source.tastingNote) ? source.tastingNote : '',
     changeMade: nonBlankString(source.changeMade) ? source.changeMade : '',
     complete: source.complete === true,
-    status: source.status === 'submitted' ? 'submitted' : 'draft',
+    status,
+    ...(nonBlankString(source.reviewerNote) ? { reviewerNote: source.reviewerNote } : {}),
+    ...(source.reviewedAt ? { reviewedAt: source.reviewedAt } : {}),
   };
 }
 

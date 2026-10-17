@@ -52,7 +52,11 @@ An instructor needs an active assignment before viewing or reviewing that sessio
 
 ## Challenge path and permitted changes
 
-Practice is stored at `sessions/{sessionId}/challenges/{learnerUid}`. A learner can create an `in_progress` challenge and edit only their practice weeks. The learner portal starts a blank four-week record and saves each week as a draft. A learner may submit a week independently after that week contains a focus, coffee, recipe, tasting note, change made, and completed flag. A submitted week is locked to the learner while the other weeks remain drafts. Instructor review of submitted weeks is the next phase. Neither party can change the challenge owner, session, or provider-neutral person mapping.
+Practice is stored at `sessions/{sessionId}/challenges/{learnerUid}`. A learner can create an `in_progress` challenge and edit only their practice weeks. The learner portal starts a blank four-week record and saves each week as a draft. A learner may submit a week independently after that week contains a focus, coffee, recipe, tasting note, change made, and completed flag. A submitted week is locked to the learner while the other weeks remain drafts.
+
+An assigned instructor can list only the active teaching assignments that belong to their own Firebase UID. Their review queue displays only submitted weeks from those sessions. Each review must target exactly one submitted week, preserve the learner’s observation, include non-blank feedback, and mark that week `approved` or `returned`. An approved week remains locked. A returned week retains the feedback, and the learner may revise it and submit it again. Neither party can change the challenge owner, session, or provider-neutral person mapping.
+
+The current Spark document shape keeps all four weeks in one learner-owned challenge document. Firestore cannot authorize fields independently, so an assigned instructor’s session-level read is trusted access to that document; the portal queue deliberately displays only submitted weeks. If cohort policy requires drafts to be hidden from instructors at the database layer, split each week into a separate document before operating with multiple instructors.
 
 Session documents are not a public calendar. A confirmed learner can read only a session for which they have an enrolment; an assigned instructor or administrator can read the session they operate. Public offer copy remains static on Firebase Hosting.
 

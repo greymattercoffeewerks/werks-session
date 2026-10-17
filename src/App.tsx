@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { User } from 'firebase/auth';
 import { offerings } from './data/demo';
 import { authErrorMessage, observeAccount, signInWithGoogle, signOut } from './lib/google-auth';
+import { loadInstructorAccess, reviewPracticeWeek, type InstructorAccess, type InstructorReview, type ReviewDecision } from './lib/instructor-access';
 import { loadLearnerAccess, type LearnerAccess as LearnerAccessState } from './lib/learner-access';
 import { loadPracticeChallenge, practiceWeekIds, savePracticeChallenge, startPracticeChallenge, submitPracticeWeek, type PracticeChallenge, type PracticeWeek, type PracticeWeekId } from './lib/practice';
 import type { OfferingKind } from './types';
@@ -115,6 +116,7 @@ function Home({ onInterest, onAbout }: { onInterest: (offering: OfferingKind) =>
 function LearnerAccess() {
   const [account, setAccount] = useState<User | null | undefined>(undefined);
   const [learnerAccess, setLearnerAccess] = useState<LearnerAccessState | undefined>(undefined);
+  const [instructorAccess, setInstructorAccess] = useState<InstructorAccess | undefined>(undefined);
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [error, setError] = useState('');
 
@@ -123,22 +125,26 @@ function LearnerAccess() {
   useEffect(() => {
     if (!account) {
       setLearnerAccess(undefined);
+      setInstructorAccess(undefined);
       return undefined;
     }
 
     let cancelled = false;
     setLearnerAccess(undefined);
+    setInstructorAccess(undefined);
     setError('');
-    loadLearnerAccess(account.uid)
-      .then((access) => {
+    Promise.all([loadLearnerAccess(account.uid), loadInstructorAccess(account.uid)])
+      .then(([learner, instructor]) => {
         if (!cancelled) {
-          setLearnerAccess(access);
+          setLearnerAccess(learner);
+          setInstructorAccess(instructor);
         }
       })
       .catch(() => {
         if (!cancelled) {
           setError('We could not check your learner access. Please try again or contact Werks Sessions.');
           setLearnerAccess({ state: 'pending' });
+          setInstructorAccess({ state: 'not_instructor' });
         }
       });
 
@@ -177,11 +183,30 @@ function LearnerAccess() {
   }
 
   if (account) {
-    if (learnerAccess === undefined) {
+    if (learnerAccess === undefined || instructorAccess === undefined) {
       return (
         <main className="dashboard auth-page">
           <DashboardHeader title="Checking confirmed sessions." subtitle={`Signed in as ${account.email ?? 'your Google account'}.`} />
           <section className="panel auth-panel" aria-live="polite"><p>Reading the sessions staff have confirmed for you.</p></section>
+        </main>
+      );
+    }
+
+    if (instructorAccess.state === 'assigned') {
+      return (
+        <main className="dashboard instructor-page">
+          <DashboardHeader title="Instructor review." subtitle="Review one submitted week at a time. Feedback stays with the learner’s practice record." />
+          <InstructorReviewWorkspace access={instructorAccess} onReviewed={(sessionId, learnerUid, weekId) => {
+            setInstructorAccess((current) => current?.state === 'assigned' ? {
+              ...current,
+              sessions: current.sessions.map((session) => session.id === sessionId ? {
+                ...session,
+                reviews: session.reviews.filter((review) => review.learnerUid !== learnerUid || review.weekId !== weekId),
+              } : session),
+            } : current);
+          }} />
+          <button className="button secondary learner-sign-out" onClick={leaveAccount}>Sign out</button>
+          {error && <p className="auth-message" role="alert">{error}</p>}
         </main>
       );
     }
@@ -297,10 +322,17 @@ function PracticeWorkspace({ sessionId, sessionTitle, uid }: { sessionId: string
 
   const saveWeek = async (weekId: PracticeWeekId) => {
     if (!challenge) return;
+    const weeks = {
+      ...challenge.weeks,
+      [weekId]: challenge.weeks[weekId].status === 'returned'
+        ? { ...challenge.weeks[weekId], status: 'draft' as const }
+        : challenge.weeks[weekId],
+    };
     setBusy(weekId);
     setError('');
     try {
-      await savePracticeChallenge(sessionId, uid, challenge.weeks);
+      await savePracticeChallenge(sessionId, uid, weeks);
+      setChallenge({ ...challenge, weeks });
       setMessage(`Week ${practiceWeekIds.indexOf(weekId) + 1} draft saved.`);
     } catch {
       setError('We could not save this draft. Please try again.');
@@ -354,10 +386,10 @@ function PracticeWorkspace({ sessionId, sessionTitle, uid }: { sessionId: string
 
 function PracticeWeekCard({ index, weekId, week, busy, onSave, onSubmit, onChange }: { index: number; weekId: PracticeWeekId; week: PracticeWeek; busy: boolean; onSave: (weekId: PracticeWeekId) => void; onSubmit: (weekId: PracticeWeekId) => void; onChange: (weekId: PracticeWeekId, change: Partial<PracticeWeek>) => void }) {
   const prefix = `${weekId}-`;
-  const submitted = week.status === 'submitted';
+  const locked = week.status === 'submitted' || week.status === 'approved';
   const ready = weekIsReady(week);
   return (
-    <fieldset className={`week-card${ready ? ' done' : ''}`} disabled={submitted || busy}>
+    <fieldset className={`week-card${ready ? ' done' : ''}`} disabled={locked || busy}>
       <legend className="week-title"><span>Week {index}</span><strong>{weekNames[weekId]}</strong></legend>
       <label htmlFor={`${prefix}focus`}>Focus<input id={`${prefix}focus`} value={week.focus} onChange={(event) => onChange(weekId, { focus: event.target.value })} placeholder="What were you paying attention to?" /></label>
       <label htmlFor={`${prefix}coffee`}>Coffee<input id={`${prefix}coffee`} value={week.coffee} onChange={(event) => onChange(weekId, { coffee: event.target.value })} placeholder="Coffee or roast" /></label>
@@ -365,9 +397,62 @@ function PracticeWeekCard({ index, weekId, week, busy, onSave, onSubmit, onChang
       <label htmlFor={`${prefix}tasting-note`}>What you tasted<textarea id={`${prefix}tasting-note`} value={week.tastingNote} onChange={(event) => onChange(weekId, { tastingNote: event.target.value })} placeholder="Describe the cup in your own words." /></label>
       <label htmlFor={`${prefix}change`}>One change<input id={`${prefix}change`} value={week.changeMade} onChange={(event) => onChange(weekId, { changeMade: event.target.value })} placeholder="What will you change next time?" /></label>
       <label className="check" htmlFor={`${prefix}complete`}><input id={`${prefix}complete`} type="checkbox" checked={week.complete} onChange={(event) => onChange(weekId, { complete: event.target.checked })} />This week is complete</label>
-      {!submitted && <div className="week-actions"><button className="button secondary" type="button" onClick={() => onSave(weekId)}>{busy ? 'Saving…' : 'Save week'}</button><button className="button primary" type="button" onClick={() => onSubmit(weekId)} disabled={!ready}>{busy ? 'Submitting…' : `Submit week ${index}`}</button></div>}
-      {submitted && <p className="week-submitted" role="status">Submitted for instructor review.</p>}
+      {!locked && <div className="week-actions"><button className="button secondary" type="button" onClick={() => onSave(weekId)}>{busy ? 'Saving…' : 'Save week'}</button><button className="button primary" type="button" onClick={() => onSubmit(weekId)} disabled={!ready}>{busy ? 'Submitting…' : `Submit week ${index}`}</button></div>}
+      {week.status === 'submitted' && <p className="week-submitted" role="status">Submitted for instructor review.</p>}
+      {week.status === 'approved' && <p className="week-reviewed" role="status">Approved by your instructor.{week.reviewerNote && ` ${week.reviewerNote}`}</p>}
+      {week.status === 'returned' && <p className="week-returned" role="status">Returned for revision.{week.reviewerNote && ` ${week.reviewerNote}`}</p>}
     </fieldset>
+  );
+}
+
+function InstructorReviewWorkspace({ access, onReviewed }: { access: Extract<InstructorAccess, { state: 'assigned' }>; onReviewed: (sessionId: string, learnerUid: string, weekId: PracticeWeekId) => void }) {
+  const [feedback, setFeedback] = useState<Record<string, string>>({});
+  const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [error, setError] = useState('');
+  const reviews = access.sessions.flatMap((session) => session.reviews.map((review) => ({ session, review })));
+
+  const reviewKey = (sessionId: string, review: InstructorReview) => `${sessionId}:${review.learnerUid}:${review.weekId}`;
+  const completeReview = async (sessionId: string, review: InstructorReview, decision: ReviewDecision) => {
+    const key = reviewKey(sessionId, review);
+    const note = feedback[key] ?? '';
+    if (!note.trim()) {
+      setError('Add feedback before approving or returning a week.');
+      return;
+    }
+    setBusyKey(key);
+    setError('');
+    try {
+      await reviewPracticeWeek(sessionId, review.learnerUid, review.weekId, review.weeks, decision, note);
+      onReviewed(sessionId, review.learnerUid, review.weekId);
+    } catch {
+      setError('We could not save this review. Please try again.');
+    } finally {
+      setBusyKey(null);
+    }
+  };
+
+  if (reviews.length === 0) {
+    return <section className="panel review-empty" aria-live="polite"><h2>No submitted weeks are waiting.</h2><p>New Brew 101 practice submissions will appear here only for sessions assigned to you.</p></section>;
+  }
+
+  return (
+    <section className="review-queue" aria-labelledby="review-queue-heading">
+      <div className="review-queue-heading"><h2 id="review-queue-heading">Submitted practice</h2><p>{reviews.length} {reviews.length === 1 ? 'week is' : 'weeks are'} ready for your response.</p></div>
+      <div className="review-list">
+        {reviews.map(({ session, review }) => {
+          const key = reviewKey(session.id, review);
+          const isBusy = busyKey === key;
+          const weekNumber = practiceWeekIds.indexOf(review.weekId) + 1;
+          return <article className="panel review-card" key={key}>
+            <header><p>{session.title}</p><h3>Week {weekNumber}: {weekNames[review.weekId]}</h3></header>
+            <dl className="review-observation"><div><dt>Focus</dt><dd>{review.week.focus}</dd></div><div><dt>Coffee</dt><dd>{review.week.coffee}</dd></div><div><dt>Recipe</dt><dd>{review.week.recipe}</dd></div><div><dt>What they tasted</dt><dd>{review.week.tastingNote}</dd></div><div><dt>Next change</dt><dd>{review.week.changeMade}</dd></div></dl>
+            <label htmlFor={`${key}-feedback`}>Feedback for the learner<textarea id={`${key}-feedback`} value={feedback[key] ?? ''} onChange={(event) => setFeedback((current) => ({ ...current, [key]: event.target.value }))} placeholder="Name what you noticed and a useful next step." /></label>
+            <div className="review-actions"><button className="button secondary" type="button" onClick={() => completeReview(session.id, review, 'returned')} disabled={isBusy}>{isBusy ? 'Saving…' : `Return week ${weekNumber}`}</button><button className="button primary" type="button" onClick={() => completeReview(session.id, review, 'approved')} disabled={isBusy}>{isBusy ? 'Saving…' : `Approve week ${weekNumber}`}</button></div>
+          </article>;
+        })}
+      </div>
+      {error && <p className="auth-message" role="alert">{error}</p>}
+    </section>
   );
 }
 

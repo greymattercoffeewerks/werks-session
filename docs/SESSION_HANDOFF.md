@@ -4,7 +4,7 @@
 
 Werks Sessions is being delivered as a Firebase Spark MVP. The public path is deliberately simple: Hosting presents Public Cupping and Brew 101, then opens an offering-specific enquiry to `greymatter.cw@outlook.com`. It does not write to Firestore, call a Function, create an account, reserve a place, or imply an automated reply.
 
-Phase 3.2.1 corrects the learner-owned four-week Brew 101 practice record at Learner access. A signed-in account remains pending unless staff seed an active grant and confirmed enrolment. A granted learner can start one record for each confirmed session, save each weekly observation as a draft, and submit a week independently once its own fields are complete. A submitted week is read-only to the learner until an instructor review phase is delivered; the remaining weeks stay available as drafts. The browser cannot write roles, enrolments, attendance, or staff records. The dormant browser email-link/custom-claim and callable helpers remain removed.
+Phase 3.3 adds the assigned-instructor review queue to the learner-owned four-week Brew 101 practice record at Learner access. A signed-in account remains pending unless staff seed an active grant and confirmed enrolment. A granted learner can start one record for each confirmed session, save each weekly observation as a draft, and submit a week independently once its own fields are complete. The assigned-instructor queue displays submitted weeks from the instructor’s own sessions and requires feedback to approve or return one week. Approved weeks remain locked; returned weeks retain feedback and may be revised and submitted again. The browser cannot write roles, enrolments, attendance, or staff records. The dormant browser email-link/custom-claim and callable helpers remain removed.
 
 Firestore now has a live Spark access-grant model in the default Standard database in `asia-southeast1`, with production-mode deny-by-default rules. It uses manually seeded `access_grants`, confirmed enrolments, and teaching assignments rather than custom claims. The staff procedure is in `docs/SPARK_ACCESS_GRANTS.md`. No browser client can grant a role, person mapping, enrolment, attendance, or instructor status.
 
@@ -42,9 +42,14 @@ The trusted Functions, private Storage flow, and unpublished resource code remai
 - Passed: deployed the Phase 3.2.1 Hosting build. `https://werks-session.web.app` returned HTTP 200 and served bundle `index-BRm-E5jq.js` with the per-week submit action.
 - Passed: released the Phase 3.2.1 Firestore Rules. The CLI compiled and released `firestore.rules`; Firestore indexes are unchanged and were not deployed.
 - Passed: staff-controlled learner smoke test saved and submitted Week 1 in the live portal. The learner received the submitted-and-locked confirmation while later weeks remained available.
+- Passed: full Phase 3.3 verification - lint, strict type checking, frontend unit tests (7), Functions authorization tests (4), Firebase Rules emulator tests (4), production build, secret scan, and both production dependency audits (0 vulnerabilities).
+- Passed: interface detector found no mechanical design issue in the changed access UI. The production build remains subject to the existing 865 kB minified JavaScript chunk warning.
+- Passed: independent quality review found no correctness, accessibility, or regression blocker. The instructor queue has labelled feedback, explicit actions, and an empty state; the learner sees feedback with the correct locked or returned state.
+- Passed: independent security review found no role-write or cross-session review bypass. Rules require an active assignment, one submitted target week, a server timestamp, and non-blank feedback; they preserve all learner observations and lock approved weeks.
+- Non-blocking: the current one-document-per-learner challenge model grants assigned instructors trusted read access to all four weeks in an assigned session. The portal queue renders only submitted weeks; split weeks into separate documents before a policy that requires database-level draft secrecy.
 - Non-blocking: Vite reports an 860 kB minified JavaScript chunk. Frontend owner should assess code splitting before Phase 3.3 expands the learner workspace.
 - Not performed: a Functions release or a Storage release.
 
 ## Next action
 
-Begin Phase 3.3: add the instructor review surface for individually submitted weeks while retaining staff-only manual grant creation during Spark operation.
+Verify Phase 3.3 locally, then deploy both Firebase Hosting and Firestore Rules together. Before live smoke testing, staff must create an active instructor grant and teaching assignment for the chosen Google-authenticated instructor account.
