@@ -9,6 +9,7 @@ All notable user-visible, operational, and security-impacting changes are record
 - Clarified the Public Cupping and Brew 101 offers, their practical outcomes, and the manual enquiry path.
 - Reworked the About Werks Sessions section into a shorter, more informative explanation with a calmer responsive layout.
 - Refined the hero learning-table card so its statement and supporting quote share one left alignment and the redundant divider is removed.
+- Restored restrained Grey Matter turquoise cues to the public hero identity and About marker.
 
 ## [2026-10-17]
 

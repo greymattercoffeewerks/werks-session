@@ -14,6 +14,8 @@ Phase 3.4.1 refreshes the public offer content before the paid pilot. It keeps t
 
 Phase 3.4.2 refines the public hero learning-table card. Its large statement and smaller supporting quote now share one inset, with enough reserved space for the quote and no decorative divider.
 
+Phase 3.4.3 restores two restrained Grey Matter turquoise brand cues: the hero identity label on charcoal and the About marker in teal-deep on cream. It does not repurpose teal as a generic UI or status colour.
+
 ## Spark architecture decision
 
 - Keep Firebase Hosting for the public offer.
@@ -59,6 +61,10 @@ Phase 3.4.2 refines the public hero learning-table card. Its large statement and
 - Passed: desktop and 360px visual QA of the public offer and About section. The updated About layout has no horizontal overflow at 360px; the Impeccable UI consistency detector reported no issues.
 - Passed: independent quality review and security review found no release blocker. This batch changes public copy, layout, and the existing mailto wording only; it adds no public write path, secrets, access-control change, or backend deployment.
 - Passed: deployed Phase 3.4.1 Hosting. `https://werks-session.web.app` returned HTTP 200 and served bundle `index-CHh2f3qU.js` containing the approved About and enquiry copy.
+- Not deployed: Firestore Rules, indexes, Functions, and Storage. They are unchanged.
+- Passed: Phase 3.4.3 desktop and 360px visual QA. The new hero and About brand cues retain their designated teal roles, with no horizontal overflow at 360px.
+- Passed: the Impeccable UI consistency detector reported no issues. Quality and security review found no blocker; this CSS-only public presentation change adds no write, access, secret, or backend path.
+- Passed: deployed Phase 3.4.3 Hosting. `https://werks-session.web.app` returned HTTP 200 and served CSS bundle `index-Dkxlrh_d.css` containing both teal brand cues.
 - Not deployed: Firestore Rules, indexes, Functions, and Storage. They are unchanged.
 - Passed: Phase 3.4.2 production build and desktop/360px hero-card QA. The supporting quote aligns with the large statement, remains below it, and the card has no horizontal overflow at 360px.
 - Passed: Impeccable layout and final UI consistency scans reported no issues. Quality and security review found no blocker; this is a CSS-only public presentation change with no new write, access, secret, or backend path.
