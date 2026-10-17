@@ -51,12 +51,12 @@ describe('portal navigation and interest registration', () => {
 
   it('creates a staff-operated email enquiry for the selected offering', () => {
     const app = render(<App />);
-    fireEvent.change(app.getByLabelText('Session'), { target: { value: 'brew101' } });
-    const enquiryLink = app.getByRole('link', { name: 'Email us about Brew 101' });
+    fireEvent.change(app.getByLabelText('Choose a session'), { target: { value: 'brew101' } });
+    const enquiryLink = app.getByRole('link', { name: 'Ask about Brew 101' });
     expect(enquiryLink).toHaveAttribute('href', expect.stringContaining('mailto:greymatter.cw@outlook.com'));
     expect(enquiryLink).toHaveAttribute(
       'href',
-      expect.stringContaining('Werks%20Sessions%20interest%20-%20Brew%20101'),
+      expect.stringContaining('Ask%20about%20Brew%20101'),
     );
   });
 

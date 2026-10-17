@@ -1,8 +1,8 @@
 import type { Challenge, Enrolment, LearningRecord, Offering, Session } from '../types';
 
 export const offerings: Offering[] = [
-  { id: 'cupping', eyebrow: 'Community session', title: 'Public Cupping', description: 'A friendly, blind tasting table. Start with what you like; the vocabulary can come later.', format: '90 minutes · Noice after hours', price: 'BND 20, redeemable against beans', capacity: '8–12 learners', outcomes: ['Rank four coffees with confidence', 'Find the words you already use', 'Take home your favourite coffee'] },
-  { id: 'brew101', eyebrow: 'Hands-on foundations', title: 'Brew 101', description: 'A small, practical manual-brew session built around tasting, comparison, and one repeatable recipe.', format: '3.5 hours · Noice after hours', price: 'BND 165 group · BND 320 private', capacity: 'Group minimum 2 · maximum 3', outcomes: ['Separate strength from extraction', 'Diagnose a cup with one change', 'Leave with your own recipe and 30-day practice plan'] },
+  { id: 'cupping', eyebrow: 'Community tasting', title: 'Public Cupping', description: 'A relaxed blind tasting table for curious coffee drinkers. Taste four coffees side by side, notice what changes, and use the words that already make sense to you.', format: '90 minutes · Noice after hours', price: 'BND 20, redeemable against beans', capacity: '8–12 people', outcomes: ['Taste and compare four coffees with more confidence', 'Find useful words for what you like', 'Take home the coffee you choose'] },
+  { id: 'brew101', eyebrow: 'Hands-on foundations', title: 'Brew 101', description: 'A practical manual-brew session for people who want to make better coffee at home—without chasing a perfect recipe. Compare cups, understand what changed, and leave with a method you can repeat.', format: '3.5 hours · Noice after hours', price: 'BND 165 group · BND 320 private', capacity: 'Group minimum 2 · maximum 3', outcomes: ['Tell strength and extraction apart in the cup', 'Make one deliberate adjustment and taste its effect', 'Leave with a repeatable recipe and a 30-day practice plan'] },
 ];
 
 export const sessions: Session[] = [

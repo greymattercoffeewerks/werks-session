@@ -10,6 +10,8 @@ Firestore now has a live Spark access-grant model in the default Standard databa
 
 The trusted Functions, private Storage flow, and unpublished resource code remain in the repository but are not part of the Spark production path. Do not deploy Functions or Storage while the project remains on Spark.
 
+Phase 3.4.1 refreshes the public offer content before the paid pilot. It keeps the existing Spark enquiry flow but makes the offer, practical outcomes, and manual next step clearer. The About section now describes the hands-on learning table in a shorter two-column composition rather than relying on an oversized statement.
+
 ## Spark architecture decision
 
 - Keep Firebase Hosting for the public offer.
@@ -51,7 +53,12 @@ The trusted Functions, private Storage flow, and unpublished resource code remai
 - Passed: live Phase 3.3 instructor smoke test. The assigned instructor saw the learner's submitted Week 1 and returned it with feedback; the returned-week state is now available to the learner for revision and resubmission.
 - Non-blocking: Vite reports an 860 kB minified JavaScript chunk. Frontend owner should assess code splitting before Phase 3.3 expands the learner workspace.
 - Not performed: a Functions release or a Storage release.
+- Passed: full Phase 3.4.1 verification - lint, strict type checking, frontend unit tests (7), Functions authorization tests (4), Firebase Rules emulator tests (4), production build, secret scan, and both production dependency audits (0 vulnerabilities).
+- Passed: desktop and 360px visual QA of the public offer and About section. The updated About layout has no horizontal overflow at 360px; the Impeccable UI consistency detector reported no issues.
+- Passed: independent quality review and security review found no release blocker. This batch changes public copy, layout, and the existing mailto wording only; it adds no public write path, secrets, access-control change, or backend deployment.
+- Passed: deployed Phase 3.4.1 Hosting. `https://werks-session.web.app` returned HTTP 200 and served bundle `index-CHh2f3qU.js` containing the approved About and enquiry copy.
+- Not deployed: Firestore Rules, indexes, Functions, and Storage. They are unchanged.
 
 ## Next action
 
-Phase 3.3 is complete. Begin the next approved MVP roadmap phase; retain the documented one-document-per-learner limitation until practice weeks are split into individually protected documents.
+Prepare the remaining learner and instructor content batches before the paid pilot. Retain the documented one-document-per-learner limitation until practice weeks are split into individually protected documents.

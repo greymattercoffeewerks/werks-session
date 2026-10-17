@@ -13,8 +13,8 @@ const sessionsEmail = 'greymatter.cw@outlook.com';
 
 function interestEmailHref(offering: OfferingKind): string {
   const course = offerings.find((item) => item.id === offering)!;
-  const subject = `Werks Sessions interest - ${course.title}`;
-  const body = `Hello Werks Sessions,\n\nI would like to hear about ${course.title}.\n\nName:\nPreferred contact:\n\nThank you.`;
+  const subject = `Ask about ${course.title}`;
+  const body = `Hello Werks Sessions,\n\nI would like to ask about ${course.title}.\n\nName:\nPreferred contact:\nWhat I would like to know:\n\nThank you.`;
   return `mailto:${sessionsEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
@@ -47,13 +47,13 @@ function App() {
         <section id="interest" className="interest-section" aria-labelledby="interest-heading">
           <div>
             <p className="eyebrow">Start here</p>
-            <h2 id="interest-heading">Register your interest.</h2>
-            <p>We announce a date only when the right group is ready. No cancelled public calendar; no unnecessary account wall.</p>
+            <h2 id="interest-heading">Ask about the next table.</h2>
+            <p>Choose a session and send us a short email. We will reply personally to discuss the right table, a possible date, and the next step.</p>
           </div>
           <div className="interest-form">
-            <label>Session<select value={interestOffering} onChange={(event) => setInterestOffering(event.target.value as OfferingKind)}><option value="cupping">Public Cupping</option><option value="brew101">Brew 101</option></select></label>
-            <p>Tell us which session you are considering. We will confirm the right table, date, and next step personally.</p>
-            <a className="button primary" href={interestEmailHref(interestOffering)}>Email us about {course.title}</a>
+            <label>Choose a session<select value={interestOffering} onChange={(event) => setInterestOffering(event.target.value as OfferingKind)}><option value="cupping">Public Cupping</option><option value="brew101">Brew 101</option></select></label>
+            <p>Tell us what you would like to know, and we will help you find the right table.</p>
+            <a className="button primary" href={interestEmailHref(interestOffering)}>Ask about {course.title}</a>
             <p className="form-success">This opens your email app. It does not create an account or reserve a place.</p>
           </div>
         </section>
@@ -71,9 +71,9 @@ function Home({ onInterest, onAbout }: { onInterest: (offering: OfferingKind) =>
         <div className="hero-content">
           <p className="hero-kicker">Werks Sessions <span>Brunei</span></p>
           <h1>Make room<br />for the <em>cup.</em></h1>
-          <p className="hero-copy">Hands-on coffee sessions for people who want to taste more closely, change one thing, and learn what the cup tells them.</p>
+          <p className="hero-copy">Hands-on coffee sessions for people who want to taste more closely, make one useful change, and understand what the cup is telling them.</p>
           <div className="hero-actions">
-            <button className="button primary" onClick={() => onInterest('cupping')}>Find your next session</button>
+            <button className="button primary" onClick={() => onInterest('cupping')}>Explore the sessions</button>
             <button className="hero-link" onClick={onAbout}>How Werks Sessions works</button>
           </div>
         </div>
@@ -84,9 +84,8 @@ function Home({ onInterest, onAbout }: { onInterest: (offering: OfferingKind) =>
         </figure>
       </section>
       <section id="about" className="about" aria-labelledby="about-heading">
-        <p className="section-marker">About Werks Sessions</p>
-        <div className="about-statement"><h2 id="about-heading">Coffee makes more sense when you can compare it, talk about it, and make the next cup yourself.</h2></div>
-        <div className="about-detail"><img src="/grey-matter-design-system/assets/logo-mark.png" alt="" /><p>Werks Sessions is Grey Matter Coffee Werks’ hands-on learning table. We work in small groups, with real tools and enough time to notice what changes.</p><p>Start with what you like. The vocabulary can come later. There is no performance to get right—just a clearer next pour.</p></div>
+        <div className="about-statement"><p className="section-marker">About Werks Sessions</p><h2 id="about-heading">Small coffee sessions that make the next cup easier to understand.</h2></div>
+        <div className="about-detail"><img src="/grey-matter-design-system/assets/logo-mark.png" alt="" /><p>Werks Sessions is Grey Matter Coffee Werks’ hands-on learning table. In small groups, you taste coffees side by side, compare what changed, and make one deliberate adjustment at a time.</p><p>Start with what you like. From there, we make the cup easier to read—and the next cup easier to make.</p></div>
       </section>
       <section className="principles">
         <p className="section-marker">The method</p>
@@ -97,14 +96,14 @@ function Home({ onInterest, onAbout }: { onInterest: (offering: OfferingKind) =>
         </div>
       </section>
       <section className="offerings" aria-labelledby="sessions-heading">
-        <div className="section-heading"><div><p className="section-marker">Current sessions</p><h2 id="sessions-heading">Built around the table.</h2></div><p>Two places to begin. One shared purpose: more attentive cups at home and together.</p></div>
+        <div className="section-heading"><div><p className="section-marker">Current sessions</p><h2 id="sessions-heading">Choose a place to begin.</h2></div><p>Start with a tasting table, or go deeper with a practical manual-brew session.</p></div>
         <div className="offering-grid">
           {offerings.map((offering) => (
             <article className="offering-card" key={offering.id}>
               <p className="eyebrow">{offering.eyebrow}</p><h3>{offering.title}</h3><p>{offering.description}</p>
               <dl><div><dt>Format</dt><dd>{offering.format}</dd></div><div><dt>Investment</dt><dd>{offering.price}</dd></div><div><dt>Table</dt><dd>{offering.capacity}</dd></div></dl>
               <ul>{offering.outcomes.map((outcome) => <li key={outcome}>{outcome}</li>)}</ul>
-              <button className="text-button" onClick={() => onInterest(offering.id)}>Join the interest list →</button>
+              <button className="text-button" onClick={() => onInterest(offering.id)}>Ask about {offering.title} →</button>
             </article>
           ))}
         </div>

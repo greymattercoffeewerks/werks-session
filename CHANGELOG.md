@@ -2,6 +2,13 @@
 
 All notable user-visible, operational, and security-impacting changes are recorded by completion date.
 
+## [2026-10-18]
+
+### Changed
+
+- Clarified the Public Cupping and Brew 101 offers, their practical outcomes, and the manual enquiry path.
+- Reworked the About Werks Sessions section into a shorter, more informative explanation with a calmer responsive layout.
+
 ## [2026-10-17]
 
 ### Added
