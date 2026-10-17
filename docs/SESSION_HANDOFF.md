@@ -12,6 +12,8 @@ The trusted Functions, private Storage flow, and unpublished resource code remai
 
 Phase 3.4.1 refreshes the public offer content before the paid pilot. It keeps the existing Spark enquiry flow but makes the offer, practical outcomes, and manual next step clearer. The About section now describes the hands-on learning table in a shorter two-column composition rather than relying on an oversized statement.
 
+Phase 3.4.2 refines the public hero learning-table card. Its large statement and smaller supporting quote now share one inset, with enough reserved space for the quote and no decorative divider.
+
 ## Spark architecture decision
 
 - Keep Firebase Hosting for the public offer.
@@ -57,6 +59,10 @@ Phase 3.4.1 refreshes the public offer content before the paid pilot. It keeps t
 - Passed: desktop and 360px visual QA of the public offer and About section. The updated About layout has no horizontal overflow at 360px; the Impeccable UI consistency detector reported no issues.
 - Passed: independent quality review and security review found no release blocker. This batch changes public copy, layout, and the existing mailto wording only; it adds no public write path, secrets, access-control change, or backend deployment.
 - Passed: deployed Phase 3.4.1 Hosting. `https://werks-session.web.app` returned HTTP 200 and served bundle `index-CHh2f3qU.js` containing the approved About and enquiry copy.
+- Not deployed: Firestore Rules, indexes, Functions, and Storage. They are unchanged.
+- Passed: Phase 3.4.2 production build and desktop/360px hero-card QA. The supporting quote aligns with the large statement, remains below it, and the card has no horizontal overflow at 360px.
+- Passed: Impeccable layout and final UI consistency scans reported no issues. Quality and security review found no blocker; this is a CSS-only public presentation change with no new write, access, secret, or backend path.
+- Passed: deployed Phase 3.4.2 Hosting. `https://werks-session.web.app` returned HTTP 200 and served the refined hero-card CSS bundle `index-D-IFA7ls.css`.
 - Not deployed: Firestore Rules, indexes, Functions, and Storage. They are unchanged.
 
 ## Next action
