@@ -20,6 +20,10 @@ The dependency gate runs `npm audit --omit=dev --audit-level=high` for the root 
 
 Firebase 13.0.0 currently requests `@grpc/grpc-js` `~1.9.0` through `@firebase/firestore`, while the security advisory is fixed in 1.13.6 and later. The root `overrides` field pins every `@grpc/grpc-js` instance to 1.14.6, which is already compatible with the rest of the dependency tree. This is a narrow security remediation, not an audit exception: `npm audit --omit=dev --audit-level=high` now passes. Revisit and remove the override when Firebase updates its own Firestore dependency range.
 
+## 2026-10-18: Guide content is seeded as one JSON string, and unlabelled sessions keep the Brew 101 experience
+
+Firebase Console cannot import JSON and nested fields are tedious to enter by hand, so the guide document accepts its content as one JSON string in `contentJson` (or as ordinary fields). The client trims, length-limits, and type-checks every value and renders text only. Existing session documents have no `offeringId`; rather than break live Brew 101 learners on deploy, a session without the field keeps the Brew 101 practice record, and only `cupping` sessions skip it. A guide appears only when a guide document exists and the Rules allow the read.
+
 ## 2026-10-18: Gated material never enters the public repository, and the gate is checked automatically
 
 The repository is public. Gated material (guides, run sheets, curriculum, cost models, flavour vocabulary, Firestore seed JSON, PDFs, archives) lives in the gitignored `content-drafts/` folder or outside the repository, and is not quoted in docs, tests, or pull requests. `.gitignore` alone is not enough, so `npm.cmd run security:gated` runs inside `verify` (and therefore the pre-commit hook and CI): it fails when a gated-looking path is tracked or when the ignore rules stop covering sample gated paths. Gitignoring does not remove material already committed. Gated material committed in early history remains publicly readable there; removal by history rewrite and any change of repository visibility are owner decisions recorded in the handoff.

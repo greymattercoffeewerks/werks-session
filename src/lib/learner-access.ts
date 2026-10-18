@@ -1,9 +1,12 @@
 import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 import { firestore } from './firebase';
+import type { OfferingKind } from '../types';
 
 export type ConfirmedSession = {
   id: string;
   title: string;
+  /** Set by staff on the session document. Null for sessions seeded before the field existed. */
+  offeringId: OfferingKind | null;
 };
 
 export type LearnerAccess =
@@ -52,8 +55,12 @@ export async function loadLearnerAccess(uid: string): Promise<LearnerAccess> {
       return null;
     }
 
-    const title = session.data().title;
-    return { id: session.id, title: nonBlankString(title) ? title : 'Confirmed session' };
+    const { title, offeringId } = session.data();
+    return {
+      id: session.id,
+      title: nonBlankString(title) ? title : 'Confirmed session',
+      offeringId: offeringId === 'cupping' || offeringId === 'brew101' ? offeringId : null,
+    };
   }));
 
   return { state: 'confirmed', sessions: sessions.filter((session): session is ConfirmedSession => session !== null) };

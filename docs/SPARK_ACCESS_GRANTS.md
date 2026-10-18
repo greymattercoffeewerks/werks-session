@@ -64,7 +64,9 @@ Session documents are not a public calendar. A confirmed learner can read only a
 
 A staff-seeded document at `sessions/{sessionId}/guide/main` carries the table guide for that session. The Rules let a learner with an active grant and a confirmed enrolment for that session read it (`get` only), and let an assigned instructor or an administrator read it. Listing the collection, other document ids, and every create, update, or delete are denied for everyone, including administrators. Seed it only in Firebase Console.
 
-Seed the session document with an `offeringId` (`cupping` or `brew101`) so the learner page knows which experience to show. The guide document shape is `{ offeringId, version, title, intro, facts[], schedule[], tastingCard, basics[], vocabulary[], beforeYouCome[], footer }`; every field is plain text, rendered as text, never HTML. The guide content itself is gated: keep the seed JSON in the gitignored `content-drafts/` folder, never in Git, and never quote it in docs, tests, or pull requests (see `CONVENTIONS.md`).
+Seed the session document with an `offeringId` (`cupping` or `brew101`) so the learner page knows which experience to show. A session without `offeringId` keeps the Brew 101 practice experience it had before the field existed; only `cupping` sessions skip the practice record.
+
+The guide document has `offeringId` (string), `version` (number), `title` (string), and the content, either as one JSON string in `contentJson` (easiest to paste in Console) or as ordinary fields. The content shape is `{ intro, facts[], schedule[], tastingCard, basics[], vocabulary[], vocabularyNote, beforeYouCome[], footer }`; every value is plain text, trimmed and length-limited by the client and rendered as text, never HTML. The guide content itself is gated: keep the seed JSON in the gitignored `content-drafts/` folder, never in Git, and never quote it in docs, tests, or pull requests (see `CONVENTIONS.md`).
 
 ## Deliberately manual work
 

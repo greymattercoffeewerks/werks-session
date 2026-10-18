@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import type { User } from 'firebase/auth';
 import { offerings } from './data/demo';
 import { authErrorMessage, observeAccount, signInWithGoogle, signOut } from './lib/google-auth';
 import { loadInstructorAccess, reviewPracticeWeek, type InstructorAccess, type InstructorReview, type ReviewDecision } from './lib/instructor-access';
-import { loadLearnerAccess, type LearnerAccess as LearnerAccessState } from './lib/learner-access';
+import { loadLearnerAccess, type ConfirmedSession as LearnerAccessSession, type LearnerAccess as LearnerAccessState } from './lib/learner-access';
+import { loadSessionGuide, type SessionGuide } from './lib/session-guide';
 import { loadPracticeChallenge, practiceWeekIds, savePracticeChallenge, startPracticeChallenge, submitPracticeWeek, type PracticeChallenge, type PracticeWeek, type PracticeWeekId } from './lib/practice';
 import type { OfferingKind } from './types';
 
@@ -221,7 +222,7 @@ function LearnerAccess() {
     if (learnerAccess.state === 'confirmed' && learnerAccess.sessions.length > 0) {
       return (
         <main className="dashboard learner-page">
-          <DashboardHeader title="Your Brew 101 table." subtitle="Your booking is confirmed. After the table, use this space to notice one useful change each week and keep a practical record of the cups you make." />
+          <DashboardHeader {...learnerHeading(learnerAccess.sessions)} />
           <section className="session-list" aria-labelledby="confirmed-sessions-heading">
             <div className="session-list-heading"><p className="eyebrow">Confirmed booking</p><h2 id="confirmed-sessions-heading">Your table</h2></div>
             {learnerAccess.sessions.map((session) => (
@@ -231,7 +232,12 @@ function LearnerAccess() {
               </article>
             ))}
           </section>
-          {learnerAccess.sessions.map((session) => <PracticeWorkspace key={session.id} sessionId={session.id} sessionTitle={session.title} uid={account.uid} />)}
+          {learnerAccess.sessions.map((session) => (
+            <Fragment key={session.id}>
+              <SessionGuidePanel sessionId={session.id} />
+              {hasPracticeWorkspace(session) && <PracticeWorkspace sessionId={session.id} sessionTitle={session.title} uid={account.uid} />}
+            </Fragment>
+          ))}
           <button className="button secondary learner-sign-out" onClick={leaveAccount}>Sign out</button>
           {error && <p className="auth-message" role="alert">{error}</p>}
         </main>
@@ -266,6 +272,84 @@ function LearnerAccess() {
         {error && <p className="auth-message" role="alert">{error}</p>}
       </section>
     </main>
+  );
+}
+
+/** Only Public Cupping sessions skip the practice record. Sessions seeded before `offeringId` existed keep the Brew 101 experience they already had. */
+function hasPracticeWorkspace(session: LearnerAccessSession): boolean {
+  return session.offeringId !== 'cupping';
+}
+
+function learnerHeading(sessions: LearnerAccessSession[]): { title: string; subtitle: string } {
+  const kinds = new Set(sessions.map((session) => session.offeringId ?? 'brew101'));
+  if (kinds.size === 1 && kinds.has('cupping')) {
+    return { title: 'Your Public Cupping table.', subtitle: 'Your booking is confirmed. Read your table guide before you come, and arrive on time.' };
+  }
+  if (kinds.size === 1 && kinds.has('brew101')) {
+    return { title: 'Your Brew 101 table.', subtitle: 'Your booking is confirmed. After the table, use this space to notice one useful change each week and keep a practical record of the cups you make.' };
+  }
+  return { title: 'Your tables.', subtitle: 'Your bookings are confirmed. Each table below has what to read before you come and what to do afterwards.' };
+}
+
+function SessionGuidePanel({ sessionId }: { sessionId: string }) {
+  const [guide, setGuide] = useState<SessionGuide | null | undefined>(undefined);
+
+  useEffect(() => {
+    let cancelled = false;
+    setGuide(undefined);
+    loadSessionGuide(sessionId)
+      .then((loadedGuide) => { if (!cancelled) setGuide(loadedGuide); })
+      .catch(() => { if (!cancelled) setGuide(null); });
+    return () => { cancelled = true; };
+  }, [sessionId]);
+
+  if (!guide) {
+    return null;
+  }
+
+  const headingId = `guide-${sessionId}`;
+  return (
+    <section className="panel session-guide" aria-labelledby={headingId}>
+      <header className="session-guide-header">
+        <div><p className="eyebrow">Before you come</p><h2 id={headingId}>{guide.title || 'Your table guide'}</h2></div>
+        <button className="button secondary no-print" type="button" onClick={() => window.print()}>Print this guide</button>
+      </header>
+      {guide.intro && <p className="guide-intro">{guide.intro}</p>}
+      {guide.facts.length > 0 && <dl className="facts guide-facts">{guide.facts.map((fact) => <div key={fact.label}><dt>{fact.label}</dt><dd>{fact.value}</dd></div>)}</dl>}
+      {guide.schedule.length > 0 && (
+        <section className="guide-section" aria-label="How the evening runs">
+          <h3>How the evening runs</h3>
+          <table className="guide-schedule"><thead><tr><th scope="col">When</th><th scope="col">What happens</th></tr></thead><tbody>{guide.schedule.map((row) => <tr key={row.when}><th scope="row">{row.when}</th><td>{row.what}</td></tr>)}</tbody></table>
+        </section>
+      )}
+      {guide.tastingCard && guide.tastingCard.prompts.length > 0 && (
+        <section className="guide-section" aria-label={guide.tastingCard.title || 'Your tasting card'}>
+          <h3>{guide.tastingCard.title || 'Your tasting card'}</h3>
+          <ul className="guide-list">{guide.tastingCard.prompts.map((prompt) => <li key={prompt.name}><strong>{prompt.name}</strong>{prompt.help && <span>{prompt.help}</span>}</li>)}</ul>
+          {guide.tastingCard.note && <p className="guide-note">{guide.tastingCard.note}</p>}
+        </section>
+      )}
+      {guide.basics.length > 0 && (
+        <section className="guide-section" aria-label="Table basics">
+          <h3>Table basics</h3>
+          <ol className="guide-steps">{guide.basics.map((item) => <li key={item.step}><strong>{item.step}</strong><span>{item.text}</span></li>)}</ol>
+        </section>
+      )}
+      {guide.vocabulary.length > 0 && (
+        <section className="guide-section" aria-label="Words for what you taste">
+          <h3>Words for what you taste</h3>
+          <dl className="guide-vocabulary">{guide.vocabulary.map((group) => <div key={group.group}><dt>{group.group}</dt><dd>{group.words.join(', ')}</dd></div>)}</dl>
+          {guide.vocabularyNote && <p className="guide-note">{guide.vocabularyNote}</p>}
+        </section>
+      )}
+      {guide.beforeYouCome.length > 0 && (
+        <section className="guide-section" aria-label="Practical notes">
+          <h3>Practical notes</h3>
+          <ul className="guide-bullets">{guide.beforeYouCome.map((item) => <li key={item}>{item}</li>)}</ul>
+        </section>
+      )}
+      {guide.footer && <p className="guide-footer">{guide.footer}</p>}
+    </section>
   );
 }
 

@@ -27,6 +27,10 @@ All notable user-visible, operational, and security-impacting changes are record
 - Added an automated gated-content check to the verification gate and strengthened the ignore rules, so learner-gated guides, seed files, PDFs, and course documents cannot be committed to the public repository by accident.
 - The public site no longer requests fonts from Google, removing a third-party request from every page view. The licensed Gotham font files are no longer served.
 
+### Added
+
+- Added the learner-only table guide to Learner access: a confirmed guest with a seeded guide sees "Before you come" with the run sheet, tasting card, table basics, flavour vocabulary, and practical notes, with a print option. Sessions can now carry an offering (`cupping` or `brew101`); Public Cupping guests no longer see the Brew 101 practice record, and sessions without an offering behave as before. No guide content is published until staff seed it.
+
 ### Operational
 
 - Added the Firestore Rules path and emulator tests for a learner-only session guide (`sessions/{id}/guide/main`): readable only by confirmed enrolees and the teaching staff, never writable from a browser. It reaches production when the Rules are released; no guide content exists yet.
