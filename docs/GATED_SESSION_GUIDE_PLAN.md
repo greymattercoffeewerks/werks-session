@@ -1,6 +1,6 @@
 # Plan: gated Public Cupping table guide
 
-Status: proposed, not built. Slice 1 (the public teaser) was released to Hosting on 2026-10-18 (PR 1). Slices 2–4 are not started.
+Status: in progress. Slice 1 (the public teaser) was released to Hosting on 2026-10-18 (PR 1). Slice 2 (Rules and tests) is built on branch `feature/gated-guide-rules`; slices 3–4 follow.
 
 ## Goal
 

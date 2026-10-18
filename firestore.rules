@@ -103,6 +103,11 @@ service cloud.firestore {
       allow list: if false;
       allow write: if false;
 
+      match /guide/main {
+        allow get: if hasConfirmedEnrolment(sessionId, request.auth.uid) || teaches(sessionId);
+        allow list, write: if false;
+      }
+
       match /challenges/{uid} {
         allow get, list: if hasConfirmedEnrolment(sessionId, uid) || teaches(sessionId);
         allow create: if hasConfirmedEnrolment(sessionId, uid) && validNewChallenge(sessionId, uid);

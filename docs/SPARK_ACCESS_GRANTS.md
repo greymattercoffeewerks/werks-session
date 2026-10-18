@@ -60,9 +60,11 @@ The current Spark document shape keeps all four weeks in one learner-owned chall
 
 Session documents are not a public calendar. A confirmed learner can read only a session for which they have an enrolment; an assigned instructor or administrator can read the session they operate. Public offer copy remains static on Firebase Hosting.
 
-## Planned: learner-only session guide
+## Session guide (learner-only content)
 
-Not yet implemented. A staff-seeded `sessions/{sessionId}/guide/main` document will carry the Public Cupping table guide, readable by a confirmed enrolee or an assigned instructor and never writable by a browser. It will add a Rules allow path with emulator tests. The shape, Rules, tests, and seeding steps are in `docs/GATED_SESSION_GUIDE_PLAN.md`. Seed content is kept outside Git in the gitignored `content-drafts/` folder.
+A staff-seeded document at `sessions/{sessionId}/guide/main` carries the table guide for that session. The Rules let a learner with an active grant and a confirmed enrolment for that session read it (`get` only), and let an assigned instructor or an administrator read it. Listing the collection, other document ids, and every create, update, or delete are denied for everyone, including administrators. Seed it only in Firebase Console.
+
+Seed the session document with an `offeringId` (`cupping` or `brew101`) so the learner page knows which experience to show. The guide document shape is `{ offeringId, version, title, intro, facts[], schedule[], tastingCard, basics[], vocabulary[], beforeYouCome[], footer }`; every field is plain text, rendered as text, never HTML. The guide content itself is gated: keep the seed JSON in the gitignored `content-drafts/` folder, never in Git, and never quote it in docs, tests, or pull requests (see `CONVENTIONS.md`).
 
 ## Deliberately manual work
 
