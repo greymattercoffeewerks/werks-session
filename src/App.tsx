@@ -490,10 +490,15 @@ function PracticeWeekCard({ index, weekId, week, busy, onSave, onSubmit, onChang
       <label className="check" htmlFor={`${prefix}complete`}><input id={`${prefix}complete`} type="checkbox" checked={week.complete} onChange={(event) => onChange(weekId, { complete: event.target.checked })} />This week is complete</label>
       {!locked && <div className="week-actions"><button className="button secondary" type="button" onClick={() => onSave(weekId)}>{busy ? 'Saving…' : 'Save week'}</button><button className="button primary" type="button" onClick={() => onSubmit(weekId)} disabled={!ready}>{busy ? 'Submitting…' : `Submit week ${index}`}</button></div>}
       {week.status === 'submitted' && <p className="week-submitted" role="status">With your instructor. You can keep working on later weeks while this one is reviewed.</p>}
-      {week.status === 'approved' && <p className="week-reviewed" role="status">Reviewed. Keep this note in mind for your next cup.{week.reviewerNote && ` ${week.reviewerNote}`}</p>}
-      {week.status === 'returned' && <p className="week-returned" role="status">Your instructor has sent this back for one more try. Update the entry, save it, and submit it again when ready.{week.reviewerNote && ` ${week.reviewerNote}`}</p>}
+      {week.status === 'approved' && <div className="week-reviewed" role="status"><p>Reviewed and approved. This week is locked.</p>{week.reviewerNote && <InstructorFeedback note={week.reviewerNote} />}</div>}
+      {week.status === 'returned' && <div className="week-returned" role="status"><p>Your instructor has sent this back for one more try. Read the feedback below, update the entry, save it, and submit it again when ready.</p>{week.reviewerNote && <InstructorFeedback note={week.reviewerNote} />}</div>}
+      {week.status === 'draft' && week.reviewerNote && <div className="week-returned" role="status"><p>You are revising this week. Your instructor’s feedback is kept here until you submit again.</p><InstructorFeedback note={week.reviewerNote} /></div>}
     </fieldset>
   );
+}
+
+function InstructorFeedback({ note }: { note: string }) {
+  return <blockquote className="reviewer-note"><strong>Instructor feedback</strong><span>{note}</span></blockquote>;
 }
 
 function InstructorReviewWorkspace({ access, onReviewed }: { access: Extract<InstructorAccess, { state: 'assigned' }>; onReviewed: (sessionId: string, learnerUid: string, weekId: PracticeWeekId) => void }) {
