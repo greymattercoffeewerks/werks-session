@@ -24,6 +24,21 @@ GMCW_Brew101_Student_Takeaway_Card.pdf
 /content-drafts/*
 !/content-drafts/README.md
 
+# Anything behind the learner gate stays out of this public repository: guides,
+# run sheets, vocabulary lists, seed JSON for Firestore, and exported PDFs.
+# `npm run security:gated` fails if a file matching these rules is ever tracked.
+/gated/
+**/GMCW_*
+**/*student-guide*
+**/*table-guide*
+**/*guide-seed*
+**/*.gated.*
+*.pdf
+*.zip
+
+# Local assistant tooling state (dev-server launch config and similar)
+.claude/
+
 # Local environment configuration (keep the documented template)
 .env
 .env.*

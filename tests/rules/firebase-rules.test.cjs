@@ -118,6 +118,34 @@ describe('Spark access grants and learner practice', () => {
     await assertFails(unassigned.doc('sessions/brew101-01/challenges/learner-uid').get());
   });
 
+  test('requires the server review timestamp on every instructor review', async () => {
+    const instructor = testEnv.authenticatedContext('instructor-uid').firestore();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await db.doc('enrolments/brew101-04_learner-uid').set({ sessionId: 'brew101-04', uid: 'learner-uid', personId: 'person-123', status: 'confirmed' });
+      await db.doc('teaching_assignments/brew101-04_instructor-uid').set({ sessionId: 'brew101-04', uid: 'instructor-uid', status: 'active' });
+      await db.doc('sessions/brew101-04/challenges/learner-uid').set(challenge({ sessionId: 'brew101-04', weeks: submittedWeek1 }));
+    });
+    const reviewed = { ...submittedWeek1.week1, status: 'returned', reviewerNote: 'Compare the sweetness once more.' };
+    await assertFails(instructor.doc('sessions/brew101-04/challenges/learner-uid').update({ weeks: { ...submittedWeek1, week1: reviewed }, updatedAt: serverTimestamp() }));
+    await assertFails(instructor.doc('sessions/brew101-04/challenges/learner-uid').update({ weeks: { ...submittedWeek1, week1: { ...reviewed, reviewedAt: new Date('2020-01-01T00:00:00Z') } }, updatedAt: serverTimestamp() }));
+    await assertSucceeds(instructor.doc('sessions/brew101-04/challenges/learner-uid').update({ weeks: { ...submittedWeek1, week1: { ...reviewed, reviewedAt: serverTimestamp() } }, updatedAt: serverTimestamp() }));
+  });
+
+  test('allows a learner to save edits to all four weeks in one write', async () => {
+    const learner = testEnv.authenticatedContext('learner-uid').firestore();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await db.doc('enrolments/brew101-05_learner-uid').set({ sessionId: 'brew101-05', uid: 'learner-uid', personId: 'person-123', status: 'confirmed' });
+      await db.doc('sessions/brew101-05/challenges/learner-uid').set(challenge({ sessionId: 'brew101-05' }));
+    });
+    const filled = (label) => ({ focus: `${label} focus`, coffee: `${label} coffee`, recipe: '15 g : 250 g', tastingNote: `${label} note`, changeMade: `${label} change`, complete: true, status: 'draft' });
+    const allWeeksEdited = { week1: filled('One'), week2: filled('Two'), week3: filled('Three'), week4: filled('Four') };
+    await assertSucceeds(learner.doc('sessions/brew101-05/challenges/learner-uid').update({ weeks: allWeeksEdited, status: 'in_progress', updatedAt: serverTimestamp() }));
+    const submittedOneAndEditedRest = { ...allWeeksEdited, week1: { ...allWeeksEdited.week1, status: 'submitted' }, week2: { ...allWeeksEdited.week2, focus: 'Two revised' }, week3: { ...allWeeksEdited.week3, focus: 'Three revised' }, week4: { ...allWeeksEdited.week4, focus: 'Four revised' } };
+    await assertSucceeds(learner.doc('sessions/brew101-05/challenges/learner-uid').update({ weeks: submittedOneAndEditedRest, status: 'in_progress', updatedAt: serverTimestamp() }));
+  });
+
   test('denies ungranted users, unauthenticated writes, and every Storage path', async () => {
     const ungranted = testEnv.authenticatedContext('ungranted-uid').firestore();
     const anonymous = testEnv.unauthenticatedContext();

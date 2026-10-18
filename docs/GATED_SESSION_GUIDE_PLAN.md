@@ -13,7 +13,7 @@ Give a confirmed Public Cupping guest the full "Before you come" table guide ins
 | 90 minutes, Noice after hours, 8–12 people, BND 20 redeemable, outcomes | Public offer card (already live) |
 | "Start with what you like", the four-beat evening summary, "nothing to bring" | Public teaser (slice 1) |
 | Minute-by-minute run sheet, triangle test, table basics, tasting card | Gated guide |
-| Local flavour vocabulary ([removed], [removed], [removed]…) | Gated guide. This is the one asset worth protecting because it grows from the tables. |
+| Local flavour vocabulary | Gated guide. This is the one asset worth protecting because it grows from the tables. Do not quote its words in this repository. |
 | Before-you-come logistics (venue contact, arrival time, cancellation) | Gated guide, after the placeholders are resolved |
 | Format spec, cost model, margins | Never in this app |
 
@@ -46,7 +46,7 @@ One staff-seeded document per session, at `sessions/{sessionId}/guide/main`:
   "schedule": [{ "when": "0:00–0:10", "what": "…" }],
   "tastingCard": { "prompts": [{ "name": "Rank it", "help": "…" }] },
   "basics": [{ "step": "Smell", "text": "…" }],
-  "vocabulary": [{ "group": "Sweet", "words": ["[removed]", "palm sugar"] }],
+  "vocabulary": [{ "group": "Group name", "words": ["word one", "word two"] }],
   "beforeYouCome": ["…"],
   "footer": "© Grey Matter Coffee Werks"
 }
@@ -131,3 +131,43 @@ Two issues existed and are now resolved (released 2026-10-18, see `docs/DECISION
 - `npm.cmd run build` output contains none of the guide-only strings.
 - Rules tests cover every allow path and the denials above.
 - `npm.cmd run verify` passes; quality and security reviews recorded in the handoff.
+
+## Work plan
+
+Sizes are relative effort: S (under half a day), M (about a day). No dates are committed. Each code step is its own feature branch and pull request, gated by `npm.cmd run verify`, with the quality and security reviews recorded in the handoff.
+
+| # | Step | Owner | Size | Needs | Output |
+| --- | --- | --- | --- | --- | --- |
+| A | **Editorial sign-off.** Resolve venue contact, arrival time, and cancellation text; approve the local flavour vocabulary; check the privacy promises match how the evening runs; finalise the copy. | Staff | M | Nothing | Final guide JSON in the gitignored `content-drafts/` folder. Never committed. |
+| B | **Phase 0 PDF.** Print the finished guide to PDF and email it with each booking confirmation. | Staff | S | A | PDF kept outside Git. Works while C–E are built. |
+| C | **Rules PR.** Add the `sessions/{id}/guide/main` allow path, the Rules tests listed above, and a Rules test that proves a learner cannot write it. Release with `firebase deploy --only firestore:rules`. | Engineering | S | Nothing | Released Rules. Check in the Rules Playground that a scoped test learner can read and an ungranted account cannot. |
+| D | **Client PR.** Add `src/lib/session-guide.ts` (typed, validated, text-only), `offeringId` on confirmed sessions, an offering-aware learner page, the guide panel, print styles, and the unit tests above. Deploy Hosting. | Engineering | M | C released | Hosting release. Brew 101 learners see no change; cupping guests see the guide. |
+| E | **Seed and smoke test.** In the Console, set `offeringId` on the cupping and Brew 101 session documents, create a test enrolment and the guide document from the ignored JSON, then sign in as the test learner and as a pending account. | Staff | S | A, C, D | Verified in production. Remove or keep the test records deliberately. |
+| F | **Close out.** Record the release in the handoff, changelog, and decision log; mark the plan slices complete; delete test records if not kept. | Engineering | S | E | Docs current. |
+
+### Order and dependencies
+
+A can start now and does not block C or D. C must be released before D is relied on. E needs A, C, and D. B is the interim delivery route and is retired when E passes.
+
+### Keeping the guide out of the public repository
+
+This repository is public, so the guide, its seed JSON, and its vocabulary must never be committed, quoted in docs or tests, or pasted into pull requests.
+
+- Keep everything in `content-drafts/`, which is gitignored (see `.gitignore` and `CONVENTIONS.md`).
+- `npm.cmd run security:gated` fails if a gated-looking file is tracked or the ignore rules weaken.
+- Public tests use structural markers only (section titles and run-sheet timings), never the vocabulary.
+- Optional local check, worth adding in step D: a script that reads a private marker list from `content-drafts/` when present and fails if any marker appears in `src/`, `public/`, `docs/`, `tests/`, or a fresh `dist/`. CI skips it when the file is absent.
+
+### Decisions needed from the owner
+
+1. **Per session or per offering.** The plan uses one guide document per session (simple to seed by hand, but duplicated across sessions). A per-offering guide avoids duplication but needs an offering field on enrolments and a new Rules function.
+2. **Instructor visibility.** The Rules let assigned instructors and admins read the guide. Say if instructors should not.
+3. **On-screen only, or print too.** Print styles are in step D; drop them if the emailed PDF stays the printable route.
+4. **Test records.** Keep a permanent test learner and session for future smoke tests, or delete them after step E.
+
+### Risks
+
+- **Brew 101 regression.** The learner page assumes Brew 101 today. Step D changes it, so the existing Brew 101 tests must keep passing unchanged.
+- **Missing `offeringId`.** Existing session documents have no such field. Step E sets it by hand, and the client must not guess a default.
+- **Rules complexity.** The challenge update rule is near Firestore's expression limit. The new guide rule is a one-line reuse of existing functions and does not add to that rule.
+- **Copying.** A confirmed guest can screenshot or print the guide. This is accepted; the gate controls sequencing and casual copying, not determined copying.

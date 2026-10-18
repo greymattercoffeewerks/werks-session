@@ -100,7 +100,8 @@ export async function reviewPracticeWeek(
   }
 
   await updateDoc(doc(databaseOrThrow(), 'sessions', sessionId, 'challenges', learnerUid), {
-    weeks: { ...weeks, [weekId]: { ...weeks[weekId], status: decision, reviewerNote: trimmedNote } },
+    // Rules require reviewedAt to equal the server time of every review, so the client must send the sentinel.
+    weeks: { ...weeks, [weekId]: { ...weeks[weekId], status: decision, reviewerNote: trimmedNote, reviewedAt: serverTimestamp() } },
     updatedAt: serverTimestamp(),
   });
 }
