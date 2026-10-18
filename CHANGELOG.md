@@ -18,8 +18,13 @@ All notable user-visible, operational, and security-impacting changes are record
 - Clarified the learner-facing Brew 101 practice journey, its independent weekly review states, and the next action at every stage.
 - Widened the learner workspace for desktop use while preserving a single-column, no-overflow phone layout.
 
+### Fixed
+
+- Instructor reviews now record the server review time that the Firestore Rules require, so approving or returning a practice week matches the access rules. This reaches the live site on the next Hosting deploy.
+
 ### Security
 
+- Added an automated gated-content check to the verification gate and strengthened the ignore rules, so learner-gated guides, seed files, PDFs, and course documents cannot be committed to the public repository by accident.
 - The public site no longer requests fonts from Google, removing a third-party request from every page view. The licensed Gotham font files are no longer served.
 
 ### Operational

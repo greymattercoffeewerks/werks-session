@@ -42,6 +42,6 @@ Firebase is still a temporary identity provider. Domain records retain a provide
 
 ## Safety notes
 
-- Do not commit `.env`, service-account JSON, private contact lists, or course materials.
+- Do not commit `.env`, service-account JSON, private contact lists, or course materials. This repository is public; keep anything behind the learner gate in the gitignored `content-drafts/` folder. `npm.cmd run security:gated` enforces this.
 - Keep Firestore and Storage Rules deny-by-default. Add emulator coverage before allowing any new client path.
 - Do not publish Brew 101 as a competency credential. `attended` and practice feedback are distinct from any future credential.

@@ -60,7 +60,8 @@ describe('portal navigation and interest registration', () => {
     const brewCard = app.getByRole('heading', { name: 'Brew 101' }).closest('article')!;
     expect(within(brewCard).queryByText('How the evening runs')).not.toBeInTheDocument();
     const text = app.container.textContent ?? '';
-    ['triangle', '[removed]', '[removed]', '[removed]', '0:30', 'tasting card'].forEach((guideOnly) => {
+    // Structural markers only: never put the gated vocabulary itself in this public repository.
+    ['triangle', 'tasting card', 'words for what you taste', '0:30', '1:15'].forEach((guideOnly) => {
       expect(text.toLowerCase()).not.toContain(guideOnly);
     });
   });
