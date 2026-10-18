@@ -231,8 +231,13 @@ describe('portal navigation and interest registration', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
 
     const weekOne = await screen.findByRole('group', { name: 'Week 1 Notice the cup' });
-    expect(within(weekOne).getByText('Your instructor has sent this back for one more try. Update the entry, save it, and submit it again when ready. Compare this ratio one more time.')).toBeInTheDocument();
+    expect(within(weekOne).getByText('Your instructor has sent this back for one more try. Read the feedback below, update the entry, save it, and submit it again when ready.')).toBeInTheDocument();
+    const feedback = within(weekOne).getByText('Instructor feedback').closest('blockquote')!;
+    expect(feedback).toHaveTextContent('Compare this ratio one more time.');
+    expect(within(weekOne).getByText('Your instructor has sent this back for one more try. Read the feedback below, update the entry, save it, and submit it again when ready.')).not.toHaveTextContent('Compare this ratio');
     fireEvent.click(within(weekOne).getByRole('button', { name: 'Save week' }));
+    expect(await within(weekOne).findByText('You are revising this week. Your instructor’s feedback is kept here until you submit again.')).toBeInTheDocument();
+    expect(within(weekOne).getByText('Instructor feedback').closest('blockquote')).toHaveTextContent('Compare this ratio one more time.');
 
     expect(practiceMock.savePracticeChallenge).toHaveBeenCalledWith('brew101-01', 'learner-uid', expect.objectContaining({
       week1: expect.objectContaining({ status: 'draft', reviewerNote: 'Compare this ratio one more time.', reviewedAt: 'reviewed-at' }),
