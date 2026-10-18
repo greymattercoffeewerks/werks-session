@@ -103,6 +103,14 @@ function Home({ onInterest, onAbout }: { onInterest: (offering: OfferingKind) =>
               <p className="eyebrow">{offering.eyebrow}</p><h3>{offering.title}</h3><p>{offering.description}</p>
               <dl><div><dt>Format</dt><dd>{offering.format}</dd></div><div><dt>Investment</dt><dd>{offering.price}</dd></div><div><dt>Table</dt><dd>{offering.capacity}</dd></div></dl>
               <ul>{offering.outcomes.map((outcome) => <li key={outcome}>{outcome}</li>)}</ul>
+              {offering.teaser && (
+                <details className="offering-teaser">
+                  <summary>{offering.teaser.summary}</summary>
+                  <p>{offering.teaser.lead}</p>
+                  <ol>{offering.teaser.beats.map((beat) => <li key={beat}>{beat}</li>)}</ol>
+                  <p className="offering-teaser-note">{offering.teaser.note}</p>
+                </details>
+              )}
               <button className="text-button" onClick={() => onInterest(offering.id)}>Ask about {offering.title} →</button>
             </article>
           ))}

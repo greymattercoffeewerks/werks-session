@@ -20,6 +20,10 @@ Phase 3.4.4a clarifies the learner-facing Brew 101 practice journey. It explains
 
 Phase 3.4.4b widens the learner workspace from the tight reading container to the normal application container. At phone widths, the navigation wraps safely and the learner heading scales down to preserve a single-column, no-horizontal-overflow layout.
 
+Phase 3.5.1 (branch `feature/cupping-teaser-and-guide-plan`, not yet merged or deployed) adds a public "How the evening runs" disclosure to the Public Cupping card only. It carries the "start with what you like" lead, four beats, and a note that confirmed guests receive the full table guide. The minute-by-minute run sheet, triangle test, tasting card, and local flavour vocabulary stay out of the public bundle; a unit test asserts this. `docs/GATED_SESSION_GUIDE_PLAN.md` plans the gated guide (Firestore `sessions/{id}/guide/main`, Rules and tests, an offering-aware learner page, print styles). The plan is not implemented.
+
+Font finding: the site already renders Figtree (display) and Archivo (body/UI) from the design-system tokens, which is what the guide artifact uses. Gotham is declared but unused. Both brand fonts load from Google Fonts at runtime and the licensed Gotham OTFs are served publicly; self-hosting and removing them is a proposed separate change.
+
 ## Spark architecture decision
 
 - Keep Firebase Hosting for the public offer.
@@ -85,6 +89,14 @@ Phase 3.4.4b widens the learner workspace from the tight reading container to th
 - Passed: deployed Phase 3.4.4b Hosting. `https://werks-session.web.app` returned HTTP 200 and served stylesheet `index-BTrM3jBU.css` containing the widened learner container and phone heading safeguard.
 - Not to deploy: Firestore Rules, indexes, Functions, and Storage. They are unchanged.
 
+- Passed: Phase 3.5.1 full `npm.cmd run verify` — lint, strict type checking, eight frontend unit tests, four Functions authorization tests, four Rules emulator tests, production build, secret scan, and both production dependency audits (0 vulnerabilities). The teaser was also checked in the running site; it renders as a native disclosure with the existing design tokens.
+- Passed: explicit quality and security review (no subagents). The change is static public copy and CSS; it adds no write, access, secret, Rules, or backend path, and a unit test proves the guide-only strings are absent from the public page.
+- Not deployed: Hosting, Firestore Rules, indexes, Functions, and Storage. Nothing from this branch is released.
+- Non-blocking: the Rules emulator log shows "maximum of 1000 expressions" evaluation errors on some denied `update` cases at the challenge rule. The permitted paths pass, but the challenge update rule is close to the Firestore expression limit, so adding conditions there needs care.
+- Non-blocking: the production build bundles the three legacy Gotham OTFs (about 287 kB) even though no component uses them.
+
 ## Next action
 
-Prepare the instructor-facing content batch before the paid pilot. Retain the documented one-document-per-learner limitation until practice weeks are split into individually protected documents.
+Review and merge the Phase 3.5.1 teaser branch, deploy Hosting, then decide on the gated guide plan and the font self-hosting follow-up. Prepare the instructor-facing content batch before the paid pilot. Retain the documented one-document-per-learner limitation until practice weeks are split into individually protected documents.
+
+Open item to verify before the pilot: `reviewPracticeWeek` in `src/lib/instructor-access.ts` does not send `reviewedAt`, but `firestore.rules` requires `after.reviewedAt == request.time` for a staff review, and the Rules tests send `serverTimestamp()`. The live smoke test reportedly passed, so confirm the deployed Rules match the repository.

@@ -4,6 +4,10 @@ All notable user-visible, operational, and security-impacting changes are record
 
 ## [2026-10-18]
 
+### Added
+
+- Added a public "How the evening runs" summary to the Public Cupping offer. It shares the spirit and four beats of the evening; the full table guide is reserved for confirmed guests.
+
 ### Changed
 
 - Clarified the Public Cupping and Brew 101 offers, their practical outcomes, and the manual enquiry path.
