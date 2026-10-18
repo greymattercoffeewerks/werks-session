@@ -1,6 +1,6 @@
 # Plan: gated Public Cupping table guide
 
-Status: in progress. Slice 1 (the public teaser) was released to Hosting on 2026-10-18 (PR 1). Slice 2 (Rules and tests) is in PR 6 and slice 3 (client, learner page, print styles, private marker check) is built on branch `feature/gated-guide-client`; slice 4 (seeding and the live smoke test) is for staff after editorial sign-off.
+Status: built and released on 2026-10-18; waiting for staff to seed the guide. Slice 1 (public teaser, PR 1), slice 2 (Rules and tests, PR 6, Rules deployed), and slice 3 (client, learner page, print styles, private marker check, PR 7, Hosting deployed) are live. Slice 4 (seeding and the authenticated smoke test) is for staff after editorial sign-off.
 
 ## Goal
 

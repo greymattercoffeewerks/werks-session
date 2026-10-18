@@ -35,7 +35,8 @@ All notable user-visible, operational, and security-impacting changes are record
 
 ### Operational
 
-- Added the Firestore Rules path and emulator tests for a learner-only session guide (`sessions/{id}/guide/main`): readable only by confirmed enrolees and the teaching staff, never writable from a browser. It reaches production when the Rules are released; no guide content exists yet.
+- Released the learner-only guide (Rules, then Hosting), the wider instructor review page, and the clearer instructor feedback on 2026-10-18 from merged `main` (PRs 5, 6, and 7). Functions, Storage, and indexes were not changed.
+- Added the Firestore Rules path and emulator tests for a learner-only session guide (`sessions/{id}/guide/main`): readable only by confirmed enrolees and the teaching staff, never writable from a browser. The Rules were released to production on 2026-10-18; no guide content exists yet.
 - Rewrote the repository history to remove gated course material and sample vocabulary from every commit, force-pushed `main` (content unchanged), and deleted the merged branches. Commit hashes changed; earlier clones should be discarded. GitHub cleanup of cached old commits is pending with GitHub Support.
 - Released the instructor review timestamp fix to Firebase Hosting from merged `main` (PR 3).
 - Released the teaser and font changes to Firebase Hosting from merged `main` (PR 1). Firestore Rules, indexes, Functions, and Storage were not changed or deployed.
