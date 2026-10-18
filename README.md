@@ -23,9 +23,18 @@ The public Spark launch does not require Firebase browser configuration. Do not 
 
 1. A visitor sends an enquiry from the public site.
 2. Staff handle payment, confirmation, and cohort placement outside the portal.
-3. After a learner is accepted, staff manually seed the documented Firestore access grant and confirmed enrolment. The Rules are implemented but not yet deployed.
+3. After a learner is accepted, staff manually seed the documented Firestore access grant and confirmed enrolment. The Rules are deployed to the live Firestore database and verified by emulator tests.
 4. Learner practice and instructor feedback use direct Firestore access protected by deny-by-default Rules; clients can never grant themselves a role or enrolment.
 5. Private materials are delivered personally after confirmation. They must not be served from Firebase Storage or public Hosting while on Spark.
+
+## Documentation map
+
+- `docs/SESSION_HANDOFF.md`: current state, verification, risks, and next action. Read first.
+- `docs/PROJECT_MEMORY.md`, `docs/DECISIONS.md`, `CONVENTIONS.md`: product, architecture decisions, and working rules.
+- `docs/ROADMAP.md`: Spark MVP phases.
+- `docs/SPARK_ACCESS_GRANTS.md`: the staff procedure for access, enrolment, and teaching records.
+- `docs/GATED_SESSION_GUIDE_PLAN.md`: the planned learner-only Public Cupping guide.
+- `CHANGELOG.md`: user-visible, operational, and security-impacting changes.
 
 ## Future SeduhID handoff
 

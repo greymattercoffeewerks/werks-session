@@ -70,6 +70,15 @@ Make the Brew 101 follow-through useful without overstating it as assessment or 
 - Instructor cohort view, feedback, and review status through a manually seeded staff role.
 - Staff-entered attendance and factual learner records, guarded by Rules.
 
+### Delivered since the first Phase 3 cut
+
+- Public "How the evening runs" teaser on the Public Cupping offer (released 2026-10-18).
+- Self-hosted Figtree and Archivo brand fonts; Gotham no longer shipped (released 2026-10-18).
+
+### Planned
+
+- Gated Public Cupping table guide for confirmed guests, delivered from Firestore under the existing enrolment Rules and made offering-aware in the learner page. See `docs/GATED_SESSION_GUIDE_PLAN.md`. Until then, staff email the finished PDF with the booking confirmation.
+
 ### Not included
 
 - Private course-resource downloads, public Storage URLs, downloadable credentials, or automatic reminders.
