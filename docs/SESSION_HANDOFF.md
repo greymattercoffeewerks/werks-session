@@ -18,6 +18,8 @@ Phase 3.4.3 restores two restrained Grey Matter turquoise brand cues: the hero i
 
 Phase 3.4.4a clarifies the learner-facing Brew 101 practice journey. It explains the four-week cadence, independent save, submit, and review states, and next steps without changing any Spark access or review behaviour.
 
+Phase 3.4.4b widens the learner workspace from the tight reading container to the normal application container. At phone widths, the navigation wraps safely and the learner heading scales down to preserve a single-column, no-horizontal-overflow layout.
+
 ## Spark architecture decision
 
 - Keep Firebase Hosting for the public offer.
@@ -76,6 +78,11 @@ Phase 3.4.4a clarifies the learner-facing Brew 101 practice journey. It explains
 - Passed: Phase 3.4.4a focused verification — lint, strict type checking, seven frontend unit tests, four Functions authorization tests, and a production build.
 - Passed: the Impeccable UI consistency detector reported no issues. Quality review found the copy matches the existing individual-week workflow; security review found no new write, access, secret, Rules, or backend path.
 - Passed: deployed Phase 3.4.4a Hosting. `https://werks-session.web.app` returned HTTP 200 and served bundle `index-DwkyvUgi.js` containing the learner practice, submission, and returned-for-revision copy.
+- Not to deploy: Firestore Rules, indexes, Functions, and Storage. They are unchanged.
+
+- Passed: Phase 3.4.4b full verification — lint, strict type checking, seven frontend unit tests, four Functions authorization tests, four Rules emulator tests, production build, secret scan, and both production dependency audits (0 vulnerabilities).
+- Passed: the Impeccable UI consistency detector reported no issues. Desktop review confirms the learner workspace now uses the standard application width; a real 360px browser viewport reports equal document scroll and client widths, with the phone navigation and learner heading adapting safely.
+- Passed: deployed Phase 3.4.4b Hosting. `https://werks-session.web.app` returned HTTP 200 and served stylesheet `index-BTrM3jBU.css` containing the widened learner container and phone heading safeguard.
 - Not to deploy: Firestore Rules, indexes, Functions, and Storage. They are unchanged.
 
 ## Next action

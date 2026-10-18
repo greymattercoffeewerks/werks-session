@@ -11,6 +11,7 @@ All notable user-visible, operational, and security-impacting changes are record
 - Refined the hero learning-table card so its statement and supporting quote share one left alignment and the redundant divider is removed.
 - Restored restrained Grey Matter turquoise cues to the public hero identity and About marker.
 - Clarified the learner-facing Brew 101 practice journey, its independent weekly review states, and the next action at every stage.
+- Widened the learner workspace for desktop use while preserving a single-column, no-overflow phone layout.
 
 ## [2026-10-17]
 
