@@ -86,7 +86,7 @@ Fixed regardless of stylistic mode:
 
 **Tokens** — `tokens.json` is the source (colours, spacing, radii, shadows, type scale, type styles); `tokens.css` is generated from it. `components/bundle.css` holds what `tokens.json` cannot declare: the Google Fonts import, the `--font-*` role shorthands, borders, motion and the paper texture. `archived/styles.css` and `archived/tokens/*.css` are the stylesheets they replace.
 
-**`fonts/`** — `Gotham-{Regular,Bold,Black}.otf`, the previous wordmark face, kept for existing artwork. New work uses Figtree.
+**`fonts/`** — removed in the portal repo. The legacy Gotham files are no longer shipped; existing artwork keeps its own copies.
 
 **`assets/`** — `logo-mark[-white|-black].png` (0.71:1), `logo-lockup[-white|-black].png` (4.75:1), all transparent PNG, `botanical-linework.png` (charcoal) + `botanical-linework-cream.png` (for dark blocks), `ref-ig-story.png`, `ref-package-ttku.jpg`; usage notes in `assets/README.md`.
 
@@ -104,7 +104,7 @@ Fixed regardless of stylistic mode:
 ---
 
 ## CAVEATS & OPEN QUESTIONS
-- **Fonts:** **Figtree** is the wordmark and display face and loads from Google Fonts through `components/bundle.css`; **Archivo** carries body/UI. **Gotham** (previous wordmark face, licensed) stays in `fonts/` and in `type.families` as `legacy-gotham` for existing artwork only. The certificate's title and supporting lines are set in a face that is neither Figtree nor Archivo (it resembles Barlow); it is not added to the system until confirmed.
+- **Fonts:** **Figtree** is the wordmark and display face; **Archivo** carries body/UI. In the Werks Sessions portal both are self-hosted from the `@fontsource/figtree` and `@fontsource/archivo` packages (imported in `src/main.tsx`), so `components/bundle.css` no longer imports Google Fonts. **Gotham** (previous wordmark face, licensed) is no longer shipped; `type.families` keeps `legacy-gotham` only as a name that falls back to Figtree. The certificate's title and supporting lines are set in a face that is neither Figtree nor Archivo (it resembles Barlow); it is not added to the system until confirmed.
 - **Contrast:** `gm-cream` type on `gm-teal` is 3.4:1 (Button and Badge `teal`), `gm-cream` type on `kiasu` is 3.9:1 and `gm-grey-2` on cream is 4.47:1: all kept exact from the brand artwork and flagged in their token notes; use them at 24px+ or bold 19px+.
 - **Bean copy:** origins are now taken from the production labels. **Tasting notes are still missing for `kiasu`, `aura`, `xixu` and `decaf`** — send them and they drop straight into `beans.js`.
 - **Bean hex values** are sampled from the label artwork, so they are screen-accurate but not print-accurate. **Confirm the Pantone/CMYK build** for each pair before any print run.

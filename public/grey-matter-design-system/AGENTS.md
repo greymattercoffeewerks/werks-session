@@ -22,4 +22,4 @@ Start with `README.md` (the brand book: voice, visual rules, type, colour, cavea
 ## Known issues
 - Some colour pairs fail WCAG contrast; kept exact on purpose and flagged in `tokens.json` usage notes and README "Caveats". Don't use the flagged pairs for body text; check before shipping.
 - `PRICE` tables and copy in `ui_kits/` are placeholder demo data, not real pricing.
-- Fonts load from Google Fonts at runtime; self-host Figtree/Archivo if the site needs to work offline or avoid third-party requests.
+- In the Werks Sessions portal, Figtree and Archivo are self-hosted via Fontsource (`src/main.tsx`); `components/bundle.css` no longer imports Google Fonts and the Gotham files were removed. Other consumers of this folder must load the two families themselves.

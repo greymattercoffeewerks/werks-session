@@ -4,8 +4,13 @@ All notable user-visible, operational, and security-impacting changes are record
 
 ## [2026-10-18]
 
+### Added
+
+- Added a public "How the evening runs" summary to the Public Cupping offer. It shares the spirit and four beats of the evening; the full table guide is reserved for confirmed guests.
+
 ### Changed
 
+- Self-hosted the Figtree and Archivo brand fonts so the site no longer requests Google Fonts, and stopped shipping the unused licensed Gotham font files.
 - Clarified the Public Cupping and Brew 101 offers, their practical outcomes, and the manual enquiry path.
 - Reworked the About Werks Sessions section into a shorter, more informative explanation with a calmer responsive layout.
 - Refined the hero learning-table card so its statement and supporting quote share one left alignment and the redundant divider is removed.

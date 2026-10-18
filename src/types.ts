@@ -7,7 +7,9 @@ export type RecordType = 'attended' | 'challenge_complete' | 'credential';
 export type ResourceFormat = 'guide' | 'worksheet' | 'recipe_card';
 
 export interface Actor { personId: string; role: Role; displayName: string; email: string; }
-export interface Offering { id: OfferingKind; title: string; eyebrow: string; description: string; format: string; price: string; capacity: string; outcomes: string[]; }
+/** Public-safe summary of an evening. The full guide is learner-only and never ships in this bundle. */
+export interface OfferingTeaser { summary: string; lead: string; beats: string[]; note: string; }
+export interface Offering { id: OfferingKind; title: string; eyebrow: string; description: string; format: string; price: string; capacity: string; outcomes: string[]; teaser?: OfferingTeaser; }
 export interface Session { id: string; offeringId: OfferingKind; title: string; startsAt: string; venue: string; capacity: number; minimum: number; confirmedSeats: number; status: SessionStatus; instructorName: string; }
 export interface Enrolment { id: string; sessionId: string; personId: string; offeringId: OfferingKind; status: EnrolmentStatus; paymentStatus: PaymentStatus; accountInviteSent: boolean; }
 export interface ChallengeWeek { week: number; focus: string; coffee: string; recipe: string; tastingNote: string; changeMade: string; complete: boolean; }

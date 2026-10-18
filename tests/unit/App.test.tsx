@@ -49,6 +49,22 @@ describe('portal navigation and interest registration', () => {
     expect(screen.queryByRole('button', { name: 'Manage' })).not.toBeInTheDocument();
   });
 
+  it('shows a public evening teaser on Public Cupping only, without the learner-only guide detail', () => {
+    const app = render(<App />);
+    const teasers = app.container.querySelectorAll('details.offering-teaser');
+    expect(teasers).toHaveLength(1);
+    const cuppingCard = app.getByRole('heading', { name: 'Public Cupping' }).closest('article')!;
+    const teaser = within(cuppingCard).getByText('How the evening runs').closest('details')!;
+    expect(teaser).toBeInTheDocument();
+    expect(within(teaser).getAllByRole('listitem')).toHaveLength(4);
+    const brewCard = app.getByRole('heading', { name: 'Brew 101' }).closest('article')!;
+    expect(within(brewCard).queryByText('How the evening runs')).not.toBeInTheDocument();
+    const text = app.container.textContent ?? '';
+    ['triangle', '[removed]', '[removed]', '[removed]', '0:30', 'tasting card'].forEach((guideOnly) => {
+      expect(text.toLowerCase()).not.toContain(guideOnly);
+    });
+  });
+
   it('creates a staff-operated email enquiry for the selected offering', () => {
     const app = render(<App />);
     fireEvent.change(app.getByLabelText('Choose a session'), { target: { value: 'brew101' } });

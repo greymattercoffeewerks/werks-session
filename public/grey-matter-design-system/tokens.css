@@ -135,6 +135,3 @@
 .body { font-family: var(--font-brand-text); font-size: 17px; line-height: 1.5; font-weight: 400; }
 .descriptor { font-family: var(--font-brand-text); font-size: 20px; line-height: 1.25; font-weight: 400; }
 .label { font-family: var(--font-brand-text); font-size: 13px; line-height: 1; font-weight: 600; }
-@font-face { font-family: "Gotham"; src: url("fonts/Gotham-Regular.otf") format("opentype"); font-weight: 400; font-style: normal; font-display: swap; }
-@font-face { font-family: "Gotham"; src: url("fonts/Gotham-Bold.otf") format("opentype"); font-weight: 700; font-style: normal; font-display: swap; }
-@font-face { font-family: "Gotham"; src: url("fonts/Gotham-Black.otf") format("opentype"); font-weight: 900; font-style: normal; font-display: swap; }
