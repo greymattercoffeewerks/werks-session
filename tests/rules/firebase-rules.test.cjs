@@ -146,6 +146,49 @@ describe('Spark access grants and learner practice', () => {
     await assertSucceeds(learner.doc('sessions/brew101-05/challenges/learner-uid').update({ weeks: submittedOneAndEditedRest, status: 'in_progress', updatedAt: serverTimestamp() }));
   });
 
+  test('lets only confirmed enrolees and the teaching staff read a session guide, and nobody write it', async () => {
+    const guide = { offeringId: 'cupping', version: 1, title: 'Test guide', intro: 'Placeholder text only.' };
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await db.doc('access_grants/admin-uid').set({ personId: 'person-900', role: 'admin', status: 'active' });
+      await db.doc('access_grants/suspended-uid').set({ personId: 'person-901', role: 'learner', status: 'suspended' });
+      await db.doc('enrolments/brew101-01_suspended-uid').set({ sessionId: 'brew101-01', uid: 'suspended-uid', personId: 'person-901', status: 'confirmed' });
+      for (const sessionId of ['brew101-01', 'brew101-pending', 'brew101-99']) {
+        await db.doc(`sessions/${sessionId}/guide/main`).set(guide);
+      }
+      await db.doc('sessions/brew101-01/guide/other').set(guide);
+    });
+    const learner = testEnv.authenticatedContext('learner-uid').firestore();
+    const instructor = testEnv.authenticatedContext('instructor-uid').firestore();
+    const unassigned = testEnv.authenticatedContext('unassigned-instructor-uid').firestore();
+    const admin = testEnv.authenticatedContext('admin-uid').firestore();
+    const ungranted = testEnv.authenticatedContext('ungranted-uid').firestore();
+    const suspended = testEnv.authenticatedContext('suspended-uid').firestore();
+    const anonymous = testEnv.unauthenticatedContext().firestore();
+
+    await assertSucceeds(learner.doc('sessions/brew101-01/guide/main').get());
+    await assertSucceeds(instructor.doc('sessions/brew101-01/guide/main').get());
+    await assertSucceeds(admin.doc('sessions/brew101-01/guide/main').get());
+
+    await assertFails(learner.doc('sessions/brew101-pending/guide/main').get());
+    await assertFails(learner.doc('sessions/brew101-99/guide/main').get());
+    await assertFails(learner.doc('sessions/brew101-01/guide/other').get());
+    await assertFails(unassigned.doc('sessions/brew101-01/guide/main').get());
+    await assertFails(ungranted.doc('sessions/brew101-01/guide/main').get());
+    await assertFails(suspended.doc('sessions/brew101-01/guide/main').get());
+    await assertFails(anonymous.doc('sessions/brew101-01/guide/main').get());
+
+    await assertFails(learner.collection('sessions/brew101-01/guide').get());
+    await assertFails(admin.collection('sessions/brew101-01/guide').get());
+
+    for (const [name, db] of [['learner', learner], ['instructor', instructor], ['admin', admin], ['anonymous', anonymous]]) {
+      await assertFails(db.doc('sessions/brew101-01/guide/main').set({ ...guide, intro: `Written by ${name}` }));
+      await assertFails(db.doc('sessions/brew101-01/guide/main').update({ intro: `Edited by ${name}` }));
+      await assertFails(db.doc('sessions/brew101-01/guide/main').delete());
+      await assertFails(db.doc('sessions/brew101-new/guide/main').set(guide));
+    }
+  });
+
   test('denies ungranted users, unauthenticated writes, and every Storage path', async () => {
     const ungranted = testEnv.authenticatedContext('ungranted-uid').firestore();
     const anonymous = testEnv.unauthenticatedContext();
