@@ -7,6 +7,9 @@
 - Firestore and Storage Rules default to deny. Add a rules test for every new allow path.
 - Firebase client configuration may be public configuration, but credentials, service-account JSON, Resend keys, and `.env` contents are secrets.
 - Do not create public Storage URLs for learner materials; use the server-authorised short-lived URL flow.
+- Learner-only content (guides, run sheets, vocabulary lists) never lives in `src/` or `public/`, because it would ship in the public bundle. Read it from Firestore under Rules and render it as text, never as HTML.
+- Fonts are self-hosted through Fontsource packages imported in `src/main.tsx`. Do not add Google Fonts or other third-party font requests, and do not ship the legacy Gotham files.
+- Work on a feature branch and merge through a pull request; `main` is not branch-protected.
 
 ## Tests and verification
 

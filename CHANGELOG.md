@@ -18,6 +18,15 @@ All notable user-visible, operational, and security-impacting changes are record
 - Clarified the learner-facing Brew 101 practice journey, its independent weekly review states, and the next action at every stage.
 - Widened the learner workspace for desktop use while preserving a single-column, no-overflow phone layout.
 
+### Security
+
+- The public site no longer requests fonts from Google, removing a third-party request from every page view. The licensed Gotham font files are no longer served.
+
+### Operational
+
+- Released the teaser and font changes to Firebase Hosting from merged `main` (PR 1). Firestore Rules, indexes, Functions, and Storage were not changed or deployed.
+- Added `docs/GATED_SESSION_GUIDE_PLAN.md`, the plan for a learner-only Public Cupping guide delivered under Firestore Rules; it is not built.
+
 ## [2026-10-17]
 
 ### Added

@@ -1,6 +1,6 @@
 # Plan: gated Public Cupping table guide
 
-Status: proposed, not built. Slice 1 (the public teaser) is already implemented on `feature/cupping-teaser-and-guide-plan`.
+Status: proposed, not built. Slice 1 (the public teaser) was released to Hosting on 2026-10-18 (PR 1). Slices 2–4 are not started.
 
 ## Goal
 
@@ -102,7 +102,7 @@ It reuses the existing confirmed-enrolment and teaching-assignment functions, so
 
 | Slice | Content | Deploy |
 | --- | --- | --- |
-| 1 | Public teaser on the Public Cupping card (done) | Hosting |
+| 1 | Public teaser on the Public Cupping card (released 2026-10-18) | Hosting |
 | 2 | Rules and tests for `sessions/{id}/guide/main` | Firestore Rules |
 | 3 | Learner page made offering-aware, guide panel, print styles | Hosting |
 | 4 | Staff seeds the guide for the first cupping session, then a live smoke test with a scoped test learner | Console only |
@@ -120,12 +120,10 @@ Slices 2 and 3 can ship together or separately. Slice 2 must be released before 
 
 The design system's brand fonts are **Figtree** (wordmark and display) and **Archivo** (body and UI). The site already renders them: computed styles on the running site show Figtree on headings and buttons and Archivo on body, navigation, and labels. The claude.ai guide artifact uses the same two families, so there is no mismatch to fix in the guide.
 
-What is worth fixing:
+Two issues existed and are now resolved (released 2026-10-18, see `docs/DECISIONS.md`):
 
-1. Both fonts load at runtime from Google Fonts (`public/grey-matter-design-system/components/bundle.css`). The design system itself recommends self-hosting if the site must work offline or avoid third-party requests. A printed or emailed PDF of the guide also renders reliably only with the fonts available locally.
-2. The licensed legacy Gotham OTF files are declared in the design system and served publicly from Hosting, but nothing on the site uses them. The design system marks them "legacy artwork only — do not use on the web".
-
-Proposed follow-up: self-host Figtree and Archivo (OFL-licensed) and stop shipping Gotham. This touches vendored design-system files and adds font files or an npm dependency, so it is a separate, reviewed change.
+1. Both fonts loaded at runtime from Google Fonts. They are now self-hosted through `@fontsource/figtree` and `@fontsource/archivo`, so the guide and its print styles render with the brand fonts without a third-party request.
+2. The licensed legacy Gotham OTF files were served publicly although nothing used them. They are removed.
 
 ## Acceptance
 
