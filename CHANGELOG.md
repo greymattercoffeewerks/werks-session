@@ -29,6 +29,8 @@ All notable user-visible, operational, and security-impacting changes are record
 
 ### Operational
 
+- Rewrote the repository history to remove gated course material and sample vocabulary from every commit, force-pushed `main` (content unchanged), and deleted the merged branches. Commit hashes changed; earlier clones should be discarded. GitHub cleanup of cached old commits is pending with GitHub Support.
+- Released the instructor review timestamp fix to Firebase Hosting from merged `main` (PR 3).
 - Released the teaser and font changes to Firebase Hosting from merged `main` (PR 1). Firestore Rules, indexes, Functions, and Storage were not changed or deployed.
 - Added `docs/GATED_SESSION_GUIDE_PLAN.md`, the plan for a learner-only Public Cupping guide delivered under Firestore Rules; it is not built.
 

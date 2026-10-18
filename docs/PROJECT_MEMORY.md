@@ -11,7 +11,7 @@ Werks Sessions is Grey Matter Coffee Werks' hands-on coffee learning and operati
 - Firebase project configuration currently names `werks-session`.
 - Brand fonts are Figtree (display) and Archivo (body/UI), self-hosted through `@fontsource/figtree` and `@fontsource/archivo` imported in `src/main.tsx`. The site makes no Google Fonts requests and ships no Gotham files.
 - Public Cupping shows a public "How the evening runs" teaser. The full table guide (run sheet, tasting card, local flavour vocabulary) is learner-only and must never live in `src/` or `public/`; the plan is `docs/GATED_SESSION_GUIDE_PLAN.md`.
-- This repository is public. Gated learner material (guides, curriculum, cost models, vocabulary, seed JSON, PDFs) is gitignored and checked by `npm.cmd run security:gated`. Gated material committed in early history remains in public Git history until the owner decides on a purge or making the repository private.
+- This repository is public. Gated learner material (guides, curriculum, cost models, vocabulary, seed JSON, PDFs) is gitignored and checked by `npm.cmd run security:gated`. History was rewritten on 2026-10-18 to remove earlier gated commits (clone fresh, do not pull an old clone); GitHub still serves the old commits by SHA until GitHub Support completes its purge.
 - `main` has no branch protection. All work goes on a feature branch and merges by pull request after the GitHub `verify` check passes.
 - Firebase is a temporary identity provider. Records use provider-neutral `person_id` values to support a future SeduhID/Supabase handoff.
 
