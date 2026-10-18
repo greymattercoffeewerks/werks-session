@@ -20,6 +20,8 @@ All notable user-visible, operational, and security-impacting changes are record
 
 ### Fixed
 
+- Widened the instructor review page to the standard application width, matching the learner workspace, and let review cards sit side by side on wide screens.
+- Instructor feedback now appears in its own labelled block, separate from the system guidance, on returned and approved weeks. It also stays visible while a learner revises a returned week.
 - Instructor reviews now record the server review time that the Firestore Rules require, so approving or returning a practice week matches the access rules. This reaches the live site on the next Hosting deploy.
 
 ### Security
