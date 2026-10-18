@@ -2,7 +2,7 @@
 
 ## Durable project memory
 
-Before making changes, read `CONVENTIONS.md`, `docs/PROJECT_MEMORY.md`, `docs/DECISIONS.md`, and `docs/SESSION_HANDOFF.md`. Treat the checked-in handoff as the project source of truth; Codex local memory is helpful but may be incomplete.
+Before making changes, read `CONVENTIONS.md`, `docs/PROJECT_MEMORY.md`, `docs/DECISIONS.md`, and `docs/SESSION_HANDOFF.md`. After the 2026-10-18 repository move, also read `docs/CODEX_UPDATE_2026-10-18.md` once and follow its checklist. Treat the checked-in handoff as the project source of truth; Codex local memory is helpful but may be incomplete.
 
 Preserve unrelated uncommitted work. Do not reset, restore, stage, or commit another person's changes.
 

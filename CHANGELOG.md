@@ -35,6 +35,7 @@ All notable user-visible, operational, and security-impacting changes are record
 
 ### Operational
 
+- Moved the project to a new GitHub repository, `werks-session`, with the clean rewritten history, after the old repository was deleted. The Firebase project and Hosting site are unchanged. Added a Codex update document with the local re-clone and dependency steps.
 - Released the learner-only guide (Rules, then Hosting), the wider instructor review page, and the clearer instructor feedback on 2026-10-18 from merged `main` (PRs 5, 6, and 7). Functions, Storage, and indexes were not changed.
 - Added the Firestore Rules path and emulator tests for a learner-only session guide (`sessions/{id}/guide/main`): readable only by confirmed enrolees and the teaching staff, never writable from a browser. The Rules were released to production on 2026-10-18; no guide content exists yet.
 - Rewrote the repository history to remove gated course material and sample vocabulary from every commit, force-pushed `main` (content unchanged), and deleted the merged branches. Commit hashes changed; earlier clones should be discarded. GitHub cleanup of cached old commits is pending with GitHub Support.
