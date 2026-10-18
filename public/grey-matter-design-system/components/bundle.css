@@ -1,7 +1,6 @@
 /* Grey Matter Coffee Werks — what tokens.json cannot declare.
    Figtree carries the wordmark and display type; Archivo carries body and UI.
-   Two families only. Gotham stays in fonts/ for existing artwork. */
-@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800;900&family=Archivo:wght@400;500;600;700&display=swap');
+   Two families only. Both are self-hosted by the app (see src/main.tsx); Gotham is no longer shipped. */
 
 :root {
   /* Families under their original names (values live in tokens.json type.families) */
