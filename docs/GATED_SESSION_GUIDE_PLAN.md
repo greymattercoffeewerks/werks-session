@@ -1,6 +1,6 @@
 # Plan: gated Public Cupping table guide
 
-Status: in progress. Slice 1 (the public teaser) was released to Hosting on 2026-10-18 (PR 1). Slice 2 (Rules and tests) is built on branch `feature/gated-guide-rules`; slices 3–4 follow.
+Status: in progress. Slice 1 (the public teaser) was released to Hosting on 2026-10-18 (PR 1). Slice 2 (Rules and tests) is in PR 6 and slice 3 (client, learner page, print styles, private marker check) is built on branch `feature/gated-guide-client`; slice 4 (seeding and the live smoke test) is for staff after editorial sign-off.
 
 ## Goal
 
@@ -168,6 +168,6 @@ This repository is public, so the guide, its seed JSON, and its vocabulary must 
 ### Risks
 
 - **Brew 101 regression.** The learner page assumes Brew 101 today. Step D changes it, so the existing Brew 101 tests must keep passing unchanged.
-- **Missing `offeringId`.** Existing session documents have no such field. Step E sets it by hand, and the client must not guess a default.
+- **Missing `offeringId`.** Existing session documents have no such field. Step E sets it by hand. Until then the client keeps today's behaviour for a session without the field (the Brew 101 practice record); only `cupping` sessions skip it, and a guide shows only when a guide document exists. Nothing is inferred about guide content.
 - **Rules complexity.** The challenge update rule is near Firestore's expression limit. The new guide rule is a one-line reuse of existing functions and does not add to that rule.
 - **Copying.** A confirmed guest can screenshot or print the guide. This is accepted; the gate controls sequencing and casual copying, not determined copying.

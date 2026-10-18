@@ -28,7 +28,12 @@ const practiceMock = vi.hoisted(() => ({
   practiceWeekIds: ['week1', 'week2', 'week3', 'week4'],
 }));
 
+const sessionGuideMock = vi.hoisted(() => ({
+  loadSessionGuide: vi.fn(() => Promise.resolve(null)),
+}));
+
 vi.mock('../../src/lib/google-auth', () => authMock);
+vi.mock('../../src/lib/session-guide', () => sessionGuideMock);
 vi.mock('../../src/lib/instructor-access', () => instructorAccessMock);
 vi.mock('../../src/lib/learner-access', () => learnerAccessMock);
 vi.mock('../../src/lib/practice', () => practiceMock);
@@ -242,5 +247,95 @@ describe('portal navigation and interest registration', () => {
     expect(practiceMock.savePracticeChallenge).toHaveBeenCalledWith('brew101-01', 'learner-uid', expect.objectContaining({
       week1: expect.objectContaining({ status: 'draft', reviewerNote: 'Compare this ratio one more time.', reviewedAt: 'reviewed-at' }),
     }));
+  });
+
+  it('shows the learner-only guide for a confirmed cupping session and no Brew 101 practice record', async () => {
+    authMock.observeAccount.mockImplementationOnce((callback: (user: { uid: string; email: string }) => void) => {
+      callback({ uid: 'guest-uid', email: 'guest@example.com' });
+      return () => undefined;
+    });
+    learnerAccessMock.loadLearnerAccess.mockResolvedValueOnce({
+      state: 'confirmed',
+      sessions: [{ id: 'cupping-01', title: 'Range Night', offeringId: 'cupping' }],
+    });
+    sessionGuideMock.loadSessionGuide.mockResolvedValueOnce({
+      offeringId: 'cupping',
+      version: 1,
+      title: 'Your table guide',
+      intro: 'Plain text only. <b>not bold</b>',
+      facts: [{ label: 'Duration', value: '90 min' }],
+      schedule: [{ when: 'Start', what: 'Arrive and settle in.' }],
+      tastingCard: { title: 'Your card', prompts: [{ name: 'Rank it', help: 'One is your favourite.' }], note: '' },
+      basics: [{ step: 'Smell', text: 'Lean in.' }],
+      vocabulary: [{ group: 'Group', words: ['one', 'two'] }],
+      vocabularyNote: 'Use your own words too.',
+      beforeYouCome: ['Arrive on time.'],
+      footer: 'Footer line',
+    });
+
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
+
+    expect(await screen.findByRole('heading', { name: 'Your Public Cupping table.' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Your table guide' })).toBeInTheDocument();
+    expect(sessionGuideMock.loadSessionGuide).toHaveBeenCalledWith('cupping-01');
+    expect(screen.getByText('Plain text only. <b>not bold</b>')).toBeInTheDocument();
+    expect(document.querySelector('.session-guide b')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Print this guide' })).toBeInTheDocument();
+    expect(screen.getByRole('table')).toHaveTextContent('Arrive and settle in.');
+    expect(screen.queryByRole('button', { name: 'Start my practice' })).not.toBeInTheDocument();
+    expect(practiceMock.loadPracticeChallenge).not.toHaveBeenCalled();
+  });
+
+  it('keeps the Brew 101 practice experience for Brew 101 and not-yet-labelled sessions, with no guide panel when none exists', async () => {
+    authMock.observeAccount.mockImplementationOnce((callback: (user: { uid: string; email: string }) => void) => {
+      callback({ uid: 'learner-uid', email: 'maya@example.com' });
+      return () => undefined;
+    });
+    learnerAccessMock.loadLearnerAccess.mockResolvedValueOnce({
+      state: 'confirmed',
+      sessions: [
+        { id: 'brew101-01', title: 'Manual Brew Foundations', offeringId: null },
+        { id: 'brew101-02', title: 'Manual Brew Foundations', offeringId: 'brew101' },
+      ],
+    });
+
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
+
+    expect(await screen.findByRole('heading', { name: 'Your Brew 101 table.' })).toBeInTheDocument();
+    expect(await screen.findAllByRole('button', { name: 'Start my practice' })).toHaveLength(2);
+    expect(screen.queryByRole('button', { name: 'Print this guide' })).not.toBeInTheDocument();
+    expect(sessionGuideMock.loadSessionGuide).toHaveBeenCalledTimes(2);
+  });
+
+  it('uses a combined heading for mixed sessions and never requests a guide for a pending account', async () => {
+    authMock.observeAccount.mockImplementationOnce((callback: (user: { uid: string; email: string }) => void) => {
+      callback({ uid: 'learner-uid', email: 'maya@example.com' });
+      return () => undefined;
+    });
+    learnerAccessMock.loadLearnerAccess.mockResolvedValueOnce({
+      state: 'confirmed',
+      sessions: [
+        { id: 'cupping-01', title: 'Range Night', offeringId: 'cupping' },
+        { id: 'brew101-01', title: 'Manual Brew Foundations', offeringId: 'brew101' },
+      ],
+    });
+    const mixed = render(<App />);
+    fireEvent.click(mixed.getByRole('button', { name: 'Learner access' }));
+    expect(await mixed.findByRole('heading', { name: 'Your tables.' })).toBeInTheDocument();
+    expect(await mixed.findAllByRole('button', { name: 'Start my practice' })).toHaveLength(1);
+    mixed.unmount();
+    sessionGuideMock.loadSessionGuide.mockClear();
+
+    authMock.observeAccount.mockImplementationOnce((callback: (user: { uid: string; email: string }) => void) => {
+      callback({ uid: 'pending-uid', email: 'pending@example.com' });
+      return () => undefined;
+    });
+    learnerAccessMock.loadLearnerAccess.mockResolvedValueOnce({ state: 'pending' });
+    const pending = render(<App />);
+    fireEvent.click(pending.getByRole('button', { name: 'Learner access' }));
+    expect(await pending.findByRole('heading', { name: 'Signing in does not create learner access.' })).toBeInTheDocument();
+    expect(sessionGuideMock.loadSessionGuide).not.toHaveBeenCalled();
   });
 });
