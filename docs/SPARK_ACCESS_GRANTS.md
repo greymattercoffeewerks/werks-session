@@ -79,6 +79,19 @@ The Rules let the assigned instructor or an administrator read, create, and upda
 
 The record holds seat numbers and choices only. It never holds guest names, contact details, account identifiers, or `personId` values, and the form says so. The instructor page can download every saved night as one CSV (one row per seat with data, with the night's details repeated) for trend analysis in a spreadsheet.
 
+## Public upcoming dates (the one public document)
+
+The front page shows a short "Next tables" list from one Firestore document, `public_schedule/current`. It is the only Firestore document anyone can read without signing in; every other path stays deny-by-default. Do not put anything in it that you would not print on a poster.
+
+- **Who can read:** everyone, signed in or not, but only this one document (`get`); the collection cannot be listed.
+- **Who can write:** an active instructor or admin, from the Upcoming dates editor on the instructor page. Learners, unassigned visitors, and suspended grants cannot. The document id is fixed to `current`, `updatedAt` must be the server time, and nobody can delete it.
+- **Shape:** `{ items, updatedAt }`, with at most 12 items. Each item is `{ id, offeringId (cupping or brew101), title, date (YYYY-MM-DD or empty), time, venue, status, note }`. Status is a label, not a seat count: `interest`, `open`, `limited`, `full`, or `tbc`. The Rules bound the shape and the writers; item contents are validated by the client and shown as plain text.
+- **Past dates hide themselves:** a date stays up through its own day. Undated items (such as "date to be confirmed") stay until you remove them.
+- **Each date has an "Ask about this date" button** that opens an email to the Werks Sessions address. It does not book or reserve anything; booking stays manual.
+- **If the read fails or the list is empty,** the front page shows "No dates announced yet" and nothing else breaks. The editor, by contrast, refuses to edit when it cannot load what is published, so a failed read can never be saved over the real list.
+
+Nothing here holds guest names, contact details, or counts. Because anyone can read it, a flood of anonymous reads could use up the Spark daily read allowance; one read per page view is the cost, and Firebase App Check is the remedy if it ever matters.
+
 ## Deliberately manual work
 
 Payment, capacity, attendance, course materials, private resource delivery, account recovery, and grant seeding remain staff-operated while the project is on Spark. Do not add a client-side shortcut around those boundaries.

@@ -6,10 +6,12 @@ All notable user-visible, operational, and security-impacting changes are record
 
 ### Added
 
+- Added "Next tables" to the front page: a short list of upcoming dates with the offer, time, venue, a status label (interest list open, seats available, few seats left, full, or date to be confirmed), and an "Ask about this date" email link on each. Instructors manage the dates from a new Upcoming dates editor on the instructor page, past dates hide automatically, and the page shows a friendly message when no dates are published. It reaches production when the Firestore Rules and Hosting are released.
 - Added an online night record for Public Cupping in the instructor page: the host records each night's seats, #1 cups, would-buy and purchase answers, words heard, room ranking, and redemptions in the portal instead of on paper, sees tonight's totals and conversion, and sees a summary across their nights with a CSV download for analysis. It holds seat numbers and choices only, with no guest names or contact details. It was released to production on 2026-10-19 (Firestore Rules, then Hosting); it needs the cupping session labelled and the host's teaching assignment created before first use.
 
 ### Security
 
+- Added the first publicly readable Firestore document, `public_schedule/current` (the upcoming dates): readable by anyone but not listable, writable only by active instructors and admins, fixed document id, server-time stamp, no delete, with emulator tests for every allow and denial.
 - Added Firestore Rules for the night record (`sessions/{id}/night_record/main`): staff-only, Public Cupping sessions only, host, session, and creation time fixed on first write, and record-level size limits, with emulator tests for every allow path and denial.
 
 ## [2026-10-18]

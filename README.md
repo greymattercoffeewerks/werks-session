@@ -6,7 +6,7 @@ Werks Sessions is Grey Matter Coffee Werks' small, hands-on coffee-learning loop
 
 The live MVP runs on Firebase Spark. The public site is hosted on Firebase Hosting; enquiries and the first cohort are operated personally by staff.
 
-- Visitors select a session and open a prefilled email enquiry. Enquiring does not create an account or reserve a place.
+- The front page lists the next dates that staff publish from the instructor page, each with an "Ask about this date" email link. Visitors can also select a session and open a prefilled email enquiry. Enquiring does not create an account or reserve a place.
 - Staff confirm suitability, payment, a date, and learner access manually.
 - No Cloud Functions, Firebase Storage, signed downloads, transactional email, or email-link sign-in are part of the Spark launch.
 - Brew 101 remains non-assessed. Attendance and practice feedback are not certification or competency claims.

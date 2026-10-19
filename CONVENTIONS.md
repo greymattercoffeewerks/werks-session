@@ -4,6 +4,7 @@
 
 - TypeScript is strict. Prefer small typed modules and preserve the existing React/Vite structure.
 - Callable Functions validate authentication, role, and all untrusted input at the server boundary.
+- The only Firestore document readable without signing in is `public_schedule/current` (the upcoming dates). Put nothing in it that is not meant for the public, and do not add another public path without an owner decision and a Rules test for every allow and denial.
 - Firestore and Storage Rules default to deny. Add a rules test for every new allow path.
 - Firebase client configuration may be public configuration, but credentials, service-account JSON, Resend keys, and `.env` contents are secrets.
 - Do not create public Storage URLs for learner materials; use the server-authorised short-lived URL flow.

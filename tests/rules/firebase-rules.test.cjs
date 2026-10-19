@@ -254,6 +254,53 @@ describe('Spark access grants and learner practice', () => {
     await bad({ seats: { ...emptySeats(), s13: { cup: null, buy: '', bought: '', words: '' } } });
   });
 
+  test('publishes the upcoming dates to everyone and lets only active staff change them', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await db.doc('access_grants/admin-uid').set({ personId: 'person-900', role: 'admin', status: 'active' });
+      await db.doc('access_grants/suspended-instructor-uid').set({ personId: 'person-902', role: 'instructor', status: 'suspended' });
+      await db.doc('public_schedule/current').set({ items: [], updatedAt: new Date('2026-10-01T00:00:00Z') });
+      await db.doc('public_schedule/other').set({ items: [], updatedAt: new Date('2026-10-01T00:00:00Z') });
+    });
+    const anonymous = testEnv.unauthenticatedContext().firestore();
+    const learner = testEnv.authenticatedContext('learner-uid').firestore();
+    const ungranted = testEnv.authenticatedContext('ungranted-uid').firestore();
+    const instructor = testEnv.authenticatedContext('instructor-uid').firestore();
+    const unassignedInstructor = testEnv.authenticatedContext('unassigned-instructor-uid').firestore();
+    const suspended = testEnv.authenticatedContext('suspended-instructor-uid').firestore();
+    const admin = testEnv.authenticatedContext('admin-uid').firestore();
+    const item = (n) => ({ id: `d${n}`, offeringId: 'cupping', title: 'Range Night', date: '2026-11-07', time: '8:00 pm', venue: 'Noice', status: 'open', note: '' });
+    const schedule = (overrides = {}) => ({ items: [item(1)], updatedAt: serverTimestamp(), ...overrides });
+    const ref = (db, id = 'current') => db.doc(`public_schedule/${id}`);
+
+    // Anyone, signed in or not, can read the one published document and nothing else here.
+    await assertSucceeds(ref(anonymous).get());
+    await assertSucceeds(ref(learner).get());
+    await assertFails(ref(anonymous, 'other').get());
+    await assertFails(anonymous.collection('public_schedule').get());
+    await assertFails(instructor.collection('public_schedule').get());
+
+    // Any active instructor or admin may publish; nobody else may.
+    await assertSucceeds(ref(instructor).set(schedule({ items: Array.from({ length: 12 }, (_, index) => item(index)) })));
+    await assertSucceeds(ref(unassignedInstructor).set(schedule({ items: [] })));
+    await assertSucceeds(ref(admin).set(schedule()));
+    await assertFails(ref(anonymous).set(schedule()));
+    await assertFails(ref(learner).set(schedule()));
+    await assertFails(ref(ungranted).set(schedule()));
+    await assertFails(ref(suspended).set(schedule()));
+
+    // Shape, document id, timestamp, and deletion.
+    await assertFails(ref(instructor, 'other').set(schedule()));
+    await assertFails(ref(instructor, 'extra').set(schedule()));
+    await assertFails(ref(instructor).set(schedule({ items: Array.from({ length: 13 }, (_, index) => item(index)) })));
+    await assertFails(ref(instructor).set(schedule({ items: 'not a list' })));
+    await assertFails(ref(instructor).set(schedule({ extra: 'field' })));
+    await assertFails(ref(instructor).set({ items: [] }));
+    await assertFails(ref(instructor).set(schedule({ updatedAt: new Date('2020-01-01T00:00:00Z') })));
+    await assertFails(ref(instructor).delete());
+    await assertFails(ref(admin).delete());
+  });
+
   test('denies ungranted users, unauthenticated writes, and every Storage path', async () => {
     const ungranted = testEnv.authenticatedContext('ungranted-uid').firestore();
     const anonymous = testEnv.unauthenticatedContext();

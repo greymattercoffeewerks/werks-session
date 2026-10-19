@@ -9,6 +9,7 @@ Werks Sessions is Grey Matter Coffee Werks' hands-on coffee learning and operati
 - React 18 and Vite frontend in `src/`.
 - Firebase Authentication, Callable Functions, Firestore, Storage, Hosting, and Emulator Suite.
 - Firebase project configuration currently names `werks-session`.
+- The front page shows upcoming dates from one public Firestore document, `public_schedule/current`, which active instructors and admins edit on the instructor page. It is the only signed-out read path; keep it free of guest data.
 - Brand fonts are Figtree (display) and Archivo (body/UI), self-hosted through `@fontsource/figtree` and `@fontsource/archivo` imported in `src/main.tsx`. The site makes no Google Fonts requests and ships no Gotham files.
 - Public Cupping shows a public "How the evening runs" teaser. The full table guide (run sheet, tasting card, local flavour vocabulary) is learner-only and must never live in `src/` or `public/`; the plan is `docs/GATED_SESSION_GUIDE_PLAN.md`.
 - This repository is public. Gated learner material (guides, curriculum, cost models, vocabulary, seed JSON, PDFs) is gitignored and checked by `npm.cmd run security:gated`. History was rewritten on 2026-10-18 to remove earlier gated commits (clone fresh, do not pull an old clone); GitHub still serves the old commits by SHA until GitHub Support completes its purge.

@@ -38,6 +38,13 @@ const nightMock = vi.hoisted(() => ({
 }));
 
 vi.mock('../../src/lib/night-record', () => nightMock);
+const scheduleMock = vi.hoisted(() => ({
+  loadPublicSchedule: vi.fn(() => Promise.resolve([] as unknown[])),
+  loadPublicScheduleForEditing: vi.fn(() => Promise.resolve([] as unknown[])),
+  savePublicSchedule: vi.fn(() => Promise.resolve()),
+}));
+
+vi.mock('../../src/lib/schedule', () => scheduleMock);
 vi.mock('../../src/lib/google-auth', () => authMock);
 vi.mock('../../src/lib/session-guide', () => sessionGuideMock);
 vi.mock('../../src/lib/instructor-access', () => instructorAccessMock);
@@ -439,5 +446,89 @@ describe('portal navigation and interest registration', () => {
     click.mockRestore();
     nightMock.loadNightRecord.mockReset();
     nightMock.loadNightRecord.mockResolvedValue(null);
+  });
+  const dateItem = (overrides: Record<string, unknown> = {}) => ({ id: 'd1', offeringId: 'cupping', title: 'Range Night', date: '2099-12-31', time: '8:00 pm', venue: 'Noice, after hours', status: 'open', note: '', ...overrides });
+
+  it('lists upcoming dates on the front page with a status and a per-date enquiry, and hides past dates', async () => {
+    scheduleMock.loadPublicSchedule.mockResolvedValueOnce([
+      dateItem({ id: 'past', title: 'Old Night', date: '2000-01-01' }),
+      dateItem({ id: 'later', title: 'Brew Foundations', offeringId: 'brew101', date: '2099-12-31', status: 'limited', note: 'Small group' }),
+      dateItem({ id: 'soon', title: 'Range Night', date: '2099-11-07', status: 'open' }),
+      dateItem({ id: 'tbc', title: 'Origins Night', date: '', time: '', venue: '', status: 'tbc' }),
+    ]);
+
+    render(<App />);
+
+    const section = await screen.findByRole('region', { name: 'Next tables.' });
+    expect(within(section).queryByText('Old Night')).not.toBeInTheDocument();
+    const cards = within(section).getAllByRole('listitem');
+    expect(cards.map((card) => within(card).getByRole('heading', { level: 3 }).textContent)).toEqual(['Range Night', 'Brew Foundations', 'Origins Night']);
+    expect(within(cards[0]).getByText('Seats available')).toBeInTheDocument();
+    expect(within(cards[0]).getByText('8:00 pm · Noice, after hours')).toBeInTheDocument();
+    expect(within(cards[1]).getByText('Few seats left')).toBeInTheDocument();
+    expect(within(cards[1]).getByText('Small group')).toBeInTheDocument();
+    expect(within(cards[2]).getByText('Date to be confirmed')).toBeInTheDocument();
+    const link = within(cards[0]).getByRole('link', { name: 'Ask about this date →' });
+    expect(link).toHaveAttribute('href', expect.stringContaining('mailto:greymatter.cw@outlook.com'));
+    expect(link).toHaveAttribute('href', expect.stringContaining(encodeURIComponent('Ask about Range Night on Sat 7 Nov 2099')));
+    expect(within(cards[2]).getByRole('link', { name: 'Ask about this date →' })).toHaveAttribute('href', expect.stringContaining(encodeURIComponent('Ask about Origins Night')));
+  });
+
+  it('shows a calm empty state when no dates are published or all have passed', async () => {
+    scheduleMock.loadPublicSchedule.mockResolvedValueOnce([dateItem({ date: '2000-01-01' })]);
+    render(<App />);
+    expect(await screen.findByText(/No dates announced yet/)).toBeInTheDocument();
+    expect(screen.queryByRole('listitem', { name: /Range Night/ })).not.toBeInTheDocument();
+  });
+
+  it('lets an instructor edit and publish the upcoming dates', async () => {
+    signInAsInstructor([]);
+    scheduleMock.loadPublicScheduleForEditing.mockResolvedValueOnce([dateItem({ id: 'd1', title: 'Range Night' })]);
+
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
+
+    expect(await screen.findByRole('heading', { name: 'Upcoming dates' })).toBeInTheDocument();
+    fireEvent.change(await screen.findByDisplayValue('Range Night'), { target: { value: 'Origins Night' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add a date' }));
+    expect(screen.getByRole('group', { name: 'Date 2' })).toBeInTheDocument();
+    fireEvent.change(within(screen.getByRole('group', { name: 'Date 2' })).getByLabelText('Title'), { target: { value: 'Process Night' } });
+    fireEvent.change(within(screen.getByRole('group', { name: 'Date 2' })).getByLabelText('Status'), { target: { value: 'full' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Publish dates' }));
+
+    expect(await screen.findByText(/Published\. The front page shows these dates now/)).toBeInTheDocument();
+    expect(scheduleMock.savePublicSchedule).toHaveBeenCalledWith([
+      expect.objectContaining({ id: 'd1', title: 'Origins Night', date: '2099-12-31' }),
+      expect.objectContaining({ title: 'Process Night', status: 'full', offeringId: 'cupping' }),
+    ]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove date 1' }));
+    expect(screen.queryByDisplayValue('Origins Night')).not.toBeInTheDocument();
+  });
+
+  it('switches editing off when the published dates cannot be loaded, so they cannot be overwritten', async () => {
+    signInAsInstructor([]);
+    scheduleMock.loadPublicScheduleForEditing.mockRejectedValueOnce(new Error('offline'));
+
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
+
+    expect(await screen.findByText(/editing is switched off to protect them/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Publish dates' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Add a date' })).toBeDisabled();
+  });
+
+  it('reports a failed publish and keeps the rows', async () => {
+    signInAsInstructor([]);
+    scheduleMock.loadPublicScheduleForEditing.mockResolvedValueOnce([dateItem()]);
+    scheduleMock.savePublicSchedule.mockRejectedValueOnce(new Error('permission-denied'));
+
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
+    await screen.findByDisplayValue('Range Night');
+    fireEvent.click(screen.getByRole('button', { name: 'Publish dates' }));
+
+    expect(await screen.findByText('We could not publish the dates. Please try again.')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Range Night')).toBeInTheDocument();
   });
 });

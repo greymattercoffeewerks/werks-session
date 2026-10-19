@@ -6,6 +6,9 @@ import { loadInstructorAccess, reviewPracticeWeek, type InstructorAccess, type I
 import { loadLearnerAccess, type ConfirmedSession as LearnerAccessSession, type LearnerAccess as LearnerAccessState } from './lib/learner-access';
 import { loadSessionGuide, type SessionGuide } from './lib/session-guide';
 import { NightRecordWorkspace } from './NightRecordWorkspace';
+import { ScheduleEditor } from './ScheduleEditor';
+import { loadPublicSchedule } from './lib/schedule';
+import { formatScheduleDate, scheduleDateParts, scheduleStatusLabels, upcomingItems, type ScheduleItem } from './lib/schedule-model';
 import { loadPracticeChallenge, practiceWeekIds, savePracticeChallenge, startPracticeChallenge, submitPracticeWeek, type PracticeChallenge, type PracticeWeek, type PracticeWeekId } from './lib/practice';
 import type { OfferingKind } from './types';
 
@@ -20,8 +23,29 @@ function interestEmailHref(offering: OfferingKind): string {
   return `mailto:${sessionsEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
+function scheduleEnquiryHref(item: ScheduleItem): string {
+  const when = formatScheduleDate(item.date);
+  const subject = `Ask about ${item.title}${when ? ` on ${when}` : ''}`;
+  const body = `Hello Werks Sessions,
+
+I would like to ask about ${item.title}${when ? ` on ${when}` : ''}.
+
+Name:
+Preferred contact:
+What I would like to know:
+
+Thank you.`;
+  return `mailto:${sessionsEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
 function App() {
   const [view, setView] = useState<View>('home');
+  const [schedule, setSchedule] = useState<ScheduleItem[] | undefined>(undefined);
+  useEffect(() => {
+    let cancelled = false;
+    loadPublicSchedule().then((items) => { if (!cancelled) setSchedule(items); });
+    return () => { cancelled = true; };
+  }, []);
   const [interestOffering, setInterestOffering] = useState<OfferingKind>('cupping');
   const course = offerings.find((item) => item.id === interestOffering)!;
   const scrollToHomeSection = (sectionId: string) => {
@@ -45,6 +69,8 @@ function App() {
       {view === 'home' && <Home onAbout={() => scrollToHomeSection('about')} onInterest={(offering) => { setInterestOffering(offering); document.getElementById('interest')?.scrollIntoView({ behavior: 'smooth' }); }} />}
       {view === 'access' && <LearnerAccess />}
 
+      {view === 'home' && <UpcomingDates items={schedule} />}
+
       {view === 'home' && (
         <section id="interest" className="interest-section" aria-labelledby="interest-heading">
           <div>
@@ -63,6 +89,46 @@ function App() {
 
       <footer><span>Grey Matter Coffee Werks</span><span>Built for practice, not performance.</span></footer>
     </div>
+  );
+}
+
+function UpcomingDates({ items }: { items: ScheduleItem[] | undefined }) {
+  if (items === undefined) {
+    return null;
+  }
+  const upcoming = upcomingItems(items);
+  return (
+    <section id="dates" className="dates-section" aria-labelledby="dates-heading">
+      <div className="section-heading"><div><p className="section-marker">Coming up</p><h2 id="dates-heading">Next tables.</h2></div><p>Dates are a guide until we confirm by email. Ask and we will tell you first.</p></div>
+      {upcoming.length === 0
+        ? <p className="dates-empty">No dates announced yet. Ask about a session and we will tell you when the next table is set.</p>
+        : (
+          <ol className="dates-list">
+            {upcoming.map((item) => {
+              const parts = scheduleDateParts(item.date);
+              const offering = offerings.find((entry) => entry.id === item.offeringId);
+              const details = [item.time, item.venue].filter(Boolean).join(' · ');
+              return (
+                <li className="date-card" key={item.id}>
+                  <div className="date-card-when" aria-label={parts ? formatScheduleDate(item.date) : 'Date to be confirmed'}>
+                    {parts ? <><span>{parts.weekday}</span><strong>{parts.day}</strong><span>{parts.month}</span></> : <strong className="date-card-tbc">TBC</strong>}
+                  </div>
+                  <div className="date-card-main">
+                    <p className="eyebrow">{offering?.title ?? 'Werks Sessions'}</p>
+                    <h3>{item.title}</h3>
+                    {details && <p className="date-card-details">{details}</p>}
+                    {item.note && <p className="date-card-note">{item.note}</p>}
+                  </div>
+                  <div className="date-card-side">
+                    <span className={`date-status date-status-${item.status}`}>{scheduleStatusLabels[item.status]}</span>
+                    <a className="text-button" href={scheduleEnquiryHref(item)}>Ask about this date →</a>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        )}
+    </section>
   );
 }
 
@@ -222,6 +288,7 @@ function LearnerAccess() {
             } : current);
           }} />}
           {cuppingSessions.length > 0 && <NightRecordWorkspace sessions={cuppingSessions} uid={account.uid} hostName={account.displayName ?? ''} />}
+          <ScheduleEditor />
           <button className="button secondary learner-sign-out" onClick={leaveAccount}>Sign out</button>
           {error && <p className="auth-message" role="alert">{error}</p>}
         </main>
