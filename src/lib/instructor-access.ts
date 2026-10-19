@@ -1,5 +1,6 @@
 import { collection, doc, getDoc, getDocs, query, serverTimestamp, updateDoc, where } from 'firebase/firestore';
 import { firestore } from './firebase';
+import type { OfferingKind } from '../types';
 import { practiceWeek, practiceWeekIds, type PracticeWeek, type PracticeWeekId, type PracticeWeeks } from './practice';
 
 export type InstructorReview = {
@@ -12,6 +13,8 @@ export type InstructorReview = {
 export type InstructorSession = {
   id: string;
   title: string;
+  /** Set by staff on the session document. Null for sessions seeded before the field existed. */
+  offeringId: OfferingKind | null;
   reviews: InstructorReview[];
 };
 
@@ -56,7 +59,10 @@ export async function loadInstructorAccess(uid: string): Promise<InstructorAcces
       return null;
     }
 
-    const challenges = await getDocs(collection(database, 'sessions', sessionId, 'challenges'));
+    const { title, offeringId: sessionOffering } = session.data();
+    const offeringId: OfferingKind | null = sessionOffering === 'cupping' || sessionOffering === 'brew101' ? sessionOffering : null;
+    // Public Cupping sessions have no practice records to review; they have a night record instead.
+    const challenges = offeringId === 'cupping' ? { docs: [] } : await getDocs(collection(database, 'sessions', sessionId, 'challenges'));
     const reviews: InstructorReview[] = [];
     challenges.docs.forEach((challenge) => {
       const data = challenge.data();
@@ -79,8 +85,7 @@ export async function loadInstructorAccess(uid: string): Promise<InstructorAcces
       });
     });
 
-    const title = session.data().title;
-    return { id: sessionId, title: nonBlankString(title) ? title : 'Assigned session', reviews };
+    return { id: sessionId, title: nonBlankString(title) ? title : 'Assigned session', offeringId, reviews };
   }));
 
   return { state: 'assigned', sessions: sessions.filter((session): session is InstructorSession => session !== null) };

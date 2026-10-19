@@ -25,6 +25,33 @@ service cloud.firestore {
           && exists(/databases/$(database)/documents/teaching_assignments/$(sessionId + '_' + request.auth.uid))
           && get(/databases/$(database)/documents/teaching_assignments/$(sessionId + '_' + request.auth.uid)).data.status == 'active');
     }
+    function isCuppingSession(sessionId) {
+      return get(/databases/$(database)/documents/sessions/$(sessionId)).data.offeringId == 'cupping';
+    }
+    // Seat contents are bounded by the document size and validated by the client; this record is staff-only,
+    // and the Rules expression budget is spent on identity, session, ownership, and record-level limits.
+    function nightSeats(seats) {
+      return seats is map
+        && seats.keys().hasOnly(['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9', 's10', 's11', 's12']);
+    }
+    function validNightRecord(sessionId) {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['sessionId', 'hostUid', 'status', 'date', 'theme', 'host', 'guests', 'redeemed', 'flight', 'seats', 'tally', 'words', 'notes', 'createdAt', 'updatedAt'])
+        && d.keys().hasAll(['sessionId', 'hostUid', 'status', 'date', 'theme', 'host', 'guests', 'redeemed', 'flight', 'seats', 'tally', 'words', 'notes', 'createdAt', 'updatedAt'])
+        && d.sessionId == sessionId
+        && d.status in ['draft', 'final']
+        && d.date is string && d.date.size() <= 20
+        && d.theme is string && d.theme.size() <= 80
+        && d.host is string && d.host.size() <= 80
+        && d.guests is int && d.guests >= 0 && d.guests <= 40
+        && d.redeemed is int && d.redeemed >= 0 && d.redeemed <= 40
+        && d.flight is list && d.flight.size() == 4
+        && d.tally is map && d.tally.size() <= 16
+        && d.words is list && d.words.size() <= 40
+        && d.notes is string && d.notes.size() <= 1000
+        && d.updatedAt == request.time
+        && nightSeats(d.seats);
+    }
     function validNewChallenge(sessionId, uid) {
       return request.resource.data.keys().hasOnly(['sessionId', 'ownerUid', 'personId', 'status', 'weeks', 'createdAt', 'updatedAt'])
         && request.resource.data.sessionId == sessionId
@@ -106,6 +133,17 @@ service cloud.firestore {
       match /guide/main {
         allow get: if hasConfirmedEnrolment(sessionId, request.auth.uid) || teaches(sessionId);
         allow list, write: if false;
+      }
+
+      match /night_record/main {
+        allow get: if teaches(sessionId);
+        allow create: if teaches(sessionId) && isCuppingSession(sessionId) && validNightRecord(sessionId)
+          && request.resource.data.hostUid == request.auth.uid
+          && request.resource.data.createdAt == request.time;
+        allow update: if teaches(sessionId) && isCuppingSession(sessionId) && validNightRecord(sessionId)
+          && request.resource.data.hostUid == resource.data.hostUid
+          && request.resource.data.createdAt == resource.data.createdAt;
+        allow list, delete: if false;
       }
 
       match /challenges/{uid} {

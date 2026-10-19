@@ -5,6 +5,7 @@ import { authErrorMessage, observeAccount, signInWithGoogle, signOut } from './l
 import { loadInstructorAccess, reviewPracticeWeek, type InstructorAccess, type InstructorReview, type ReviewDecision } from './lib/instructor-access';
 import { loadLearnerAccess, type ConfirmedSession as LearnerAccessSession, type LearnerAccess as LearnerAccessState } from './lib/learner-access';
 import { loadSessionGuide, type SessionGuide } from './lib/session-guide';
+import { NightRecordWorkspace } from './NightRecordWorkspace';
 import { loadPracticeChallenge, practiceWeekIds, savePracticeChallenge, startPracticeChallenge, submitPracticeWeek, type PracticeChallenge, type PracticeWeek, type PracticeWeekId } from './lib/practice';
 import type { OfferingKind } from './types';
 
@@ -201,10 +202,17 @@ function LearnerAccess() {
     }
 
     if (instructorAccess.state === 'assigned') {
+      const cuppingSessions = instructorAccess.sessions.filter((session) => session.offeringId === 'cupping');
+      const hasReviewWork = cuppingSessions.length < instructorAccess.sessions.length || cuppingSessions.length === 0;
+      const heading = !hasReviewWork
+        ? { title: 'Night record.', subtitle: 'Record each Public Cupping night, then look across your nights. Seat numbers and choices only.' }
+        : cuppingSessions.length > 0
+          ? { title: 'Instructor review.', subtitle: 'Review one submitted week at a time, and record each Public Cupping night below.' }
+          : { title: 'Instructor review.', subtitle: 'Review one submitted week at a time. Feedback stays with the learner’s practice record.' };
       return (
         <main className="dashboard instructor-page">
-          <DashboardHeader title="Instructor review." subtitle="Review one submitted week at a time. Feedback stays with the learner’s practice record." />
-          <InstructorReviewWorkspace access={instructorAccess} onReviewed={(sessionId, learnerUid, weekId) => {
+          <DashboardHeader title={heading.title} subtitle={heading.subtitle} />
+          {hasReviewWork && <InstructorReviewWorkspace access={instructorAccess} onReviewed={(sessionId, learnerUid, weekId) => {
             setInstructorAccess((current) => current?.state === 'assigned' ? {
               ...current,
               sessions: current.sessions.map((session) => session.id === sessionId ? {
@@ -212,7 +220,8 @@ function LearnerAccess() {
                 reviews: session.reviews.filter((review) => review.learnerUid !== learnerUid || review.weekId !== weekId),
               } : session),
             } : current);
-          }} />
+          }} />}
+          {cuppingSessions.length > 0 && <NightRecordWorkspace sessions={cuppingSessions} uid={account.uid} hostName={account.displayName ?? ''} />}
           <button className="button secondary learner-sign-out" onClick={leaveAccount}>Sign out</button>
           {error && <p className="auth-message" role="alert">{error}</p>}
         </main>

@@ -189,6 +189,71 @@ describe('Spark access grants and learner practice', () => {
     }
   });
 
+  test('lets only the teaching staff keep a night record for a Public Cupping session', async () => {
+    const emptySeats = () => Object.fromEntries(Array.from({ length: 12 }, (_, index) => [`s${index + 1}`, { cup: null, buy: '', bought: '', words: '' }]));
+    const night = (overrides = {}) => ({
+      sessionId: 'cupping-01', hostUid: 'instructor-uid', status: 'draft', date: '2026-10-24', theme: 'Range Night', host: 'Host',
+      guests: 12, redeemed: 0, flight: ['a', 'b', 'c', 'd'], seats: emptySeats(), tally: {}, words: [], notes: '',
+      createdAt: serverTimestamp(), updatedAt: serverTimestamp(), ...overrides,
+    });
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await db.doc('access_grants/admin-uid').set({ personId: 'person-900', role: 'admin', status: 'active' });
+      await db.doc('sessions/cupping-01').set({ title: 'Range Night', offeringId: 'cupping' });
+      await db.doc('sessions/cupping-02').set({ title: 'Origins Night', offeringId: 'cupping' });
+      await db.doc('teaching_assignments/cupping-01_instructor-uid').set({ sessionId: 'cupping-01', uid: 'instructor-uid', status: 'active' });
+      await db.doc('enrolments/cupping-01_learner-uid').set({ sessionId: 'cupping-01', uid: 'learner-uid', personId: 'person-123', status: 'confirmed' });
+    });
+    const instructor = testEnv.authenticatedContext('instructor-uid').firestore();
+    const unassigned = testEnv.authenticatedContext('unassigned-instructor-uid').firestore();
+    const learner = testEnv.authenticatedContext('learner-uid').firestore();
+    const admin = testEnv.authenticatedContext('admin-uid').firestore();
+    const anonymous = testEnv.unauthenticatedContext().firestore();
+    const ref = (db, sessionId = 'cupping-01') => db.doc(`sessions/${sessionId}/night_record/main`);
+
+    // A fully filled record (all 12 seats, longest text) stays inside the Rules expression limit.
+    const fullSeats = Object.fromEntries(Array.from({ length: 12 }, (_, index) => [`s${index + 1}`, { cup: (index % 4) + 1, buy: 'yes', bought: 'no', words: 'x'.repeat(300) }]));
+    await assertSucceeds(ref(instructor).set(night({ seats: fullSeats, tally: { r1c1: 3, r1c2: 4 }, words: ['one', 'two'], notes: 'n'.repeat(1000), status: 'draft' })));
+    const stored = (await ref(instructor).get()).data();
+    await assertSucceeds(ref(instructor).set(night({ status: 'final', createdAt: stored.createdAt, seats: fullSeats })));
+
+    // Ownership and identity are immutable.
+    await assertFails(ref(instructor).set(night({ hostUid: 'someone-else', createdAt: stored.createdAt })));
+    await assertFails(ref(instructor).set(night({ sessionId: 'cupping-02', createdAt: stored.createdAt })));
+    await assertFails(ref(instructor).set(night({ createdAt: new Date('2020-01-01T00:00:00Z') })));
+    await assertFails(ref(instructor).set(night({ createdAt: stored.createdAt, updatedAt: new Date('2020-01-01T00:00:00Z') })));
+    await assertFails(ref(instructor, 'cupping-02').set(night({ sessionId: 'cupping-02' })));
+
+    // Reading and writing is staff-only, for Public Cupping sessions only.
+    await assertSucceeds(ref(instructor).get());
+    await assertFails(ref(unassigned).get());
+    await assertFails(ref(learner).get());
+    await assertFails(ref(anonymous).get());
+    await assertFails(ref(unassigned).set(night({ hostUid: 'unassigned-instructor-uid' })));
+    await assertFails(ref(learner).set(night({ hostUid: 'learner-uid' })));
+    await assertFails(ref(anonymous).set(night()));
+    await assertFails(ref(instructor, 'brew101-01').set(night({ sessionId: 'brew101-01' })));
+    await assertSucceeds(ref(admin, 'cupping-02').set(night({ sessionId: 'cupping-02', hostUid: 'admin-uid' })));
+
+    // No delete, no listing.
+    await assertFails(ref(instructor).delete());
+    await assertFails(instructor.collection('sessions/cupping-01/night_record').get());
+
+    // Malformed shapes are refused.
+    const bad = (overrides) => assertFails(ref(instructor).set(night({ createdAt: stored.createdAt, ...overrides })));
+    await bad({ extra: 'field' });
+    await bad({ status: 'published' });
+    await bad({ guests: -1 });
+    await bad({ guests: 41 });
+    await bad({ redeemed: 'many' });
+    await bad({ flight: ['a', 'b', 'c'] });
+    await bad({ theme: 't'.repeat(81) });
+    await bad({ notes: 'n'.repeat(1001) });
+    await bad({ words: Array.from({ length: 41 }, () => 'w') });
+    await bad({ tally: Object.fromEntries(Array.from({ length: 17 }, (_, index) => [`k${index}`, 1])) });
+    await bad({ seats: { ...emptySeats(), s13: { cup: null, buy: '', bought: '', words: '' } } });
+  });
+
   test('denies ungranted users, unauthenticated writes, and every Storage path', async () => {
     const ungranted = testEnv.authenticatedContext('ungranted-uid').firestore();
     const anonymous = testEnv.unauthenticatedContext();
