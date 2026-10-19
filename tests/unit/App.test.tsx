@@ -32,12 +32,19 @@ const sessionGuideMock = vi.hoisted(() => ({
   loadSessionGuide: vi.fn(() => Promise.resolve(null)),
 }));
 
+const nightMock = vi.hoisted(() => ({
+  loadNightRecord: vi.fn(() => Promise.resolve(null)),
+  saveNightRecord: vi.fn(() => Promise.resolve()),
+}));
+
+vi.mock('../../src/lib/night-record', () => nightMock);
 vi.mock('../../src/lib/google-auth', () => authMock);
 vi.mock('../../src/lib/session-guide', () => sessionGuideMock);
 vi.mock('../../src/lib/instructor-access', () => instructorAccessMock);
 vi.mock('../../src/lib/learner-access', () => learnerAccessMock);
 vi.mock('../../src/lib/practice', () => practiceMock);
 import App from '../../src/App';
+import { parseNightRecord } from '../../src/lib/night-record-model';
 
 afterEach(() => {
   cleanup();
@@ -337,5 +344,100 @@ describe('portal navigation and interest registration', () => {
     fireEvent.click(pending.getByRole('button', { name: 'Learner access' }));
     expect(await pending.findByRole('heading', { name: 'Signing in does not create learner access.' })).toBeInTheDocument();
     expect(sessionGuideMock.loadSessionGuide).not.toHaveBeenCalled();
+  });
+  const signInAsInstructor = (sessions: unknown[]) => {
+    authMock.observeAccount.mockImplementationOnce((callback: (user: { uid: string; email: string; displayName: string }) => void) => {
+      callback({ uid: 'instructor-uid', email: 'host@example.com', displayName: 'Firdaus' });
+      return () => undefined;
+    });
+    learnerAccessMock.loadLearnerAccess.mockResolvedValueOnce({ state: 'pending' });
+    instructorAccessMock.loadInstructorAccess.mockResolvedValueOnce({ state: 'assigned', sessions });
+  };
+  const cuppingSession = { id: 'cupping-01', title: 'Range Night', offeringId: 'cupping', reviews: [] };
+
+  it('gives a cupping-only instructor the night record instead of the review queue, and saves it', async () => {
+    signInAsInstructor([cuppingSession]);
+    nightMock.loadNightRecord
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(parseNightRecord({ status: 'final', date: '2026-10-24', theme: 'Range Night', host: 'Firdaus', guests: 1, hostUid: 'instructor-uid', createdAt: 'stored' }));
+
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
+
+    expect(await screen.findByRole('heading', { name: 'Night record.' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'No submitted weeks are waiting.' })).not.toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Record a night' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Host')).toHaveValue('Firdaus');
+
+    fireEvent.change(screen.getByLabelText('Theme'), { target: { value: 'Range Night' } });
+    fireEvent.change(screen.getByLabelText('Seat 1: #1 cup'), { target: { value: '2' } });
+    fireEvent.change(screen.getByLabelText('Seat 1: would buy'), { target: { value: 'yes' } });
+    fireEvent.change(screen.getByLabelText('Seat 1: bought tonight'), { target: { value: 'yes' } });
+    fireEvent.change(screen.getByLabelText('Ranked 1 for cup 2'), { target: { value: '5' } });
+    expect(screen.getByText('1 (100%)')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save as final' }));
+
+    expect(await screen.findByText('Night record saved as final. You can still edit it.')).toBeInTheDocument();
+    expect(nightMock.saveNightRecord).toHaveBeenCalledWith('cupping-01', 'instructor-uid', expect.objectContaining({
+      status: 'final',
+      theme: 'Range Night',
+      seats: expect.objectContaining({ s1: { cup: 2, buy: 'yes', bought: 'yes', words: '' } }),
+      tally: { r1c2: 5 },
+    }));
+    expect(nightMock.loadNightRecord).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows both the review queue and the night record to an instructor with both kinds of session', async () => {
+    signInAsInstructor([cuppingSession, { id: 'brew101-01', title: 'Manual Brew Foundations', offeringId: 'brew101', reviews: [] }]);
+
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
+
+    expect(await screen.findByRole('heading', { name: 'Instructor review.' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'No submitted weeks are waiting.' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Record a night' })).toBeInTheDocument();
+  });
+
+  it('reports a failed save and keeps the form editable', async () => {
+    signInAsInstructor([cuppingSession]);
+    nightMock.saveNightRecord.mockRejectedValueOnce(new Error('permission-denied'));
+
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
+    await screen.findByRole('heading', { name: 'Record a night' });
+    fireEvent.click(screen.getByRole('button', { name: 'Save draft' }));
+
+    expect(await screen.findByText('We could not save this night record. Please try again.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save draft' })).toBeEnabled();
+  });
+
+  it('summarises saved nights and downloads them as a CSV', async () => {
+    signInAsInstructor([cuppingSession]);
+    nightMock.loadNightRecord.mockResolvedValue(parseNightRecord({
+      status: 'final', date: '2026-10-24', theme: 'Range Night', host: 'Firdaus', guests: 4, redeemed: 2, flight: ['a', 'b', 'c', 'd'],
+      seats: { s1: { cup: 2, buy: 'yes', bought: 'yes', words: 'sweet' }, s2: { cup: 1, buy: 'yes', bought: 'no', words: '' } }, hostUid: 'instructor-uid', createdAt: 'stored',
+    }));
+    const createObjectURL = vi.fn(() => 'blob:csv');
+    const revokeObjectURL = vi.fn();
+    Object.assign(URL, { createObjectURL, revokeObjectURL });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
+
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
+
+    expect(await screen.findByRole('heading', { name: 'Across your nights' })).toBeInTheDocument();
+    expect(screen.getByText(/1 night, 4 guests, 2 would buy, 1 bought\. Of those who said yes, 50% bought\./)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Download CSV' }));
+
+    expect(createObjectURL).toHaveBeenCalledTimes(1);
+    const blob = (createObjectURL.mock.calls[0] as unknown as [Blob])[0];
+    expect(blob.type).toContain('text/csv');
+    expect(blob.size).toBeGreaterThan(50);
+    expect(click).toHaveBeenCalledTimes(1);
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:csv');
+    click.mockRestore();
+    nightMock.loadNightRecord.mockReset();
+    nightMock.loadNightRecord.mockResolvedValue(null);
   });
 });

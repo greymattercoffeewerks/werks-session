@@ -68,6 +68,17 @@ Seed the session document with an `offeringId` (`cupping` or `brew101`) so the l
 
 The guide document has `offeringId` (string), `version` (number), `title` (string), and the content, either as one JSON string in `contentJson` (easiest to paste in Console) or as ordinary fields. The content shape is `{ intro, facts[], schedule[], tastingCard, basics[], vocabulary[], vocabularyNote, beforeYouCome[], footer }`; every value is plain text, trimmed and length-limited by the client and rendered as text, never HTML. The guide content itself is gated: keep the seed JSON in the gitignored `content-drafts/` folder, never in Git, and never quote it in docs, tests, or pull requests (see `CONVENTIONS.md`).
 
+## Public Cupping night record (staff only)
+
+After each Public Cupping night the host records it in the instructor page instead of on paper. The record is one document at `sessions/{sessionId}/night_record/main`. Setup in Firebase Console, once per session:
+
+1. Set `offeringId` = `cupping` on the session document. The Rules refuse a night record for any other session.
+2. Create the host's `teaching_assignments/{sessionId}_{uid}` document (`sessionId`, `uid`, `status` = `active`) and make sure their `access_grants` role is `instructor` (or `admin`).
+
+The Rules let the assigned instructor or an administrator read, create, and update the record; no learner, unassigned instructor, or signed-out visitor can read or write it, and nobody can delete or list it. The host (`hostUid`), the session (`sessionId`), and the creation time are fixed on the first write and cannot change; `updatedAt` must be the server time. The Rules also cap the guest and redeemed counts, the text fields, the flight list (exactly four cups), the unprompted-words list, the tally size, and the seats to `s1` to `s12`. The contents of each seat (#1 cup, would buy, bought, words) are checked by the client and bounded by the document size: validating them in Rules exceeds Firestore's expression limit, and this record is written only by trusted staff.
+
+The record holds seat numbers and choices only. It never holds guest names, contact details, account identifiers, or `personId` values, and the form says so. The instructor page can download every saved night as one CSV (one row per seat with data, with the night's details repeated) for trend analysis in a spreadsheet.
+
 ## Deliberately manual work
 
 Payment, capacity, attendance, course materials, private resource delivery, account recovery, and grant seeding remain staff-operated while the project is on Spark. Do not add a client-side shortcut around those boundaries.
