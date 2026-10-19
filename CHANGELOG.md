@@ -6,7 +6,7 @@ All notable user-visible, operational, and security-impacting changes are record
 
 ### Added
 
-- Added an online night record for Public Cupping in the instructor page: the host records each night's seats, #1 cups, would-buy and purchase answers, words heard, room ranking, and redemptions in the portal instead of on paper, sees tonight's totals and conversion, and sees a summary across their nights with a CSV download for analysis. It holds seat numbers and choices only, with no guest names or contact details. It reaches production when the Firestore Rules and Hosting are released.
+- Added an online night record for Public Cupping in the instructor page: the host records each night's seats, #1 cups, would-buy and purchase answers, words heard, room ranking, and redemptions in the portal instead of on paper, sees tonight's totals and conversion, and sees a summary across their nights with a CSV download for analysis. It holds seat numbers and choices only, with no guest names or contact details. It was released to production on 2026-10-19 (Firestore Rules, then Hosting); it needs the cupping session labelled and the host's teaching assignment created before first use.
 
 ### Security
 
