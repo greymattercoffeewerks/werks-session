@@ -2,6 +2,13 @@
 
 All notable user-visible, operational, and security-impacting changes are recorded by completion date.
 
+## [2026-10-20]
+
+### Changed
+
+- Tightened the public front page. The About section's heading no longer wraps to eight lines in a narrow column (it was capped at a width measured in the small body font), so About is roughly half its former height on desktop, and About and the method block use less padding. The page is about 480 pixels shorter on desktop.
+- Gave "Next tables" its own dark band so it no longer runs into the "Ask about the next table" block, with the date cards staying light on it.
+
 ## [2026-10-19]
 
 ### Added
