@@ -189,6 +189,45 @@ describe('Spark access grants and learner practice', () => {
     }
   });
 
+  test('applies the same guide access to a Barista 101 session and denies every write', async () => {
+    const guide = { offeringId: 'barista101', version: 1, title: 'Test guide', intro: 'Placeholder text only.' };
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await db.doc('access_grants/admin-uid').set({ personId: 'person-900', role: 'admin', status: 'active' });
+      await db.doc('sessions/barista101-01').set({ title: 'Espresso Foundations', offeringId: 'barista101' });
+      await db.doc('sessions/barista101-02').set({ title: 'Espresso Foundations', offeringId: 'barista101' });
+      await db.doc('enrolments/barista101-01_learner-uid').set({ sessionId: 'barista101-01', uid: 'learner-uid', personId: 'person-123', status: 'confirmed' });
+      await db.doc('enrolments/barista101-pending_learner-uid').set({ sessionId: 'barista101-pending', uid: 'learner-uid', personId: 'person-123', status: 'pending' });
+      await db.doc('teaching_assignments/barista101-01_instructor-uid').set({ sessionId: 'barista101-01', uid: 'instructor-uid', status: 'active' });
+      for (const sessionId of ['barista101-01', 'barista101-02', 'barista101-pending']) {
+        await db.doc(`sessions/${sessionId}/guide/main`).set(guide);
+      }
+    });
+    const learner = testEnv.authenticatedContext('learner-uid').firestore();
+    const instructor = testEnv.authenticatedContext('instructor-uid').firestore();
+    const unassigned = testEnv.authenticatedContext('unassigned-instructor-uid').firestore();
+    const admin = testEnv.authenticatedContext('admin-uid').firestore();
+    const anonymous = testEnv.unauthenticatedContext().firestore();
+
+    await assertSucceeds(learner.doc('sessions/barista101-01/guide/main').get());
+    await assertSucceeds(instructor.doc('sessions/barista101-01/guide/main').get());
+    await assertSucceeds(admin.doc('sessions/barista101-01/guide/main').get());
+
+    await assertFails(learner.doc('sessions/barista101-02/guide/main').get());
+    await assertFails(learner.doc('sessions/barista101-pending/guide/main').get());
+    await assertFails(unassigned.doc('sessions/barista101-01/guide/main').get());
+    await assertFails(anonymous.doc('sessions/barista101-01/guide/main').get());
+    await assertFails(learner.collection('sessions/barista101-01/guide').get());
+
+    for (const [name, db] of [['learner', learner], ['instructor', instructor], ['admin', admin], ['anonymous', anonymous]]) {
+      await assertFails(db.doc('sessions/barista101-01/guide/main').set({ ...guide, intro: `Written by ${name}` }));
+      await assertFails(db.doc('sessions/barista101-01/guide/main').update({ intro: `Edited by ${name}` }));
+      await assertFails(db.doc('sessions/barista101-01/guide/main').delete());
+    }
+    // Barista 101 is not a Public Cupping session, so the night record stays closed to it.
+    await assertFails(instructor.doc('sessions/barista101-01/night_record/main').set({ sessionId: 'barista101-01', hostUid: 'instructor-uid' }));
+  });
+
   test('lets only the teaching staff keep a night record for a Public Cupping session', async () => {
     const emptySeats = () => Object.fromEntries(Array.from({ length: 12 }, (_, index) => [`s${index + 1}`, { cup: null, buy: '', bought: '', words: '' }]));
     const night = (overrides = {}) => ({

@@ -27,6 +27,7 @@ describe('parseSessionGuide', () => {
       basics: [{ step: 'S', text: 'T' }],
       vocabulary: [{ group: 'G', words: ['a', '  ', 7, 'b'] }, { group: 'Empty', words: [] }],
       vocabularyNote: ' VN ',
+      sections: [{ title: ' Sec ', intro: ' I ', rows: [{ label: 'L', text: 'T' }, { label: 'No text' }, 'nope'] }, { title: 'Empty', rows: [] }, { rows: [{ label: 'x', text: 'y' }] }],
       beforeYouCome: ['x', '', 5],
       footer: 'F',
     });
@@ -41,6 +42,7 @@ describe('parseSessionGuide', () => {
       basics: [{ step: 'S', text: 'T' }],
       vocabulary: [{ group: 'G', words: ['a', 'b'] }],
       vocabularyNote: 'VN',
+      sections: [{ title: 'Sec', intro: 'I', rows: [{ label: 'L', text: 'T' }] }],
       beforeYouCome: ['x'],
       footer: 'F',
     });
@@ -58,6 +60,16 @@ describe('parseSessionGuide', () => {
     expect(guide?.offeringId).toBeNull();
     expect(guide?.intro).toHaveLength(2000);
     expect(guide?.beforeYouCome).toHaveLength(60);
+  });
+
+  it('accepts the Barista 101 offering and caps the number of sections and rows', () => {
+    const guide = parseSessionGuide({
+      offeringId: 'barista101',
+      sections: Array.from({ length: 30 }, (_, index) => ({ title: `S${index}`, rows: Array.from({ length: 200 }, (_, row) => ({ label: `L${row}`, text: 't' })) })),
+    });
+    expect(guide?.offeringId).toBe('barista101');
+    expect(guide?.sections).toHaveLength(12);
+    expect(guide?.sections[0].rows).toHaveLength(60);
   });
 });
 

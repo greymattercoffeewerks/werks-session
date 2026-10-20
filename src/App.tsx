@@ -4,6 +4,7 @@ import { offerings } from './data/demo';
 import { authErrorMessage, observeAccount, signInWithGoogle, signOut } from './lib/google-auth';
 import { loadInstructorAccess, reviewPracticeWeek, type InstructorAccess, type InstructorReview, type ReviewDecision } from './lib/instructor-access';
 import { loadLearnerAccess, type ConfirmedSession as LearnerAccessSession, type LearnerAccess as LearnerAccessState } from './lib/learner-access';
+import { hasPracticeRecord } from './lib/offering';
 import { loadSessionGuide, type SessionGuide } from './lib/session-guide';
 import { NightRecordWorkspace } from './NightRecordWorkspace';
 import { ScheduleEditor } from './ScheduleEditor';
@@ -79,7 +80,7 @@ function App() {
             <p>Choose a session and send us a short email. We will reply personally to discuss the right table, a possible date, and the next step.</p>
           </div>
           <div className="interest-form">
-            <label>Choose a session<select value={interestOffering} onChange={(event) => setInterestOffering(event.target.value as OfferingKind)}><option value="cupping">Public Cupping</option><option value="brew101">Brew 101</option></select></label>
+            <label>Choose a session<select value={interestOffering} onChange={(event) => setInterestOffering(event.target.value as OfferingKind)}>{offerings.map((offering) => <option key={offering.id} value={offering.id}>{offering.title}</option>)}</select></label>
             <p>Tell us what you would like to know, and we will help you find the right table.</p>
             <a className="button primary" href={interestEmailHref(interestOffering)}>Ask about {course.title}</a>
             <p className="form-success">This opens your email app. It does not create an account or reserve a place.</p>
@@ -269,9 +270,12 @@ function LearnerAccess() {
 
     if (instructorAccess.state === 'assigned') {
       const cuppingSessions = instructorAccess.sessions.filter((session) => session.offeringId === 'cupping');
-      const hasReviewWork = cuppingSessions.length < instructorAccess.sessions.length || cuppingSessions.length === 0;
+      // Only sessions with a practice record (Brew 101, or unlabelled) have weekly reviews to do.
+      const hasReviewWork = instructorAccess.sessions.some((session) => hasPracticeRecord(session.offeringId)) || instructorAccess.sessions.length === 0;
       const heading = !hasReviewWork
-        ? { title: 'Night record.', subtitle: 'Record each Public Cupping night, then look across your nights. Seat numbers and choices only.' }
+        ? cuppingSessions.length > 0
+          ? { title: 'Night record.', subtitle: 'Record each Public Cupping night, then look across your nights. Seat numbers and choices only.' }
+          : { title: 'Your sessions.', subtitle: 'Your assigned sessions have no weekly reviews. You can still keep the front-page dates up to date below.' }
         : cuppingSessions.length > 0
           ? { title: 'Instructor review.', subtitle: 'Review one submitted week at a time, and record each Public Cupping night below.' }
           : { title: 'Instructor review.', subtitle: 'Review one submitted week at a time. Feedback stays with the learner’s practice record.' };
@@ -351,15 +355,18 @@ function LearnerAccess() {
   );
 }
 
-/** Only Public Cupping sessions skip the practice record. Sessions seeded before `offeringId` existed keep the Brew 101 experience they already had. */
+/** Only Brew 101 has the practice record. Sessions seeded before `offeringId` existed keep the Brew 101 experience they already had. */
 function hasPracticeWorkspace(session: LearnerAccessSession): boolean {
-  return session.offeringId !== 'cupping';
+  return hasPracticeRecord(session.offeringId);
 }
 
 function learnerHeading(sessions: LearnerAccessSession[]): { title: string; subtitle: string } {
   const kinds = new Set(sessions.map((session) => session.offeringId ?? 'brew101'));
   if (kinds.size === 1 && kinds.has('cupping')) {
     return { title: 'Your Public Cupping table.', subtitle: 'Your booking is confirmed. Read your table guide before you come, and arrive on time.' };
+  }
+  if (kinds.size === 1 && kinds.has('barista101')) {
+    return { title: 'Your Barista 101 table.', subtitle: 'Your booking is confirmed. Read your guide before you come, and arrive on time. Staff will arrange machine practice with you afterwards.' };
   }
   if (kinds.size === 1 && kinds.has('brew101')) {
     return { title: 'Your Brew 101 table.', subtitle: 'Your booking is confirmed. After the table, use this space to notice one useful change each week and keep a practical record of the cups you make.' };
@@ -418,6 +425,13 @@ function SessionGuidePanel({ sessionId }: { sessionId: string }) {
           {guide.vocabularyNote && <p className="guide-note">{guide.vocabularyNote}</p>}
         </section>
       )}
+      {guide.sections.map((section) => (
+        <section className="guide-section" key={section.title} aria-label={section.title}>
+          <h3>{section.title}</h3>
+          {section.intro && <p className="guide-note">{section.intro}</p>}
+          <ul className="guide-list">{section.rows.map((row) => <li key={row.label}><strong>{row.label}</strong><span>{row.text}</span></li>)}</ul>
+        </section>
+      ))}
       {guide.beforeYouCome.length > 0 && (
         <section className="guide-section" aria-label="Practical notes">
           <h3>Practical notes</h3>

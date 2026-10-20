@@ -2,6 +2,13 @@
 
 All notable user-visible, operational, and security-impacting changes are recorded by completion date.
 
+## [Unreleased]
+
+### Added
+
+- Added Barista 101 (Espresso Foundations) to the public front page as a third offer card with an email enquiry. It describes the four-hour, small-group course and says plainly that it is not an SCA-certified course. There are no published dates yet.
+- Barista 101 sessions can now be labelled in the portal, so confirmed learners see the pre-class guide (with extra sections such as the recipe model and steam-wand rules) and are not offered the Brew 101 four-week practice record. The staff Upcoming dates editor lists Barista 101 as a session type.
+
 ## [2026-10-20]
 
 ### Changed
