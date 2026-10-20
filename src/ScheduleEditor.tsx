@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { offerings } from './data/demo';
 import { loadPublicScheduleForEditing, savePublicSchedule } from './lib/schedule';
 import { emptyScheduleItem, maxScheduleItems, scheduleStatuses, scheduleStatusLabels, type ScheduleItem, type ScheduleStatus } from './lib/schedule-model';
 import type { OfferingKind } from './types';
@@ -76,7 +77,7 @@ export function ScheduleEditor() {
         {items.map((item, index) => (
           <fieldset className="schedule-row" key={item.id} disabled={loadFailed || busy}>
             <legend>Date {index + 1}</legend>
-            <label>Session<select value={item.offeringId} onChange={(event) => change(item.id, { offeringId: event.target.value as OfferingKind })}><option value="cupping">Public Cupping</option><option value="brew101">Brew 101</option></select></label>
+            <label>Session<select value={item.offeringId} onChange={(event) => change(item.id, { offeringId: event.target.value as OfferingKind })}>{offerings.map((offering) => <option key={offering.id} value={offering.id}>{offering.title}</option>)}</select></label>
             <label>Title<input value={item.title} maxLength={80} onChange={(event) => change(item.id, { title: event.target.value })} placeholder="e.g. Range Night" /></label>
             <label>Date<input type="date" value={item.date} onChange={(event) => change(item.id, { date: event.target.value })} /></label>
             <label>Time<input value={item.time} maxLength={20} onChange={(event) => change(item.id, { time: event.target.value })} placeholder="e.g. 8:00 pm" /></label>

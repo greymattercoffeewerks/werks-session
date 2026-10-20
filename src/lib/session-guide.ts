@@ -1,12 +1,16 @@
 import { doc, getDoc } from 'firebase/firestore';
 import { firestore } from './firebase';
 import type { OfferingKind } from '../types';
+import { parseOfferingKind } from './offering';
 
 export type GuideFact = { label: string; value: string };
 export type GuideScheduleRow = { when: string; what: string };
 export type GuidePrompt = { name: string; help: string };
 export type GuideStep = { step: string; text: string };
 export type GuideVocabularyGroup = { group: string; words: string[] };
+export type GuideSectionRow = { label: string; text: string };
+/** A headed list of label and text rows. Lets a guide carry extra sections without a new field per offering. */
+export type GuideSection = { title: string; intro: string; rows: GuideSectionRow[] };
 
 export type SessionGuide = {
   offeringId: OfferingKind | null;
@@ -19,12 +23,14 @@ export type SessionGuide = {
   basics: GuideStep[];
   vocabulary: GuideVocabularyGroup[];
   vocabularyNote: string;
+  sections: GuideSection[];
   beforeYouCome: string[];
   footer: string;
 };
 
 const maxTextLength = 2000;
 const maxItems = 60;
+const maxSections = 12;
 
 function text(value: unknown): string {
   return typeof value === 'string' ? value.trim().slice(0, maxTextLength) : '';
@@ -54,7 +60,7 @@ export function parseSessionGuide(value: unknown): SessionGuide | null {
     : null;
 
   const guide: SessionGuide = {
-    offeringId: source.offeringId === 'cupping' || source.offeringId === 'brew101' ? source.offeringId : null,
+    offeringId: parseOfferingKind(source.offeringId),
     version: typeof source.version === 'number' && Number.isFinite(source.version) ? source.version : 1,
     title: text(source.title),
     intro: text(source.intro),
@@ -70,12 +76,15 @@ export function parseSessionGuide(value: unknown): SessionGuide | null {
     basics: records(source.basics).map((item) => ({ step: text(item.step), text: text(item.text) })).filter((item) => item.step && item.text),
     vocabulary: records(source.vocabulary).map((item) => ({ group: text(item.group), words: texts(item.words) })).filter((item) => item.group && item.words.length > 0),
     vocabularyNote: text(source.vocabularyNote),
+    sections: records(source.sections).slice(0, maxSections)
+      .map((item) => ({ title: text(item.title), intro: text(item.intro), rows: records(item.rows).map((row) => ({ label: text(row.label), text: text(row.text) })).filter((row) => row.label && row.text) }))
+      .filter((section) => section.title && section.rows.length > 0),
     beforeYouCome: texts(source.beforeYouCome),
     footer: text(source.footer),
   };
 
   const hasContent = guide.intro || guide.facts.length || guide.schedule.length || guide.basics.length
-    || guide.vocabulary.length || guide.beforeYouCome.length || (guide.tastingCard && guide.tastingCard.prompts.length);
+    || guide.vocabulary.length || guide.sections.length || guide.beforeYouCome.length || (guide.tastingCard && guide.tastingCard.prompts.length);
   return hasContent ? guide : null;
 }
 

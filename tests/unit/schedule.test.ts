@@ -50,6 +50,7 @@ describe('parseSchedule', () => {
     expect(items[0].venue).toHaveLength(80);
     expect(items[0].note).toHaveLength(200);
     expect(items[1]).toMatchObject({ offeringId: 'cupping', title: 'Plain', date: '', status: 'tbc' });
+    expect(parseSchedule([{ title: 'Espresso', offeringId: 'barista101' }])[0].offeringId).toBe('barista101');
   });
 
   it('makes ids unique, caps the list at twelve, and tolerates non-lists', () => {

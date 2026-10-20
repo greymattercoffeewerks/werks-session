@@ -1,5 +1,9 @@
 # Architecture Decisions
 
+## 2026-10-21: Barista 101 is a third offering that reuses the guide, not the practice record
+
+A four-hour Espresso Foundations course was drafted outside the repository. It is added as a third offering, `barista101`, with a public offer card and email enquiry only (no dates, and the price reads "Ask for the pilot price" until the owner confirms the founding price). Learners get the existing gated guide at `sessions/{id}/guide/main`, so `firestore.rules` is unchanged; a new Rules test proves the same access for a `barista101` session. The guide gains one generic, text-only `sections` list (title, intro, label and text rows) rather than espresso-specific fields, so the cupping guide is untouched and a fourth offering needs no schema change. No espresso practice record is built: the draft's four practices need machine access, so staff arrange practice personally and the printed cards carry the progression; revisit after the pilot. Only Brew 101 (and sessions seeded before `offeringId`) has the four-week practice record, so a single `hasPracticeRecord` rule decides that on the learner and instructor pages, and one `parseOfferingKind` helper replaces four duplicated literal checks. The timetable, method, fault table, cards, pricing logic and cost model stay gated in `content-drafts/` and the Firestore guide document; public tests use structural markers only.
+
 ## 2026-10-16: Repository memory is authoritative
 
 Codex local memories are enabled as a convenience layer, but `PROJECT_MEMORY.md`, this decision log, and `SESSION_HANDOFF.md` are versioned and portable. They are the required context for every session.

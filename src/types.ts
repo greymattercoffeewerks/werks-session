@@ -1,5 +1,5 @@
 export type Role = 'admin' | 'instructor' | 'learner';
-export type OfferingKind = 'cupping' | 'brew101';
+export type OfferingKind = 'cupping' | 'brew101' | 'barista101';
 export type SessionStatus = 'interest' | 'proposed' | 'confirmed' | 'completed' | 'cancelled';
 export type EnrolmentStatus = 'interested' | 'invited' | 'confirmed' | 'attended' | 'withdrawn' | 'no_show';
 export type PaymentStatus = 'pending' | 'deposit_paid' | 'paid' | 'refunded';

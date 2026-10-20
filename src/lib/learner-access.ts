@@ -1,6 +1,7 @@
 import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 import { firestore } from './firebase';
 import type { OfferingKind } from '../types';
+import { parseOfferingKind } from './offering';
 
 export type ConfirmedSession = {
   id: string;
@@ -59,7 +60,7 @@ export async function loadLearnerAccess(uid: string): Promise<LearnerAccess> {
     return {
       id: session.id,
       title: nonBlankString(title) ? title : 'Confirmed session',
-      offeringId: offeringId === 'cupping' || offeringId === 'brew101' ? offeringId : null,
+      offeringId: parseOfferingKind(offeringId),
     };
   }));
 

@@ -1,6 +1,7 @@
 import { collection, doc, getDoc, getDocs, query, serverTimestamp, updateDoc, where } from 'firebase/firestore';
 import { firestore } from './firebase';
 import type { OfferingKind } from '../types';
+import { hasPracticeRecord, parseOfferingKind } from './offering';
 import { practiceWeek, practiceWeekIds, type PracticeWeek, type PracticeWeekId, type PracticeWeeks } from './practice';
 
 export type InstructorReview = {
@@ -60,9 +61,9 @@ export async function loadInstructorAccess(uid: string): Promise<InstructorAcces
     }
 
     const { title, offeringId: sessionOffering } = session.data();
-    const offeringId: OfferingKind | null = sessionOffering === 'cupping' || sessionOffering === 'brew101' ? sessionOffering : null;
-    // Public Cupping sessions have no practice records to review; they have a night record instead.
-    const challenges = offeringId === 'cupping' ? { docs: [] } : await getDocs(collection(database, 'sessions', sessionId, 'challenges'));
+    const offeringId: OfferingKind | null = parseOfferingKind(sessionOffering);
+    // Only Brew 101 has practice records to review; Public Cupping has a night record instead.
+    const challenges = !hasPracticeRecord(offeringId) ? { docs: [] } : await getDocs(collection(database, 'sessions', sessionId, 'challenges'));
     const reviews: InstructorReview[] = [];
     challenges.docs.forEach((challenge) => {
       const data = challenge.data();

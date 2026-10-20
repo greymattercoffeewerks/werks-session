@@ -1,4 +1,5 @@
 import type { OfferingKind } from '../types';
+import { parseOfferingKind } from './offering';
 
 export const scheduleStatuses = ['interest', 'open', 'limited', 'full', 'tbc'] as const;
 export type ScheduleStatus = typeof scheduleStatuses[number];
@@ -64,7 +65,7 @@ export function parseSchedule(value: unknown): ScheduleItem[] {
     seen.add(id);
     items.push({
       id,
-      offeringId: source.offeringId === 'brew101' ? 'brew101' : 'cupping',
+      offeringId: parseOfferingKind(source.offeringId) ?? 'cupping',
       title,
       date: validDate(source.date),
       time: text(source.time, limits.time),

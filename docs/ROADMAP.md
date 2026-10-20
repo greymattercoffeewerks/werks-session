@@ -75,6 +75,8 @@ Make the Brew 101 follow-through useful without overstating it as assessment or 
 - Public "How the evening runs" teaser on the Public Cupping offer (released 2026-10-18).
 - Self-hosted Figtree and Archivo brand fonts; Gotham no longer shipped (released 2026-10-18).
 
+- Third offering, Barista 101 (Espresso Foundations): public offer card with email enquiry only, `barista101` session label, gated guide carrying extra `sections`, and local-only take-home cards. No espresso practice record in v1. Not yet released; see `docs/SESSION_HANDOFF.md`.
+
 ### Planned
 
 - Gated Public Cupping table guide for confirmed guests, delivered from Firestore under the existing enrolment Rules and made offering-aware in the learner page. See `docs/GATED_SESSION_GUIDE_PLAN.md`. Until then, staff email the finished PDF with the booking confirmation.

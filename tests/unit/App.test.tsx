@@ -96,6 +96,18 @@ describe('portal navigation and interest registration', () => {
     );
   });
 
+  it('shows Barista 101 as a public offer card with a teaser-free, enquiry-only flow', () => {
+    const app = render(<App />);
+    const card = app.getByRole('heading', { name: 'Barista 101' }).closest('article')!;
+    expect(within(card).getByText(/not an sca-certified course/i)).toBeInTheDocument();
+    expect(within(card).queryByText('How the evening runs')).not.toBeInTheDocument();
+    fireEvent.change(app.getByLabelText('Choose a session'), { target: { value: 'barista101' } });
+    expect(app.getByRole('link', { name: 'Ask about Barista 101' })).toHaveAttribute('href', expect.stringContaining('Ask%20about%20Barista%20101'));
+    const text = (app.container.textContent ?? '').toLowerCase();
+    // Structural markers only: the method, run sheet and cards are learner-only.
+    ['dial-in card', 'station sequence', 'fault', 'shot log', 'backflush'].forEach((guideOnly) => expect(text).not.toContain(guideOnly));
+  });
+
   it('offers Google sign-in without promising self-service learner access', async () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
@@ -283,6 +295,7 @@ describe('portal navigation and interest registration', () => {
       basics: [{ step: 'Smell', text: 'Lean in.' }],
       vocabulary: [{ group: 'Group', words: ['one', 'two'] }],
       vocabularyNote: 'Use your own words too.',
+      sections: [],
       beforeYouCome: ['Arrive on time.'],
       footer: 'Footer line',
     });
@@ -297,6 +310,44 @@ describe('portal navigation and interest registration', () => {
     expect(document.querySelector('.session-guide b')).toBeNull();
     expect(screen.getByRole('button', { name: 'Print this guide' })).toBeInTheDocument();
     expect(screen.getByRole('table')).toHaveTextContent('Arrive and settle in.');
+    expect(screen.queryByRole('button', { name: 'Start my practice' })).not.toBeInTheDocument();
+    expect(practiceMock.loadPracticeChallenge).not.toHaveBeenCalled();
+  });
+
+  it('shows the guide, including extra sections as text, for a confirmed Barista 101 session and no Brew 101 practice record', async () => {
+    authMock.observeAccount.mockImplementationOnce((callback: (user: { uid: string; email: string }) => void) => {
+      callback({ uid: 'learner-uid', email: 'maya@example.com' });
+      return () => undefined;
+    });
+    learnerAccessMock.loadLearnerAccess.mockResolvedValueOnce({
+      state: 'confirmed',
+      sessions: [{ id: 'barista101-01', title: 'Espresso Foundations', offeringId: 'barista101' }],
+    });
+    sessionGuideMock.loadSessionGuide.mockResolvedValueOnce({
+      offeringId: 'barista101',
+      version: 1,
+      title: 'Your Barista 101 guide',
+      intro: 'Plain text only.',
+      facts: [],
+      schedule: [],
+      tastingCard: null,
+      basics: [],
+      vocabulary: [],
+      vocabularyNote: '',
+      sections: [{ title: 'Section title', intro: 'Section intro <i>not italic</i>', rows: [{ label: 'Row label', text: 'Row text' }] }],
+      beforeYouCome: [],
+      footer: '',
+    });
+
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
+
+    expect(await screen.findByRole('heading', { name: 'Your Barista 101 table.' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Section title' })).toBeInTheDocument();
+    expect(screen.getByText('Row label')).toBeInTheDocument();
+    expect(screen.getByText('Section intro <i>not italic</i>')).toBeInTheDocument();
+    expect(document.querySelector('.session-guide i')).toBeNull();
+    expect(sessionGuideMock.loadSessionGuide).toHaveBeenCalledWith('barista101-01');
     expect(screen.queryByRole('button', { name: 'Start my practice' })).not.toBeInTheDocument();
     expect(practiceMock.loadPracticeChallenge).not.toHaveBeenCalled();
   });
@@ -404,6 +455,17 @@ describe('portal navigation and interest registration', () => {
     expect(await screen.findByRole('heading', { name: 'Instructor review.' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'No submitted weeks are waiting.' })).toBeInTheDocument();
     expect(await screen.findByRole('heading', { name: 'Record a night' })).toBeInTheDocument();
+  });
+
+  it('shows a Barista 101-only instructor no review queue and no night record', async () => {
+    signInAsInstructor([{ id: 'barista101-01', title: 'Espresso Foundations', offeringId: 'barista101', reviews: [] }]);
+
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
+
+    expect(await screen.findByRole('heading', { name: 'Your sessions.' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'No submitted weeks are waiting.' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Record a night' })).not.toBeInTheDocument();
   });
 
   it('reports a failed save and keeps the form editable', async () => {
