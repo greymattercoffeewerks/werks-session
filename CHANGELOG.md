@@ -4,6 +4,10 @@ All notable user-visible, operational, and security-impacting changes are record
 
 ## [2026-11-17]
 
+### Changed
+
+- The public page no longer ships the signed-in app. The instructor and learner experience now loads on demand when someone opens Learner access, so an anonymous visitor fetches a 750 kB entry chunk instead of 900 kB (207 kB gzipped instead of 239 kB), and that chunk contains no instructor or learner screen and no signed-in data path. The signed-in code, including the Firebase Auth SDK, is a separate 156 kB chunk (36 kB gzipped) fetched only on demand. If that chunk cannot be downloaded, the page says so and offers a reload instead of losing the public page. A new public-bundle check in the verification gate fails if any of those screens, their Firestore paths, a stale build, or a broken split slips back into the public bundle.
+
 ### Security
 
 - Pinned the Firebase CLI. `firebase-tools` was declared as `"latest"`, so a routine dependency pass silently moved it from 15.33.0 to 15.36.0 and any future CLI release could change the local verification gate without a code change. It is now pinned to 15.36.0 and only moves through a reviewed dependency pull request.

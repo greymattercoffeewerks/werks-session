@@ -1,11 +1,18 @@
 import {
   GoogleAuthProvider,
+  getAuth,
   onAuthStateChanged,
   signInWithPopup,
   signOut as firebaseSignOut,
   type User,
 } from 'firebase/auth';
-import { auth } from './firebase';
+import { firebaseApp } from './firebase';
+
+/**
+ * Created here rather than in `firebase.ts` so the Firebase Auth SDK is imported only
+ * with the signed-in app. The public page reads Firestore, not Auth.
+ */
+const auth = firebaseApp ? getAuth(firebaseApp) : undefined;
 
 export function observeAccount(callback: (user: User | null) => void): () => void {
   if (!auth) {
