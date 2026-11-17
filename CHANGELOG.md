@@ -4,6 +4,10 @@ All notable user-visible, operational, and security-impacting changes are record
 
 ## [2026-11-18]
 
+### Operational
+
+- Released the front-page date refresh and the colour-contrast fixes to Firebase Hosting from merged `main` (`36f498f`). The live site serves entry chunk `index-BV9WeJF9.js` and stylesheet `index-DYT2af2g.css`; the post-deploy smoke check passed 12/12. Firestore Rules, indexes, Functions, and Storage were not deployed.
+
 ### Added
 
 - Added a browser-level journey suite (Playwright) against the Firebase emulators. It signs in through the real "Continue with Google" button by driving the Auth emulator's identity-provider page, seeds a staff grant, guide, and teaching assignment, saves and submits a practice week, approves it as the instructor, records a Public Cupping night, and publishes a date that then appears on the front page. Six tests in 45 seconds, run in GitHub Actions as its own job.
