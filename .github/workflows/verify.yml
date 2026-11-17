@@ -49,3 +49,45 @@ jobs:
       - run: npm ci
       - run: npm ci --prefix functions
       - run: npm run verify
+
+  # Browser-level journey against the emulators: sign-in, grant, guide, practice,
+  # review, night record, and publishing a date. Not a required check yet.
+  e2e:
+    name: browser journey
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - name: Upload the Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
+
+  # Live smoke check after a deploy, and on the daily schedule. Read-only probes.
+  live-smoke:
+    name: live smoke
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm run smoke:production

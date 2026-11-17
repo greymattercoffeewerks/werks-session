@@ -129,6 +129,20 @@ if (legacyFonts.length > 0) {
   process.exit(1);
 }
 
+// A build made with VITE_FIREBASE_EMULATORS=true (a stray `.env` is enough) would point
+// real visitors at a local emulator. The flag is build-time only, so assert its output.
+// The host appears as a bare string because the SDK takes host and port separately.
+const emulatorMarkers = ['127.0.0.1', 'demo-werks-sessions'];
+const leakedEmulator = emulatorMarkers.filter((marker) => publicSource.includes(marker) || lazySource.includes(marker));
+
+if (leakedEmulator.length > 0) {
+  console.error(
+    `Public bundle check failed: a build points at a local emulator (${leakedEmulator.join(', ')}). `
+    + 'Build without VITE_FIREBASE_EMULATORS.',
+  );
+  process.exit(1);
+}
+
 const entryKilobytes = entryFiles
   .map((name) => readFileSync(join(assetsDirectory, name)).byteLength / 1000)
   .reduce((total, size) => total + size, 0);

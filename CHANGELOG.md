@@ -2,6 +2,22 @@
 
 All notable user-visible, operational, and security-impacting changes are recorded by completion date.
 
+## [2026-11-18]
+
+### Added
+
+- Added a browser-level journey suite (Playwright) against the Firebase emulators. It signs in through the real "Continue with Google" button by driving the Auth emulator's identity-provider page, seeds a staff grant, guide, and teaching assignment, saves and submits a practice week, approves it as the instructor, records a Public Cupping night, and publishes a date that then appears on the front page. Six tests in 45 seconds, run in GitHub Actions as its own job.
+- Added an axe accessibility check on the public page and the learner sign-in page, a unit-test coverage floor (80% lines and statements, 85% branches, 50% functions), and a post-deploy smoke check (`npm run smoke:production`) that verifies the live entry bundle carries no signed-in code, the lazy chunk and self-hosted WOFF2 fonts are served, and anonymous Firestore reads are still denied. The smoke check runs on the daily schedule and on demand.
+
+### Fixed
+
+- The front page now reloads the upcoming dates whenever it is shown, so a date an instructor has just published appears without a browser reload. The new browser suite found this.
+- Darkened the muted label colour and removed the opacity from the method numbers, clearing the colour-contrast failures the accessibility check found (4.46:1 and 3.66:1 for 13px label text).
+
+### Security
+
+- Emulator support in the browser app is build-time only (`VITE_FIREBASE_EMULATORS`), so a deployed bundle can never connect to a local emulator; the production build does not set it. The public-bundle check and the live smoke check both fail if a build contains emulator endpoints, so a stray local `.env` flag cannot ship localhost addresses to visitors.
+
 ## [2026-11-17]
 
 ### Operational

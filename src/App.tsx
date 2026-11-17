@@ -34,11 +34,14 @@ Thank you.`;
 function App() {
   const [view, setView] = useState<View>('home');
   const [schedule, setSchedule] = useState<ScheduleItem[] | undefined>(undefined);
+  // Reloaded whenever the public page is shown again, so dates an instructor has just
+  // published are visible without a browser reload.
   useEffect(() => {
+    if (view !== 'home') return undefined;
     let cancelled = false;
     loadPublicSchedule().then((items) => { if (!cancelled) setSchedule(items); });
     return () => { cancelled = true; };
-  }, []);
+  }, [view]);
   const [interestOffering, setInterestOffering] = useState<OfferingKind>('cupping');
   const course = offerings.find((item) => item.id === interestOffering)!;
   const scrollToHomeSection = (sectionId: string) => {

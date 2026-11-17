@@ -1,5 +1,5 @@
 import { getApps, initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore';
 
 /**
  * This is Firebase's public web-app configuration, not a credential. Environment
@@ -26,3 +26,14 @@ const config = {
 export const firebaseConfigured = Boolean(config.apiKey && config.projectId && config.appId);
 export const firebaseApp = firebaseConfigured ? (getApps()[0] ?? initializeApp(config)) : undefined;
 export const firestore = firebaseApp ? getFirestore(firebaseApp) : undefined;
+
+/**
+ * End-to-end tests run the browser app against the local emulators. The flag is a
+ * build-time VITE_ value that production builds never set, so a deployed bundle cannot
+ * connect to an emulator. Ports match the `emulators` block in `firebase.json`.
+ */
+export const useFirebaseEmulators = import.meta.env.VITE_FIREBASE_EMULATORS === 'true';
+
+if (firestore && useFirebaseEmulators) {
+  connectFirestoreEmulator(firestore, '127.0.0.1', 8080);
+}
