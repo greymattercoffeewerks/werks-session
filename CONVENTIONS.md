@@ -16,6 +16,7 @@
 ## Tests and verification
 
 - Use `npm.cmd run lint`, `npm.cmd run check`, `npm.cmd run test:unit`, `npm.cmd run test:rules`, and `npm.cmd run build` during development.
+- `npm.cmd run test:unit` also enforces the coverage floor, and `npm.cmd run test:e2e` runs the browser journey against the Firebase emulators (Chromium must be installed with `npx playwright install chromium`). `npm.cmd run smoke:production` probes the live site after a deploy; it is read-only.
 - `npm.cmd run verify` is the complete local quality and security gate, including the gated-content check.
 - `npm.cmd run verify:staged` is the pre-commit gate and additionally requires a staged session-handoff update.
 - Production dependency audits block on high or critical findings. Secret scans and Firebase Rules failures always block.

@@ -1,18 +1,23 @@
 import {
   GoogleAuthProvider,
+  connectAuthEmulator,
   getAuth,
   onAuthStateChanged,
   signInWithPopup,
   signOut as firebaseSignOut,
   type User,
 } from 'firebase/auth';
-import { firebaseApp } from './firebase';
+import { firebaseApp, useFirebaseEmulators } from './firebase';
 
 /**
  * Created here rather than in `firebase.ts` so the Firebase Auth SDK is imported only
  * with the signed-in app. The public page reads Firestore, not Auth.
  */
 const auth = firebaseApp ? getAuth(firebaseApp) : undefined;
+
+if (auth && useFirebaseEmulators) {
+  connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+}
 
 export function observeAccount(callback: (user: User | null) => void): () => void {
   if (!auth) {
