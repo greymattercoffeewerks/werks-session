@@ -1,0 +1,87 @@
+/*
+ * Self-hosted brand fonts, WOFF2 only.
+ *
+ * The Fontsource stylesheets ship a WOFF2 file and a legacy WOFF copy of the same face.
+ * Every browser this site supports reads WOFF2, so importing those stylesheets shipped
+ * twenty font files instead of ten. These declarations keep the same family names,
+ * weights, and `font-display: swap` behaviour while requesting only the WOFF2 file.
+ */
+@font-face {
+  font-family: 'Figtree';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('@fontsource/figtree/files/figtree-latin-400-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Figtree';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url('@fontsource/figtree/files/figtree-latin-500-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Figtree';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url('@fontsource/figtree/files/figtree-latin-600-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Figtree';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url('@fontsource/figtree/files/figtree-latin-700-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Figtree';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 800;
+  src: url('@fontsource/figtree/files/figtree-latin-800-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Figtree';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 900;
+  src: url('@fontsource/figtree/files/figtree-latin-900-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('@fontsource/archivo/files/archivo-latin-400-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url('@fontsource/archivo/files/archivo-latin-500-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url('@fontsource/archivo/files/archivo-latin-600-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url('@fontsource/archivo/files/archivo-latin-700-normal.woff2') format('woff2');
+}
