@@ -4,6 +4,10 @@ All notable user-visible, operational, and security-impacting changes are record
 
 ## [2026-11-17]
 
+### Operational
+
+- Released the smaller public bundle and the WOFF2-only fonts to Firebase Hosting on 2026-11-17 from merged `main` (`5a604b3`). The live site serves entry chunk `index-DZTBS9gk.js` and stylesheet `index-DwgssCIH.css`; an anonymous visitor no longer downloads the instructor or learner app, and the ten legacy WOFF files are gone. Firestore Rules, indexes, Functions, and Storage were not deployed.
+
 ### Changed
 
 - The site now ships only WOFF2 brand fonts. The Fontsource stylesheets were replaced with ten `@font-face` rules in `src/fonts.css` that request the WOFF2 file only, so the ten legacy WOFF copies (about 165 kB) no longer ship and the stylesheet is slightly smaller. Modern browsers already selected WOFF2 from the old font stack, so what a visitor downloads is unchanged; the saving is in the deployed assets.
