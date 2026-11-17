@@ -6,6 +6,7 @@ All notable user-visible, operational, and security-impacting changes are record
 
 ### Changed
 
+- The site now ships only WOFF2 brand fonts. The Fontsource stylesheets were replaced with ten `@font-face` rules in `src/fonts.css` that request the WOFF2 file only, so the ten legacy WOFF copies (about 165 kB) no longer ship and the stylesheet is slightly smaller. Modern browsers already selected WOFF2 from the old font stack, so what a visitor downloads is unchanged; the saving is in the deployed assets.
 - The public page no longer ships the signed-in app. The instructor and learner experience now loads on demand when someone opens Learner access, so an anonymous visitor fetches a 750 kB entry chunk instead of 900 kB (207 kB gzipped instead of 239 kB), and that chunk contains no instructor or learner screen and no signed-in data path. The signed-in code, including the Firebase Auth SDK, is a separate 156 kB chunk (36 kB gzipped) fetched only on demand. If that chunk cannot be downloaded, the page says so and offers a reload instead of losing the public page. A new public-bundle check in the verification gate fails if any of those screens, their Firestore paths, a stale build, or a broken split slips back into the public bundle.
 
 ### Security

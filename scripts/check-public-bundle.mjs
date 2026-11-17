@@ -99,6 +99,36 @@ if (!lazyHasUi || !lazyHasData) {
   process.exit(1);
 }
 
+// Fonts are WOFF2-only and self-hosted. An unresolved package path in a `url()` would
+// otherwise only surface as a 404 and a silent fallback to system fonts.
+const cssSource = readAll(files.filter((name) => name.endsWith('.css')));
+
+if (cssSource.includes('@fontsource/')) {
+  console.error('Public bundle check failed: the built CSS still contains an unresolved @fontsource path.');
+  process.exit(1);
+}
+
+const fontFiles = [...cssSource.matchAll(/url\(\/assets\/([^)"']+\.woff2)\)/g)].map((match) => match[1]);
+
+if (fontFiles.length === 0) {
+  console.error('Public bundle check failed: no self-hosted WOFF2 font is referenced by the built CSS.');
+  process.exit(1);
+}
+
+const missingFonts = fontFiles.filter((name) => !files.includes(name));
+
+if (missingFonts.length > 0) {
+  console.error(`Public bundle check failed: the CSS references missing font files (${missingFonts.join(', ')}).`);
+  process.exit(1);
+}
+
+const legacyFonts = files.filter((name) => name.endsWith('.woff'));
+
+if (legacyFonts.length > 0) {
+  console.error(`Public bundle check failed: legacy WOFF files are shipped (${legacyFonts.join(', ')}).`);
+  process.exit(1);
+}
+
 const entryKilobytes = entryFiles
   .map((name) => readFileSync(join(assetsDirectory, name)).byteLength / 1000)
   .reduce((total, size) => total + size, 0);
@@ -106,5 +136,6 @@ const entryKilobytes = entryFiles
 console.log(
   `Public bundle check passed: entry chunk ${entryKilobytes.toFixed(2)} kB (${entryFiles.join(', ')}) and every other public `
   + `chunk carries none of the ${signedInMarkers.length} signed-in UI markers or ${signedInDataPaths.length} signed-in data `
-  + `paths, still contains the ${publicDataPath} public read, and the lazy chunk (${lazyFiles.join(', ')}) holds the signed-in app.`,
+  + `paths, still contains the ${publicDataPath} public read, and the lazy chunk (${lazyFiles.join(', ')}) holds the signed-in app. `
+  + `${fontFiles.length} self-hosted WOFF2 fonts are referenced by the CSS, all present, with no legacy WOFF files.`,
 );
