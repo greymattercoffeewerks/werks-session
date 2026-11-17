@@ -4,11 +4,35 @@ on:
   pull_request:
   push:
     branches: [main]
+  # Daily drift check. New advisories and toolchain rot must surface before a
+  # human opens a pull request and hits the same failure.
+  schedule:
+    - cron: "17 0 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: verify-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
 
 jobs:
+  # Its own job so an advisory fails the run independently of the build. It
+  # reuses the project's security:deps script, and audits read the lockfiles, so
+  # no install is needed.
+  audit:
+    name: dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Audit production dependencies
+        run: npm run security:deps
+
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 20
