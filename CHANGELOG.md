@@ -2,6 +2,12 @@
 
 All notable user-visible, operational, and security-impacting changes are recorded by completion date.
 
+## [2026-11-17]
+
+### Security
+
+- Patched the two production dependency findings that had started failing `npm run verify` (and therefore the commit hook and CI). The web app's Firestore dependency now uses `re2js` 2.10.0 instead of 2.8.6, clearing a high-severity denial-of-service advisory in the regex engine Firestore bundles; the trusted Functions dependencies now use `body-parser` 2.4.0 (clearing a high-severity denial-of-service advisory) and `fast-xml-parser` 5.12.1 (clearing a low-severity CPU-consumption advisory). The change is lockfile-only: no override or audit exception was added. Six moderate advisories remain in the Functions dependency tree, below the high-severity gate. The site was not redeployed, so the live bundle stays as it is until the next Hosting release.
+
 ## [2026-10-21]
 
 ### Added
