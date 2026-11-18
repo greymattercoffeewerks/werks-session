@@ -23,6 +23,7 @@ test('the host records a Public Cupping night and it survives a reload', async (
   });
 
   await reopenAccess(page);
+  await page.getByRole('link', { name: 'Nights', exact: true }).click();
   const nightRecord = page.getByRole('region', { name: 'Record a night' });
   await expect(nightRecord).toBeVisible();
 
@@ -35,6 +36,7 @@ test('the host records a Public Cupping night and it survives a reload', async (
   await expect(page.getByText('Night record saved as a draft.')).toBeVisible();
 
   await reopenAccess(page);
+  await page.getByRole('link', { name: 'Nights', exact: true }).click();
   await expect(nightRecord.getByLabel('Date', { exact: true })).toHaveValue(futureDate);
   await expect(nightRecord.getByLabel('Theme', { exact: true })).toHaveValue('Range Night');
   await expect(nightRecord.getByRole('button', { name: 'Download CSV' })).toBeVisible();
@@ -56,6 +58,7 @@ test('an instructor publishes a date and it appears on the public page', async (
   });
 
   await reopenAccess(page);
+  await page.getByRole('link', { name: 'Dates', exact: true }).click();
   const editor = page.getByRole('region', { name: 'Upcoming dates' });
   await expect(editor).toBeVisible();
 
@@ -67,7 +70,7 @@ test('an instructor publishes a date and it appears on the public page', async (
   await editor.getByRole('button', { name: 'Publish dates' }).click();
   await expect(page.getByText('Published. The front page shows these dates now, and past dates hide on their own.')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Sessions', exact: true }).click();
+  await page.getByRole('link', { name: 'Sessions', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Next tables.' })).toBeVisible();
   await expect(page.getByText('E2E Range Night')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Ask about this date →' })).toBeVisible();
@@ -106,6 +109,7 @@ test('an instructor who did not host a night sees that record read-only', async 
   });
 
   await reopenAccess(page);
+  await page.getByRole('link', { name: 'Nights', exact: true }).click();
   const nightRecord = page.getByRole('region', { name: 'Record a night' });
   await expect(nightRecord).toBeVisible();
   await expect(nightRecord.getByText('Only the host who created this record can edit it.')).toBeVisible();

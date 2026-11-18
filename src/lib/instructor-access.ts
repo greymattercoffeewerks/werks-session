@@ -11,12 +11,23 @@ export type InstructorReview = {
   weeks: PracticeWeeks;
 };
 
+/** A week the instructor already approved or returned, kept so the decision stays visible. */
+export type InstructorHistoryEntry = {
+  learnerUid: string;
+  weekId: PracticeWeekId;
+  week: PracticeWeek;
+  decision: 'approved' | 'returned';
+  reviewerNote: string;
+  reviewedAt?: unknown;
+};
+
 export type InstructorSession = {
   id: string;
   title: string;
   /** Set by staff on the session document. Null for sessions seeded before the field existed. */
   offeringId: OfferingKind | null;
   reviews: InstructorReview[];
+  history: InstructorHistoryEntry[];
 };
 
 export type InstructorAccess =
@@ -34,6 +45,19 @@ function databaseOrThrow() {
     throw new Error('Firebase is not configured.');
   }
   return firestore;
+}
+
+/** Firestore timestamps expose toMillis; anything else sorts as unknown and keeps its order. */
+function reviewedMillis(value: unknown): number {
+  if (value && typeof value === 'object' && 'toMillis' in value && typeof (value as { toMillis: () => number }).toMillis === 'function') {
+    const millis = (value as { toMillis: () => number }).toMillis();
+    return Number.isFinite(millis) ? millis : 0;
+  }
+  return 0;
+}
+
+function newestFirst(history: InstructorHistoryEntry[]): InstructorHistoryEntry[] {
+  return [...history].sort((a, b) => reviewedMillis(b.reviewedAt) - reviewedMillis(a.reviewedAt));
 }
 
 export async function loadInstructorAccess(uid: string): Promise<InstructorAccess> {
@@ -65,6 +89,7 @@ export async function loadInstructorAccess(uid: string): Promise<InstructorAcces
     // Only Brew 101 has practice records to review; Public Cupping has a night record instead.
     const challenges = !hasPracticeRecord(offeringId) ? { docs: [] } : await getDocs(collection(database, 'sessions', sessionId, 'challenges'));
     const reviews: InstructorReview[] = [];
+    const history: InstructorHistoryEntry[] = [];
     challenges.docs.forEach((challenge) => {
       const data = challenge.data();
       const learnerUid = data.ownerUid;
@@ -83,10 +108,20 @@ export async function loadInstructorAccess(uid: string): Promise<InstructorAcces
         if (week.status === 'submitted') {
           reviews.push({ learnerUid, weekId, week, weeks });
         }
+        if (week.status === 'approved' || week.status === 'returned') {
+          history.push({
+            learnerUid,
+            weekId,
+            week,
+            decision: week.status,
+            reviewerNote: week.reviewerNote ?? '',
+            ...(week.reviewedAt ? { reviewedAt: week.reviewedAt } : {}),
+          });
+        }
       });
     });
 
-    return { id: sessionId, title: nonBlankString(title) ? title : 'Assigned session', offeringId, reviews };
+    return { id: sessionId, title: nonBlankString(title) ? title : 'Assigned session', offeringId, reviews, history: newestFirst(history) };
   }));
 
   return { state: 'assigned', sessions: sessions.filter((session): session is InstructorSession => session !== null) };

@@ -1,13 +1,12 @@
 import { Component, Suspense, lazy, useEffect, useState, type ReactNode } from 'react';
 import { offerings } from './data/demo';
 import { sessionsEmail } from './lib/contact';
+import { navigate, usePathname } from './lib/router';
 import { loadPublicSchedule } from './lib/schedule';
 import { formatScheduleDate, scheduleDateParts, scheduleStatusLabels, upcomingItems, type ScheduleItem } from './lib/schedule-model';
 import type { OfferingKind } from './types';
 
 const LearnerAccess = lazy(() => import('./access/LearnerAccess'));
-
-type View = 'home' | 'access';
 
 function interestEmailHref(offering: OfferingKind): string {
   const course = offerings.find((item) => item.id === offering)!;
@@ -32,38 +31,40 @@ Thank you.`;
 }
 
 function App() {
-  const [view, setView] = useState<View>('home');
+  const path = usePathname();
+  const isHome = path === '/';
+  const isAccess = path === '/access';
   const [schedule, setSchedule] = useState<ScheduleItem[] | undefined>(undefined);
   // Reloaded whenever the public page is shown again, so dates an instructor has just
   // published are visible without a browser reload.
   useEffect(() => {
-    if (view !== 'home') return undefined;
+    if (!isHome) return undefined;
     let cancelled = false;
     loadPublicSchedule().then((items) => { if (!cancelled) setSchedule(items); });
     return () => { cancelled = true; };
-  }, [view]);
+  }, [isHome]);
   const [interestOffering, setInterestOffering] = useState<OfferingKind>('cupping');
   const course = offerings.find((item) => item.id === interestOffering)!;
   const scrollToHomeSection = (sectionId: string) => {
-    setView('home');
+    navigate('/');
     window.setTimeout(() => document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
   };
 
   return (
     <div className="app-shell">
       <header className="site-header">
-        <button className="wordmark" onClick={() => setView('home')} aria-label="Werks Sessions home">
+        <a className="wordmark" href="/" aria-label="Werks Sessions home" onClick={(event) => { if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return; event.preventDefault(); navigate('/'); }}>
           <img src="/grey-matter-design-system/assets/logo-lockup.png" alt="" />
-        </button>
+        </a>
         <nav aria-label="Primary navigation">
-          <button className={view === 'home' ? 'active' : ''} onClick={() => setView('home')}>Sessions</button>
+          <a className={isHome ? 'active' : ''} href="/" aria-current={isHome ? 'page' : undefined} onClick={(event) => { if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return; event.preventDefault(); navigate('/'); }}>Sessions</a>
           <button onClick={() => scrollToHomeSection('about')}>About</button>
-          <button className={view === 'access' ? 'active' : ''} onClick={() => setView('access')}>Learner access</button>
+          <a className={isAccess ? 'active' : ''} href="/access" aria-current={isAccess ? 'page' : undefined} onClick={(event) => { if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return; event.preventDefault(); navigate('/access'); }}>Learner access</a>
         </nav>
       </header>
 
-      {view === 'home' && <Home onAbout={() => scrollToHomeSection('about')} onInterest={(offering) => { setInterestOffering(offering); document.getElementById('interest')?.scrollIntoView({ behavior: 'smooth' }); }} />}
-      {view === 'access' && (
+      {isHome && <Home onAbout={() => scrollToHomeSection('about')} onInterest={(offering) => { setInterestOffering(offering); document.getElementById('interest')?.scrollIntoView({ behavior: 'smooth' }); }} />}
+      {!isHome && (
         <AccessBoundary>
           <Suspense fallback={<AccessLoading />}>
             <LearnerAccess />
@@ -71,9 +72,9 @@ function App() {
         </AccessBoundary>
       )}
 
-      {view === 'home' && <UpcomingDates items={schedule} />}
+      {isHome && <UpcomingDates items={schedule} />}
 
-      {view === 'home' && (
+      {isHome && (
         <section id="interest" className="interest-section" aria-labelledby="interest-heading">
           <div>
             <p className="eyebrow">Start here</p>

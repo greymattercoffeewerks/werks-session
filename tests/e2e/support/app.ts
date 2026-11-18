@@ -31,7 +31,7 @@ export async function seed(environment: RulesTestEnvironment, write: (database: 
  * way a person would: add an account (or pick an existing one) and submit.
  */
 export async function signInWithGoogle(page: Page, email: string): Promise<void> {
-  await page.getByRole('button', { name: 'Learner access' }).click();
+  await page.getByRole('link', { name: 'Learner access' }).click();
   const signInButton = page.getByRole('button', { name: 'Continue with Google' });
   await expect(signInButton).toBeVisible();
 
@@ -66,8 +66,8 @@ export async function signInWithGoogle(page: Page, email: string): Promise<void>
  * state, not a URL, so a browser reload would land back on the public home page.
  */
 export async function reopenAccess(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Sessions', exact: true }).click();
-  await page.getByRole('button', { name: 'Learner access' }).click();
+  await page.getByRole('link', { name: 'Sessions', exact: true }).click();
+  await page.getByRole('link', { name: 'Learner access' }).click();
 }
 
 /** Reads the signed-in uid from Firebase Auth's IndexedDB persistence. */export async function currentUid(page: Page): Promise<string> {

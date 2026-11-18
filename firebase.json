@@ -9,6 +9,11 @@
     ],
     "cleanUrls": true,
     "trailingSlash": false,
+    "rewrites": [
+      { "source": "/access", "destination": "/index.html" },
+      { "source": "/instructor", "destination": "/index.html" },
+      { "source": "/instructor/**", "destination": "/index.html" }
+    ],
     "headers": [
       {
         "source": "**/*.@(js|css|svg|woff2)",

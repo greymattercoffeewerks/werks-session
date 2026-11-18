@@ -4,6 +4,10 @@ All notable user-visible, operational, and security-impacting changes are record
 
 ## [2026-11-18]
 
+### Changed
+
+- The instructor experience is now four addressable pages instead of one long scroll: `/instructor` (an overview of what needs you now), `/instructor/review`, `/instructor/nights`, and `/instructor/dates`. Deep links, the back button, and browser history work, and the night record and dates editor only load when their page is opened. Hosting now rewrites those paths to the app, so a refresh or a copied link loads the page instead of a 404. The review queue is grouped by session and now keeps a Reviewed list of approved and returned weeks with their feedback, newest first, so an instructor can see what they decided after the queue has emptied. A half-typed review or an unsaved night record survives switching between the tabs. The public Sessions and Learner access navigation entries are real links now.
+
 ### Security
 
 - A Public Cupping night record can now be changed only by the host who created it, or by an administrator. Another instructor assigned to the same session can still read the record and download the CSV, but not rewrite someone else's seats, totals, or notes. The instructor page shows that record read-only with a short note instead of offering a save the Rules would refuse. Covered by emulator tests for the host, a second assigned instructor, and an administrator, plus a browser test for the read-only page. Takes effect when the Firestore Rules are released.

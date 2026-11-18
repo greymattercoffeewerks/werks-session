@@ -15,9 +15,53 @@ vi.mock('firebase/firestore', () => firestoreMock);
 vi.mock('../../src/lib/firebase', () => ({ firestore: { name: 'test-firestore' } }));
 
 import { emptyPracticeWeeks } from '../../src/lib/practice';
-import { reviewPracticeWeek } from '../../src/lib/instructor-access';
+import { loadInstructorAccess, reviewPracticeWeek } from '../../src/lib/instructor-access';
 
 afterEach(() => vi.clearAllMocks());
+
+describe('loadInstructorAccess', () => {
+  it('returns waiting weeks and a newest-first history of reviewed weeks from the same documents', async () => {
+    firestoreMock.collection.mockImplementation((...segments: unknown[]) => ({ path: segments.slice(1).join('/') }));
+    firestoreMock.query.mockImplementation((ref: unknown) => ref);
+    firestoreMock.getDoc.mockImplementation((ref: { path: string }) => {
+      if (ref.path.startsWith('access_grants/')) {
+        return Promise.resolve({ exists: () => true, data: () => ({ status: 'active', role: 'instructor', personId: 'person-1' }) });
+      }
+      return Promise.resolve({ exists: () => true, data: () => ({ title: 'Brew 101', offeringId: 'brew101' }) });
+    });
+    const week = (overrides: Record<string, unknown> = {}) => ({ focus: 'Ratio', coffee: 'Konga', recipe: '15 g', tastingNote: 'Sweet', changeMade: 'Grind', complete: true, status: 'draft', ...overrides });
+    firestoreMock.getDocs.mockImplementation((ref: { path: string }) => {
+      if (ref.path === 'teaching_assignments') {
+        return Promise.resolve({ docs: [{ data: () => ({ sessionId: 'brew101-01', uid: 'instructor-uid', status: 'active' }) }] });
+      }
+      if (ref.path === 'sessions/brew101-01/challenges') {
+        return Promise.resolve({
+          docs: [{
+            data: () => ({
+              ownerUid: 'learner-1',
+              weeks: {
+                week1: week({ status: 'submitted' }),
+                week2: week({ status: 'approved', reviewerNote: 'Older approval', reviewedAt: { toMillis: () => 1_000 } }),
+                week3: week({ status: 'returned', reviewerNote: 'Newer return', reviewedAt: { toMillis: () => 2_000 } }),
+                week4: week(),
+              },
+            }),
+          }],
+        });
+      }
+      return Promise.resolve({ docs: [] });
+    });
+
+    const access = await loadInstructorAccess('instructor-uid');
+
+    expect(access.state).toBe('assigned');
+    if (access.state !== 'assigned') return;
+    const session = access.sessions[0];
+    expect(session.reviews.map((review) => review.weekId)).toEqual(['week1']);
+    expect(session.history.map((entry) => entry.weekId)).toEqual(['week3', 'week2']);
+    expect(session.history[0]).toMatchObject({ decision: 'returned', reviewerNote: 'Newer return' });
+  });
+});
 
 describe('reviewPracticeWeek', () => {
   it('stamps each review with the server timestamp that the Firestore Rules require', async () => {

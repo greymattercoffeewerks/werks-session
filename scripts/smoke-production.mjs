@@ -68,6 +68,14 @@ if (!entryPath || !stylePath) {
   const legacyWoff = style.text.match(/url\((\/assets\/[\w-]+\.woff)\)/)?.[1];
   record('stylesheet ships no legacy WOFF font', !legacyWoff, legacyWoff ?? 'none');
 
+  // The signed-in pages are routes, so a cold load or a refresh must reach the app.
+  const deepLink = await fetchText(`${baseUrl}/instructor/review`);
+  record('an instructor deep link serves the app', deepLink.response.status === 200 && deepLink.text.includes('id="root"'), 'status ' + deepLink.response.status);
+  const accessLink = await fetchText(`${baseUrl}/access`);
+  record('the access deep link serves the app', accessLink.response.status === 200 && accessLink.text.includes('id="root"'), 'status ' + accessLink.response.status);
+  const missingAsset = await fetch(`${baseUrl}/assets/does-not-exist.js`, { signal: AbortSignal.timeout(15_000) });
+  record('a missing asset still returns 404', missingAsset.status === 404, 'status ' + missingAsset.status);
+
   // A build that accidentally included the emulator flag would point visitors at localhost.
   const emulatorMarkers = ['127.0.0.1', 'demo-werks-sessions'];
   const leakedEmulator = emulatorMarkers.filter((marker) => entry.text.includes(marker) || lazyText.includes(marker));
