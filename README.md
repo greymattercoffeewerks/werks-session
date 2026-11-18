@@ -34,6 +34,7 @@ The public Spark launch does not require Firebase browser configuration. Do not 
 - `docs/ROADMAP.md`: Spark MVP phases.
 - `docs/SPARK_ACCESS_GRANTS.md`: the staff procedure for access, enrolment, and teaching records.
 - `docs/GATED_SESSION_GUIDE_PLAN.md`: the learner-only Public Cupping guide, built and released but not yet seeded in production.
+- `SECURITY.md`: how to report a vulnerability privately, and what is in scope.
 - `CHANGELOG.md`: user-visible, operational, and security-impacting changes.
 
 ## Future SeduhID handoff
