@@ -17,7 +17,7 @@
 
 - Use `npm.cmd run lint`, `npm.cmd run check`, `npm.cmd run test:unit`, `npm.cmd run test:rules`, and `npm.cmd run build` during development.
 - `npm.cmd run test:unit` also enforces the coverage floor, and `npm.cmd run test:e2e` runs the browser journey against the Firebase emulators (Chromium must be installed with `npx playwright install chromium`). `npm.cmd run smoke:production` probes the live site after a deploy; it is read-only.
-- Node 20 is the supported runtime, pinned in `.nvmrc`; the GitHub workflows read that file, so bump the pin in one place. `engines` stays a floor (`>=20`) so a newer local Node still installs. The emulators need Java 21 or later.
+- Node 24 is the supported runtime, pinned in `.nvmrc`; the GitHub workflows read that file, so bump the pin in one place. `engines` requires `>=22` because Node 20 reached end of life in April 2026. The emulators need Java 21 or later.
 - `npm.cmd run verify` is the complete local quality and security gate, including the gated-content check.
 - `npm.cmd run verify:staged` is the pre-commit gate and additionally requires a staged session-handoff update.
 - Production dependency audits block on high or critical findings. Secret scans and Firebase Rules failures always block.

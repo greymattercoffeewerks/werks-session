@@ -6,6 +6,7 @@ All notable user-visible, operational, and security-impacting changes are record
 
 ### Operational
 
+- Moved the Node pin to 24 (`.nvmrc`), after checking that Node 20 reached end of life on 2026-04-30 and no longer receives security fixes. CI reads the pin, so all four jobs now install Node 24, and `engines` requires `>=22`. The Functions deployment target stays Node 20 because Functions are not deployed on Spark.
 - Pinned the supported Node version in `.nvmrc` (20) and pointed every GitHub workflow at that file instead of repeating the version, so there is one place to bump. `engines` stays a floor (`>=20`) so a newer local Node still installs, and Java 21 remains the CI choice for the emulators.
 - Added `SECURITY.md` and enabled GitHub's private vulnerability reporting, so a security report has a private channel instead of the booking enquiry address. The policy sets the scope, a 3-business-day acknowledgement, no bug bounty, anonymous-by-default credit, and safe-harbour wording. Secret scanning and push protection were already on; the non-provider pattern scan is not offered for this repository by GitHub.
 - Added an explicit MIT licence for the source code, with a `NOTICE` file excluding course content, written copy, brand assets, and the design system from that grant. Previously the public repository had no licence, so reuse was implicitly forbidden rather than stated.

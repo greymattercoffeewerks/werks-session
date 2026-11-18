@@ -13,7 +13,7 @@ The live MVP runs on Firebase Spark. The public site is hosted on Firebase Hosti
 
 ## Local setup
 
-1. Use Node 20, the version pinned in `.nvmrc` (`nvm use`); CI reads the same file. The `engines` field is a floor, so a newer Node installs, but Node 20 is the supported runtime. Java 21 or later is needed for the Firestore and Storage emulators.
+1. Use Node 24, the version pinned in `.nvmrc` (`nvm use`); CI reads the same file. `engines` requires `>=22`, because Node 20 reached end of life in April 2026. Java 21 or later is needed for the Firestore and Storage emulators.
 2. Install root dependencies: `npm.cmd install`.
 3. Install Functions dependencies only when working on the future Blaze-compatible backend: `npm.cmd install --prefix functions`.
 4. Run `npm.cmd run dev` for the interface or `npm.cmd run build` for a production build.
