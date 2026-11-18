@@ -6,6 +6,7 @@ All notable user-visible, operational, and security-impacting changes are record
 
 ### Operational
 
+- Pinned the supported Node version in `.nvmrc` (20) and pointed every GitHub workflow at that file instead of repeating the version, so there is one place to bump. `engines` stays a floor (`>=20`) so a newer local Node still installs, and Java 21 remains the CI choice for the emulators.
 - Added `SECURITY.md` and enabled GitHub's private vulnerability reporting, so a security report has a private channel instead of the booking enquiry address. The policy sets the scope, a 3-business-day acknowledgement, no bug bounty, anonymous-by-default credit, and safe-harbour wording. Secret scanning and push protection were already on; the non-provider pattern scan is not offered for this repository by GitHub.
 - Added an explicit MIT licence for the source code, with a `NOTICE` file excluding course content, written copy, brand assets, and the design system from that grant. Previously the public repository had no licence, so reuse was implicitly forbidden rather than stated.
 - Released the front-page date refresh and the colour-contrast fixes to Firebase Hosting from merged `main` (`36f498f`). The live site served entry chunk `index-BV9WeJF9.js` and stylesheet `index-DYT2af2g.css`; the post-deploy smoke check passed 12/12. Firestore Rules, indexes, Functions, and Storage were not deployed.
