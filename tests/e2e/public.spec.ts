@@ -17,7 +17,7 @@ test('the public page carries no signed-in experience and loads it on demand', a
   expect(requests.some((url) => url.includes('/LearnerAccess'))).toBe(false);
   await expect(page.getByRole('button', { name: 'Continue with Google' })).toHaveCount(0);
 
-  await page.getByRole('button', { name: 'Learner access' }).click();
+  await page.getByRole('link', { name: 'Learner access' }).click();
   await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeVisible();
   expect(requests.some((url) => url.includes('/LearnerAccess'))).toBe(true);
 
@@ -30,7 +30,7 @@ test('the public page and the sign-in page have no serious accessibility violati
   const home = await new AxeBuilder({ page }).analyze();
   expect(home.violations.map((violation) => `${violation.id}: ${violation.help}`)).toEqual([]);
 
-  await page.getByRole('button', { name: 'Learner access' }).click();
+  await page.getByRole('link', { name: 'Learner access' }).click();
   await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeVisible();
   const access = await new AxeBuilder({ page }).analyze();
   expect(access.violations.map((violation) => `${violation.id}: ${violation.help}`)).toEqual([]);

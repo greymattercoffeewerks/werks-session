@@ -50,13 +50,17 @@ test('learner completes a practice week and the instructor approves it', async (
   });
 
   await reopenAccess(page);
-  await expect(page.getByRole('heading', { name: 'Instructor review.' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Submitted practice' })).toBeVisible();
+  // An assigned instructor lands on the overview; the queue is one tab away.
+  await expect(page.getByRole('heading', { name: 'What needs you now.' })).toBeVisible();
+  await expect(page.getByText('1 week is waiting.')).toBeVisible();
+  await page.getByRole('link', { name: /^Review/ }).click();
+  await expect(page.getByRole('heading', { name: 'Brew 101' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Week 1: Notice the cup' })).toBeVisible();
 
   await page.getByLabel('Feedback for the learner').fill('Clear observation. Keep the grind change and taste it twice.');
   await page.getByRole('button', { name: 'Approve week 1' }).click();
   await expect(page.getByRole('heading', { name: 'No submitted weeks are waiting.' })).toBeVisible();
+  await expect(page.getByText('Approved')).toBeVisible();
 
   await page.getByRole('button', { name: 'Sign out' }).click();
   await signInWithGoogle(page, 'learner@werks.test');

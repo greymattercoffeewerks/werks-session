@@ -1,14 +1,15 @@
 import { Fragment, useEffect, useState } from 'react';
 import type { User } from 'firebase/auth';
-import { NightRecordWorkspace } from '../NightRecordWorkspace';
-import { ScheduleEditor } from '../ScheduleEditor';
 import { sessionsEmail } from '../lib/contact';
 import { authErrorMessage, observeAccount, signInWithGoogle, signOut } from '../lib/google-auth';
-import { loadInstructorAccess, reviewPracticeWeek, type InstructorAccess, type InstructorReview, type ReviewDecision } from '../lib/instructor-access';
+import { loadInstructorAccess, type InstructorAccess } from '../lib/instructor-access';
 import { loadLearnerAccess, type ConfirmedSession as LearnerAccessSession, type LearnerAccess as LearnerAccessState } from '../lib/learner-access';
 import { hasPracticeRecord } from '../lib/offering';
 import { loadPracticeChallenge, practiceWeekIds, savePracticeChallenge, startPracticeChallenge, submitPracticeWeek, type PracticeChallenge, type PracticeWeek, type PracticeWeekId } from '../lib/practice';
+import { navigate, usePathname } from '../lib/router';
 import { loadSessionGuide, type SessionGuide } from '../lib/session-guide';
+import { InstructorShell, type ReviewOutcome } from './InstructorPages';
+import { DashboardHeader, InstructorFeedback, weekNames } from './dashboard';
 
 function LearnerAccess() {
   const [account, setAccount] = useState<User | null | undefined>(undefined);
@@ -16,8 +17,17 @@ function LearnerAccess() {
   const [instructorAccess, setInstructorAccess] = useState<InstructorAccess | undefined>(undefined);
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [error, setError] = useState('');
+  const path = usePathname();
+  const wantsInstructor = path.startsWith('/instructor');
 
   useEffect(() => observeAccount(setAccount), []);
+
+  // Keep the URL and the account in step: an assigned instructor belongs on the instructor
+  // pages, and a learner should not sit on an instructor URL.
+  useEffect(() => {
+    if (instructorAccess?.state === 'assigned' && !wantsInstructor) navigate('/instructor', { replace: true });
+    if (instructorAccess && instructorAccess.state !== 'assigned' && wantsInstructor) navigate('/access', { replace: true });
+  }, [instructorAccess, wantsInstructor]);
 
   useEffect(() => {
     if (!account) {
@@ -90,32 +100,45 @@ function LearnerAccess() {
     }
 
     if (instructorAccess.state === 'assigned') {
-      const cuppingSessions = instructorAccess.sessions.filter((session) => session.offeringId === 'cupping');
-      // Only sessions with a practice record (Brew 101, or unlabelled) have weekly reviews to do.
-      const hasReviewWork = instructorAccess.sessions.some((session) => hasPracticeRecord(session.offeringId)) || instructorAccess.sessions.length === 0;
-      const heading = !hasReviewWork
-        ? cuppingSessions.length > 0
-          ? { title: 'Night record.', subtitle: 'Record each Public Cupping night, then look across your nights. Seat numbers and choices only.' }
-          : { title: 'Your sessions.', subtitle: 'Your assigned sessions have no weekly reviews. You can still keep the front-page dates up to date below.' }
-        : cuppingSessions.length > 0
-          ? { title: 'Instructor review.', subtitle: 'Review one submitted week at a time, and record each Public Cupping night below.' }
-          : { title: 'Instructor review.', subtitle: 'Review one submitted week at a time. Feedback stays with the learner’s practice record.' };
-      return (
-        <main className="dashboard instructor-page">
-          <DashboardHeader title={heading.title} subtitle={heading.subtitle} />
-          {hasReviewWork && <InstructorReviewWorkspace access={instructorAccess} onReviewed={(sessionId, learnerUid, weekId) => {
-            setInstructorAccess((current) => current?.state === 'assigned' ? {
-              ...current,
-              sessions: current.sessions.map((session) => session.id === sessionId ? {
+      if (!wantsInstructor) {
+        return (
+          <main className="dashboard auth-page">
+            <DashboardHeader title="Opening your instructor pages." subtitle={`Signed in as ${account.email ?? 'your Google account'}.`} />
+          </main>
+        );
+      }
+
+      const applyReview = (outcome: ReviewOutcome) => {
+        setInstructorAccess((current) => {
+          if (current?.state !== 'assigned') return current;
+          return {
+            ...current,
+            sessions: current.sessions.map((session) => {
+              if (session.id !== outcome.sessionId) return session;
+              const reviewedWeek = session.reviews.find((review) => review.learnerUid === outcome.learnerUid && review.weekId === outcome.weekId);
+              return {
                 ...session,
-                reviews: session.reviews.filter((review) => review.learnerUid !== learnerUid || review.weekId !== weekId),
-              } : session),
-            } : current);
-          }} />}
-          {cuppingSessions.length > 0 && <NightRecordWorkspace sessions={cuppingSessions} uid={account.uid} hostName={account.displayName ?? ''} />}
-          <ScheduleEditor />
-          <button className="button secondary learner-sign-out" onClick={leaveAccount}>Sign out</button>
-          {error && <p className="auth-message" role="alert">{error}</p>}
+                reviews: session.reviews.filter((review) => review.learnerUid !== outcome.learnerUid || review.weekId !== outcome.weekId),
+                history: [{
+                  learnerUid: outcome.learnerUid,
+                  weekId: outcome.weekId,
+                  week: reviewedWeek?.week ?? outcome.week,
+                  decision: outcome.decision,
+                  reviewerNote: outcome.note,
+                }, ...(session.history ?? []).filter((entry) => entry.learnerUid !== outcome.learnerUid || entry.weekId !== outcome.weekId)],
+              };
+            }),
+          };
+        });
+      };
+
+      return <InstructorShell access={instructorAccess} account={account} error={error} onReviewed={applyReview} onSignOut={leaveAccount} />;
+    }
+
+    if (wantsInstructor) {
+      return (
+        <main className="dashboard auth-page">
+          <DashboardHeader title="Checking your instructor access." subtitle={`Signed in as ${account.email ?? 'your Google account'}.`} />
         </main>
       );
     }
@@ -264,12 +287,6 @@ function SessionGuidePanel({ sessionId }: { sessionId: string }) {
   );
 }
 
-const weekNames: Record<PracticeWeekId, string> = {
-  week1: 'Notice the cup',
-  week2: 'Change one thing',
-  week3: 'Compare the result',
-  week4: 'Keep the next step',
-};
 
 function weekIsReady(week: PracticeWeek): boolean {
   return week.complete && [week.focus, week.coffee, week.recipe, week.tastingNote, week.changeMade].every((value) => value.trim().length > 0);
@@ -406,65 +423,6 @@ function PracticeWeekCard({ index, weekId, week, busy, onSave, onSubmit, onChang
       {week.status === 'draft' && week.reviewerNote && <div className="week-returned" role="status"><p>You are revising this week. Your instructor’s feedback is kept here until you submit again.</p><InstructorFeedback note={week.reviewerNote} /></div>}
     </fieldset>
   );
-}
-
-function InstructorFeedback({ note }: { note: string }) {
-  return <blockquote className="reviewer-note"><strong>Instructor feedback</strong><span>{note}</span></blockquote>;
-}
-
-function InstructorReviewWorkspace({ access, onReviewed }: { access: Extract<InstructorAccess, { state: 'assigned' }>; onReviewed: (sessionId: string, learnerUid: string, weekId: PracticeWeekId) => void }) {
-  const [feedback, setFeedback] = useState<Record<string, string>>({});
-  const [busyKey, setBusyKey] = useState<string | null>(null);
-  const [error, setError] = useState('');
-  const reviews = access.sessions.flatMap((session) => session.reviews.map((review) => ({ session, review })));
-
-  const reviewKey = (sessionId: string, review: InstructorReview) => `${sessionId}:${review.learnerUid}:${review.weekId}`;
-  const completeReview = async (sessionId: string, review: InstructorReview, decision: ReviewDecision) => {
-    const key = reviewKey(sessionId, review);
-    const note = feedback[key] ?? '';
-    if (!note.trim()) {
-      setError('Add feedback before approving or returning a week.');
-      return;
-    }
-    setBusyKey(key);
-    setError('');
-    try {
-      await reviewPracticeWeek(sessionId, review.learnerUid, review.weekId, review.weeks, decision, note);
-      onReviewed(sessionId, review.learnerUid, review.weekId);
-    } catch {
-      setError('We could not save this review. Please try again.');
-    } finally {
-      setBusyKey(null);
-    }
-  };
-
-  if (reviews.length === 0) {
-    return <section className="panel review-empty" aria-live="polite"><h2>No submitted weeks are waiting.</h2><p>New Brew 101 practice submissions will appear here only for sessions assigned to you.</p></section>;
-  }
-
-  return (
-    <section className="review-queue" aria-labelledby="review-queue-heading">
-      <div className="review-queue-heading"><h2 id="review-queue-heading">Submitted practice</h2><p>{reviews.length} {reviews.length === 1 ? 'week is' : 'weeks are'} ready for your response.</p></div>
-      <div className="review-list">
-        {reviews.map(({ session, review }) => {
-          const key = reviewKey(session.id, review);
-          const isBusy = busyKey === key;
-          const weekNumber = practiceWeekIds.indexOf(review.weekId) + 1;
-          return <article className="panel review-card" key={key}>
-            <header><p>{session.title}</p><h3>Week {weekNumber}: {weekNames[review.weekId]}</h3></header>
-            <dl className="review-observation"><div><dt>Focus</dt><dd>{review.week.focus}</dd></div><div><dt>Coffee</dt><dd>{review.week.coffee}</dd></div><div><dt>Recipe</dt><dd>{review.week.recipe}</dd></div><div><dt>What they tasted</dt><dd>{review.week.tastingNote}</dd></div><div><dt>Next change</dt><dd>{review.week.changeMade}</dd></div></dl>
-            <label htmlFor={`${key}-feedback`}>Feedback for the learner<textarea id={`${key}-feedback`} value={feedback[key] ?? ''} onChange={(event) => setFeedback((current) => ({ ...current, [key]: event.target.value }))} placeholder="Name what you noticed and a useful next step." /></label>
-            <div className="review-actions"><button className="button secondary" type="button" onClick={() => completeReview(session.id, review, 'returned')} disabled={isBusy}>{isBusy ? 'Saving…' : `Return week ${weekNumber}`}</button><button className="button primary" type="button" onClick={() => completeReview(session.id, review, 'approved')} disabled={isBusy}>{isBusy ? 'Saving…' : `Approve week ${weekNumber}`}</button></div>
-          </article>;
-        })}
-      </div>
-      {error && <p className="auth-message" role="alert">{error}</p>}
-    </section>
-  );
-}
-
-function DashboardHeader({ title, subtitle }: { title: string; subtitle: string }) {
-  return <header className="dashboard-header"><p className="eyebrow">Werks Sessions</p><h1>{title}</h1><p>{subtitle}</p></header>;
 }
 
 export default LearnerAccess;

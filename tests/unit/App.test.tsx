@@ -57,12 +57,18 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   vi.clearAllMocks();
+  window.history.replaceState({}, '', '/');
 });
+
+/** The instructor pages are routes; move to one the way a person would, by its link. */
+const openInstructorTab = async (name: 'Overview' | 'Review' | 'Nights' | 'Dates') => {
+  fireEvent.click(await screen.findByRole('link', { name: new RegExp(`^${name}`) }));
+};
 
 describe('portal navigation and interest registration', () => {
   it('does not expose a learner workspace or demo role switching on the public page', () => {
     render(<App />);
-    expect(screen.getByRole('button', { name: 'Learner access' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Learner access' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Sign in' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'My practice' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Teach' })).not.toBeInTheDocument();
@@ -111,7 +117,7 @@ describe('portal navigation and interest registration', () => {
 
   it('offers Google sign-in without promising self-service learner access', async () => {
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
 
     const button = await screen.findByRole('button', { name: 'Continue with Google' });
     expect(screen.getByRole('heading', { name: 'Learner access follows a confirmed booking.' })).toBeInTheDocument();
@@ -136,7 +142,7 @@ describe('portal navigation and interest registration', () => {
     });
 
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
 
     expect(await screen.findByRole('heading', { name: 'Your Brew 101 table.' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Manual Brew Foundations' })).toBeInTheDocument();
@@ -166,7 +172,7 @@ describe('portal navigation and interest registration', () => {
     });
 
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Start my practice' }));
 
     expect((await screen.findAllByLabelText('Focus'))).toHaveLength(4);
@@ -221,14 +227,16 @@ describe('portal navigation and interest registration', () => {
     instructorAccessMock.reviewPracticeWeek.mockResolvedValueOnce(undefined);
 
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
+    await openInstructorTab('Review');
 
-    expect(await screen.findByRole('heading', { name: 'Instructor review.' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Manual Brew Foundations' })).toBeInTheDocument();
     expect(screen.getByText('Sweet and clear.')).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Feedback for the learner'), { target: { value: 'Clear observation. Keep this ratio for one more brew.' } });
     fireEvent.click(screen.getByRole('button', { name: 'Approve week 1' }));
 
     expect(await screen.findByRole('heading', { name: 'No submitted weeks are waiting.' })).toBeInTheDocument();
+    expect(await screen.findByText('Approved')).toBeInTheDocument();
     expect(instructorAccessMock.reviewPracticeWeek).toHaveBeenCalledWith(
       'brew101-01',
       'learner-uid',
@@ -237,6 +245,56 @@ describe('portal navigation and interest registration', () => {
       'approved',
       'Clear observation. Keep this ratio for one more brew.',
     );
+  });
+
+  const submittedWeek = { focus: 'Ratio', coffee: 'Konga', recipe: '15 g : 250 g', tastingNote: 'Sweet and clear.', changeMade: 'Grind finer', complete: true, status: 'submitted' };
+  const blankWeek = { focus: '', coffee: '', recipe: '', tastingNote: '', changeMade: '', complete: false, status: 'draft' };
+  const waitingSession = {
+    id: 'brew101-01',
+    title: 'Manual Brew Foundations',
+    offeringId: 'brew101',
+    reviews: [{ learnerUid: 'learner-uid', weekId: 'week1', week: submittedWeek, weeks: { week1: submittedWeek, week2: blankWeek, week3: blankWeek, week4: blankWeek } }],
+    history: [],
+  };
+
+  it('opens the review page directly from a deep link', async () => {
+    window.history.replaceState({}, '', '/instructor/review');
+    signInAsInstructor([waitingSession]);
+
+    render(<App />);
+
+    expect(await screen.findByRole('heading', { name: 'Review.' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Week 1: Notice the cup' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /^Review/ })).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('sends a learner away from an instructor URL and never renders instructor UI', async () => {
+    window.history.replaceState({}, '', '/instructor/review');
+    authMock.observeAccount.mockImplementationOnce((callback: (user: { uid: string; email: string }) => void) => {
+      callback({ uid: 'learner-uid', email: 'maya@example.com' });
+      return () => undefined;
+    });
+    learnerAccessMock.loadLearnerAccess.mockResolvedValueOnce({ state: 'pending' });
+    instructorAccessMock.loadInstructorAccess.mockResolvedValueOnce({ state: 'not_instructor' });
+
+    render(<App />);
+
+    expect(await screen.findByRole('heading', { name: 'Access is being arranged.' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'What needs you now.' })).not.toBeInTheDocument();
+    expect(window.location.pathname).toBe('/access');
+  });
+
+  it('keeps a half-typed review when switching tabs', async () => {
+    signInAsInstructor([waitingSession]);
+    render(<App />);
+    fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
+    await openInstructorTab('Review');
+
+    fireEvent.change(await screen.findByLabelText('Feedback for the learner'), { target: { value: 'Half-typed note' } });
+    await openInstructorTab('Nights');
+    await openInstructorTab('Review');
+
+    expect(screen.getByLabelText('Feedback for the learner')).toHaveValue('Half-typed note');
   });
 
   it('keeps instructor feedback metadata when a returned week becomes a learner draft', async () => {
@@ -260,7 +318,7 @@ describe('portal navigation and interest registration', () => {
     practiceMock.savePracticeChallenge.mockResolvedValueOnce(undefined);
 
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
 
     const weekOne = await screen.findByRole('group', { name: 'Week 1 Notice the cup' });
     expect(within(weekOne).getByText('Your instructor has sent this back for one more try. Read the feedback below, update the entry, save it, and submit it again when ready.')).toBeInTheDocument();
@@ -302,7 +360,7 @@ describe('portal navigation and interest registration', () => {
     });
 
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
 
     expect(await screen.findByRole('heading', { name: 'Your Public Cupping table.' })).toBeInTheDocument();
     expect(await screen.findByRole('heading', { name: 'Your table guide' })).toBeInTheDocument();
@@ -341,7 +399,7 @@ describe('portal navigation and interest registration', () => {
     });
 
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
 
     expect(await screen.findByRole('heading', { name: 'Your Barista 101 table.' })).toBeInTheDocument();
     expect(await screen.findByRole('heading', { name: 'Section title' })).toBeInTheDocument();
@@ -367,7 +425,7 @@ describe('portal navigation and interest registration', () => {
     });
 
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
 
     expect(await screen.findByRole('heading', { name: 'Your Brew 101 table.' })).toBeInTheDocument();
     expect(await screen.findAllByRole('button', { name: 'Start my practice' })).toHaveLength(2);
@@ -388,7 +446,7 @@ describe('portal navigation and interest registration', () => {
       ],
     });
     const mixed = render(<App />);
-    fireEvent.click(mixed.getByRole('button', { name: 'Learner access' }));
+    fireEvent.click(mixed.getByRole('link', { name: 'Learner access' }));
     expect(await mixed.findByRole('heading', { name: 'Your tables.' })).toBeInTheDocument();
     expect(await mixed.findAllByRole('button', { name: 'Start my practice' })).toHaveLength(1);
     mixed.unmount();
@@ -400,7 +458,7 @@ describe('portal navigation and interest registration', () => {
     });
     learnerAccessMock.loadLearnerAccess.mockResolvedValueOnce({ state: 'pending' });
     const pending = render(<App />);
-    fireEvent.click(pending.getByRole('button', { name: 'Learner access' }));
+    fireEvent.click(pending.getByRole('link', { name: 'Learner access' }));
     expect(await pending.findByRole('heading', { name: 'Signing in does not create learner access.' })).toBeInTheDocument();
     expect(sessionGuideMock.loadSessionGuide).not.toHaveBeenCalled();
   });
@@ -421,7 +479,8 @@ describe('portal navigation and interest registration', () => {
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
 
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
+    await openInstructorTab('Nights');
 
     const nightRecord = await screen.findByRole('region', { name: 'Record a night' });
     const sessionSelect = within(nightRecord).getByLabelText('Session');
@@ -448,10 +507,15 @@ describe('portal navigation and interest registration', () => {
       .mockResolvedValueOnce(parseNightRecord({ status: 'final', date: '2026-10-24', theme: 'Range Night', host: 'Firdaus', guests: 1, hostUid: 'instructor-uid', createdAt: 'stored' }));
 
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
 
-    expect(await screen.findByRole('heading', { name: 'Night record.' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'No submitted weeks are waiting.' })).not.toBeInTheDocument();
+    // The inbox answers "what needs me now" and does not load the night form.
+    expect(await screen.findByRole('heading', { name: 'What needs you now.' })).toBeInTheDocument();
+    expect(screen.getByText('No weeks are waiting.')).toBeInTheDocument();
+    expect(screen.getByText('1 session assigned.')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Record a night' })).not.toBeInTheDocument();
+
+    await openInstructorTab('Nights');
     expect(await screen.findByRole('heading', { name: 'Record a night' })).toBeInTheDocument();
     expect(screen.getByLabelText('Host')).toHaveValue('Firdaus');
 
@@ -484,7 +548,8 @@ describe('portal navigation and interest registration', () => {
     }));
 
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
+    await openInstructorTab('Nights');
 
     expect(await screen.findByRole('heading', { name: 'Record a night' })).toBeInTheDocument();
     expect(screen.getByText('Only the host who created this record can edit it. You can read it and download the CSV.')).toBeInTheDocument();
@@ -495,25 +560,30 @@ describe('portal navigation and interest registration', () => {
   });
 
   it('shows both the review queue and the night record to an instructor with both kinds of session', async () => {
-    signInAsInstructor([cuppingSession, { id: 'brew101-01', title: 'Manual Brew Foundations', offeringId: 'brew101', reviews: [] }]);
+    signInAsInstructor([cuppingSession, { id: 'brew101-01', title: 'Manual Brew Foundations', offeringId: 'brew101', reviews: [], history: [] }]);
 
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
 
-    expect(await screen.findByRole('heading', { name: 'Instructor review.' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'No submitted weeks are waiting.' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'What needs you now.' })).toBeInTheDocument();
+    await openInstructorTab('Review');
+    expect(await screen.findByRole('heading', { name: 'No submitted weeks are waiting.' })).toBeInTheDocument();
+    await openInstructorTab('Nights');
     expect(await screen.findByRole('heading', { name: 'Record a night' })).toBeInTheDocument();
   });
 
   it('shows a Barista 101-only instructor no review queue and no night record', async () => {
-    signInAsInstructor([{ id: 'barista101-01', title: 'Espresso Foundations', offeringId: 'barista101', reviews: [] }]);
+    signInAsInstructor([{ id: 'barista101-01', title: 'Espresso Foundations', offeringId: 'barista101', reviews: [], history: [] }]);
 
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
 
-    expect(await screen.findByRole('heading', { name: 'Your sessions.' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'No submitted weeks are waiting.' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Record a night' })).not.toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'What needs you now.' })).toBeInTheDocument();
+    expect(screen.getByText('No Public Cupping sessions.')).toBeInTheDocument();
+    await openInstructorTab('Review');
+    expect(await screen.findByRole('heading', { name: 'No submitted weeks are waiting.' })).toBeInTheDocument();
+    await openInstructorTab('Nights');
+    expect(await screen.findByText('No Public Cupping sessions are assigned to you.')).toBeInTheDocument();
   });
 
   it('reports a failed save and keeps the form editable', async () => {
@@ -521,7 +591,8 @@ describe('portal navigation and interest registration', () => {
     nightMock.saveNightRecord.mockRejectedValueOnce(new Error('permission-denied'));
 
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
+    await openInstructorTab('Nights');
     await screen.findByRole('heading', { name: 'Record a night' });
     fireEvent.click(screen.getByRole('button', { name: 'Save draft' }));
 
@@ -541,7 +612,8 @@ describe('portal navigation and interest registration', () => {
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
 
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
+    await openInstructorTab('Nights');
 
     expect(await screen.findByRole('heading', { name: 'Across your nights' })).toBeInTheDocument();
     expect(screen.getByText(/1 night, 4 guests, 2 would buy, 1 bought\. Of those who said yes, 50% bought\./)).toBeInTheDocument();
@@ -596,7 +668,8 @@ describe('portal navigation and interest registration', () => {
     scheduleMock.loadPublicScheduleForEditing.mockResolvedValueOnce([dateItem({ id: 'd1', title: 'Range Night' })]);
 
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
+    await openInstructorTab('Dates');
 
     expect(await screen.findByRole('heading', { name: 'Upcoming dates' })).toBeInTheDocument();
     fireEvent.change(await screen.findByDisplayValue('Range Night'), { target: { value: 'Origins Night' } });
@@ -621,7 +694,8 @@ describe('portal navigation and interest registration', () => {
     scheduleMock.loadPublicScheduleForEditing.mockRejectedValueOnce(new Error('offline'));
 
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
+    await openInstructorTab('Dates');
 
     expect(await screen.findByText(/editing is switched off to protect them/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Publish dates' })).toBeDisabled();
@@ -634,7 +708,8 @@ describe('portal navigation and interest registration', () => {
     scheduleMock.savePublicSchedule.mockRejectedValueOnce(new Error('permission-denied'));
 
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
+    await openInstructorTab('Dates');
     await screen.findByDisplayValue('Range Night');
     fireEvent.click(screen.getByRole('button', { name: 'Publish dates' }));
 
