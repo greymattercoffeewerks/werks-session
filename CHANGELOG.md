@@ -4,6 +4,10 @@ All notable user-visible, operational, and security-impacting changes are record
 
 ## [2026-11-18]
 
+### Security
+
+- A Public Cupping night record can now be changed only by the host who created it, or by an administrator. Another instructor assigned to the same session can still read the record and download the CSV, but not rewrite someone else's seats, totals, or notes. The instructor page shows that record read-only with a short note instead of offering a save the Rules would refuse. Covered by emulator tests for the host, a second assigned instructor, and an administrator, plus a browser test for the read-only page. Takes effect when the Firestore Rules are released.
+
 ### Operational
 
 - Moved the Node pin to 24 (`.nvmrc`), after checking that Node 20 reached end of life on 2026-04-30 and no longer receives security fixes. CI reads the pin, so all four jobs now install Node 24, and `engines` requires `>=22`. The Functions deployment target stays Node 20 because Functions are not deployed on Spark.

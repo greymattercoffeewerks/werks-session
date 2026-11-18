@@ -241,6 +241,8 @@ describe('Spark access grants and learner practice', () => {
       await db.doc('sessions/cupping-01').set({ title: 'Range Night', offeringId: 'cupping' });
       await db.doc('sessions/cupping-02').set({ title: 'Origins Night', offeringId: 'cupping' });
       await db.doc('teaching_assignments/cupping-01_instructor-uid').set({ sessionId: 'cupping-01', uid: 'instructor-uid', status: 'active' });
+      await db.doc('access_grants/other-instructor-uid').set({ personId: 'person-901', role: 'instructor', status: 'active' });
+      await db.doc('teaching_assignments/cupping-01_other-instructor-uid').set({ sessionId: 'cupping-01', uid: 'other-instructor-uid', status: 'active' });
       await db.doc('enrolments/cupping-01_learner-uid').set({ sessionId: 'cupping-01', uid: 'learner-uid', personId: 'person-123', status: 'confirmed' });
     });
     const instructor = testEnv.authenticatedContext('instructor-uid').firestore();
@@ -249,6 +251,7 @@ describe('Spark access grants and learner practice', () => {
     const admin = testEnv.authenticatedContext('admin-uid').firestore();
     const anonymous = testEnv.unauthenticatedContext().firestore();
     const ref = (db, sessionId = 'cupping-01') => db.doc(`sessions/${sessionId}/night_record/main`);
+    const otherInstructor = testEnv.authenticatedContext('other-instructor-uid').firestore();
 
     // A fully filled record (all 12 seats, longest text) stays inside the Rules expression limit.
     const fullSeats = Object.fromEntries(Array.from({ length: 12 }, (_, index) => [`s${index + 1}`, { cup: (index % 4) + 1, buy: 'yes', bought: 'no', words: 'x'.repeat(300) }]));
@@ -259,6 +262,12 @@ describe('Spark access grants and learner practice', () => {
     // Ownership and identity are immutable.
     await assertFails(ref(instructor).set(night({ hostUid: 'someone-else', createdAt: stored.createdAt })));
     await assertFails(ref(instructor).set(night({ sessionId: 'cupping-02', createdAt: stored.createdAt })));
+
+    // Only the host, or an administrator, may change an existing record. Another instructor
+    // assigned to the same session can read it but cannot rewrite the host's record.
+    await assertSucceeds(ref(otherInstructor).get());
+    await assertFails(ref(otherInstructor).set(night({ createdAt: stored.createdAt })));
+    await assertSucceeds(ref(admin).set(night({ hostUid: 'instructor-uid', createdAt: stored.createdAt, status: 'final' })));
     await assertFails(ref(instructor).set(night({ createdAt: new Date('2020-01-01T00:00:00Z') })));
     await assertFails(ref(instructor).set(night({ createdAt: stored.createdAt, updatedAt: new Date('2020-01-01T00:00:00Z') })));
     await assertFails(ref(instructor, 'cupping-02').set(night({ sessionId: 'cupping-02' })));

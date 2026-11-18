@@ -79,8 +79,15 @@ export function NightRecordWorkspace({ sessions, uid, hostName }: { sessions: In
   };
   const updateNumber = (field: 'guests' | 'redeemed', value: string) => update({ [field]: Math.max(0, Math.min(40, Math.floor(Number(value)) || 0)) });
 
+  // Rules allow only the host who created a record (or an admin) to change it. Another
+  // instructor assigned to the same session sees it read-only instead of a failed save.
+  // The app shows this page only to the `instructor` role, so an admin never reaches it;
+  // if admin access is added, this must also consider the admin role.
+  const storedRecord = saved?.[selectedId] ?? null;
+  const readOnly = Boolean(storedRecord?.hostUid && storedRecord.hostUid !== uid);
+
   const save = async (status: 'draft' | 'final') => {
-    if (!selectedId) return;
+    if (!selectedId || readOnly) return;
     setBusy(true);
     setError('');
     setMessage('');
@@ -119,6 +126,12 @@ export function NightRecordWorkspace({ sessions, uid, hostName }: { sessions: In
       </div>
 
       <form className="panel night-form" onSubmit={(event) => event.preventDefault()}>
+        {readOnly && (
+          <p className="night-readonly-note" id="night-readonly-note">
+            Only the host who created this record can edit it. You can read it and download the CSV.
+          </p>
+        )}
+        <fieldset className="night-readonly" disabled={readOnly} aria-describedby={readOnly ? 'night-readonly-note' : undefined}>
         <div className="night-fields">
           <label>Date<input type="date" value={draft.date} onChange={(event) => update({ date: event.target.value })} /></label>
           <label>Theme<input value={draft.theme} onChange={(event) => update({ theme: event.target.value })} placeholder="e.g. Range Night" /></label>
@@ -186,10 +199,15 @@ export function NightRecordWorkspace({ sessions, uid, hostName }: { sessions: In
         </dl>
 
         <div className="night-actions">
-          <button className="button secondary" type="button" onClick={() => save('draft')} disabled={busy}>{busy ? 'Saving…' : 'Save draft'}</button>
-          <button className="button primary" type="button" onClick={() => save('final')} disabled={busy}>{busy ? 'Saving…' : 'Save as final'}</button>
+          {!readOnly && (
+            <>
+              <button className="button secondary" type="button" onClick={() => save('draft')} disabled={busy}>{busy ? 'Saving…' : 'Save draft'}</button>
+              <button className="button primary" type="button" onClick={() => save('final')} disabled={busy}>{busy ? 'Saving…' : 'Save as final'}</button>
+            </>
+          )}
           <span className="night-status">{dirty ? 'Unsaved changes' : draft.status === 'final' ? 'Status: final' : 'Status: draft'}</span>
         </div>
+        </fieldset>
         {message && <p className="form-success" role="status">{message}</p>}
         {error && <p className="auth-message" role="alert">{error}</p>}
       </form>

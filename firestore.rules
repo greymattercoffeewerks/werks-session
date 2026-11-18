@@ -154,7 +154,10 @@ service cloud.firestore {
         allow create: if teaches(sessionId) && isCuppingSession(sessionId) && validNightRecord(sessionId)
           && request.resource.data.hostUid == request.auth.uid
           && request.resource.data.createdAt == request.time;
-        allow update: if teaches(sessionId) && isCuppingSession(sessionId) && validNightRecord(sessionId)
+        // Only the host who created the record, or an administrator, may change it. Another
+        // instructor assigned to the same session can read it but not rewrite it.
+        allow update: if (request.auth.uid == resource.data.hostUid || isAdmin())
+          && teaches(sessionId) && isCuppingSession(sessionId) && validNightRecord(sessionId)
           && request.resource.data.hostUid == resource.data.hostUid
           && request.resource.data.createdAt == resource.data.createdAt;
         allow list, delete: if false;
