@@ -2,6 +2,7 @@
   "name": "grey-matter-education-portal",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "Werks Sessions learning and operations portal",
   "scripts": {
     "dev": "vite",

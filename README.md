@@ -40,6 +40,13 @@ The public Spark launch does not require Firebase browser configuration. Do not 
 
 Firebase is still a temporary identity provider. Domain records retain a provider-neutral `person_id`, rather than treating the Firebase UID as the long-term identity. The Spark MVP deliberately postpones automated identity provisioning until a trusted server-side bridge is available.
 
+## Licence
+
+The source code is licensed under the MIT License (see [`LICENSE`](LICENSE)). Course
+content, written copy, brand assets, and the design system are not covered by that licence
+and remain all rights reserved (see [`NOTICE`](NOTICE)). The Figtree and Archivo fonts keep
+their own OFL-1.1 licences.
+
 ## Safety notes
 
 - Do not commit `.env`, service-account JSON, private contact lists, or course materials. This repository is public; keep anything behind the learner gate in the gitignored `content-drafts/` folder. `npm.cmd run security:gated` enforces this.

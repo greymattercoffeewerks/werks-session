@@ -16,6 +16,10 @@ Werks Sessions is Grey Matter Coffee Werks' hands-on coffee learning and operati
 - `main` is protected by the `Protect Main` ruleset: changes land through a pull request, deletion and force-push are blocked, and the `verify` and `dependency audit` checks must pass first.
 - Firebase is a temporary identity provider. Records use provider-neutral `person_id` values to support a future SeduhID/Supabase handoff.
 
+## Licensing
+
+- The source code is MIT licensed (`LICENSE`). Course content, written copy, brand assets, and the design system are excluded from that grant and remain all rights reserved (`NOTICE`). The repository stays public, so the distinction is stated in the files rather than implied.
+
 ## Security invariants
 
 - Browser code never authorizes privileged actions.
