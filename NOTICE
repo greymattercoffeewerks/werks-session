@@ -1,0 +1,26 @@
+# Werks Sessions — content and brand notice
+
+The source code in this repository is licensed under the MIT License (see `LICENSE`).
+
+That licence covers the software: the application code, configuration, and tests. It does
+**not** cover the following, which remain copyright © 2026 Grey Matter Coffee Werks, all
+rights reserved, and may not be copied, modified, distributed, or reused without written
+permission:
+
+- **Course content and learner material.** Guides, run sheets, tasting cards, curriculum,
+  exercises, flavour vocabulary, and any seed data for them. This material is deliberately
+  not in this repository; it is delivered to confirmed learners under Firestore Rules.
+- **Written copy and editorial text.** Offer descriptions, marketing and page copy,
+  documentation prose, and the wording of learner and instructor messages.
+- **Brand assets and identity.** The Werks Sessions and Grey Matter Coffee Werks names,
+  logo lockup, marks, photography, illustration, and the visual design system under
+  `public/grey-matter-design-system/`.
+
+Third-party components keep their own licences. The Figtree and Archivo fonts are licensed
+under the SIL Open Font License 1.1 through their Fontsource packages, and their notices
+are not changed by this one.
+
+The MIT License grants no rights to any trademark or brand name.
+
+If you would like to reuse something this notice excludes, ask first:
+`greymatter.cw@outlook.com`.
