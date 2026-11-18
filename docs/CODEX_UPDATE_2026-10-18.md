@@ -58,7 +58,7 @@ Anything behind the learner gate (guides, run sheets, curriculum, cost models, f
 
 ## 4. Working rules that are now in force
 
-- **Feature branch and pull request for every change.** `main` has no branch protection, so never commit to `main` directly. Merge through a pull request after the GitHub `verify` check passes.
+- **Feature branch and pull request for every change.** `main` is protected by the `Protect Main` ruleset (updated 2026-11-17): a pull request is required, deletion and force-push are blocked, and the `verify` and `dependency audit` checks must pass. Never commit to `main` directly.
 - **The commit hook is the gate.** `npm.cmd run verify:staged` runs on every commit: handoff staged, lint, strict types, frontend and Functions tests, Rules emulator tests, build, secret scan, gated-content check, and production dependency audits. Do not use `--no-verify`.
 - **Refresh `docs/SESSION_HANDOFF.md` on every commit**, and `CHANGELOG.md` for user-visible, operational, or security-impacting work.
 - **Deploy Hosting only** with `npx.cmd firebase deploy --only hosting --project werks-session`, and Rules only with `--only firestore:rules`. Do not deploy Functions or Storage (the project is on Spark).
@@ -75,7 +75,7 @@ Anything behind the learner gate (guides, run sheets, curriculum, cost models, f
 | Guide | **Learner-only Public Cupping guide.** Rules path `sessions/{sessionId}/guide/main` (read for a confirmed enrolee or teaching staff, never writable). `src/lib/session-guide.ts` parses and renders it as text only. The learner page is offering-aware: sessions can carry `offeringId` (`cupping` or `brew101`); Public Cupping guests do not get the Brew 101 practice record; sessions without `offeringId` keep the Brew 101 experience. Print styles included. |
 | Repo | History rewrite to remove gated material, then the move to `werks-session`. |
 
-**Released to production:** Firestore Rules (including the guide path) and Hosting, both on 2026-10-18. **Not released and not built:** Functions, Storage, indexes. **Not yet done:** the guide document has not been seeded in production, so no guest sees it. Staff seed it in Firebase Console after editorial sign-off, using local-only notes.
+**Released to production:** Firestore Rules (including the guide path) and Hosting, both on 2026-10-18. **Not deployed:** Functions, Storage, and indexes (the Functions code is retained for a future Blaze migration and is never deployed while the project is on Spark). **Not yet done:** the guide document has not been seeded in production, so no guest sees it. Staff seed it in Firebase Console after editorial sign-off, using local-only notes.
 
 ## 6. Files and docs to read, in order
 

@@ -24,7 +24,7 @@ Run `npm.cmd run setup:hooks` once per clone. The versioned pre-commit hook runs
 
 On the first session in a clone, inspect and trust `.codex/hooks.json` through Codex's hook review UI before relying on the session-start context. Changed hooks require review again.
 
-GitHub Actions repeats the checks for pull requests and `main`. An organization administrator must mark the `verify` workflow status as required, require pull requests for `main`, and restrict bypass permissions. The repository cannot configure those GitHub settings from a workflow file alone.
+GitHub Actions repeats the checks for pull requests and `main`. The `Protect Main` ruleset enforces this: a pull request is required, deletion and non-fast-forward pushes are blocked, and the `verify` and `dependency audit` checks must pass (with no bypass actors). Those settings live in the repository configuration, not in a workflow file.
 
 ## Firebase release readiness
 

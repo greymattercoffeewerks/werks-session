@@ -30,7 +30,7 @@ Codex local memories are enabled as a convenience layer, but `PROJECT_MEMORY.md`
 
 ## 2026-10-16: Verification runs locally and in GitHub Actions
 
-The repository uses a versioned Git hook to stop unsafe commits and a GitHub Actions workflow to stop unsafe merges. Branch protection must require the CI workflow before merge.
+The repository uses a versioned Git hook to stop unsafe commits and a GitHub Actions workflow to stop unsafe merges. Branch protection must require the CI workflow before merge. Implemented on 2026-11-17: the `Protect Main` ruleset requires a pull request and the `verify` and `dependency audit` checks, with deletion and force-push blocked and no bypass actors.
 
 ## 2026-10-16: Firebase releases fail closed
 
@@ -66,7 +66,7 @@ Rewriting history removed the gated material from every branch, but GitHub keeps
 
 ## 2026-10-18: Purge gated material from public history by rewriting it
 
-The repository must stay public because of platform limitations, and gated planning and course material had been committed in early history. Because the repository was three days old with no forks, stars, or watchers, the owner chose to rewrite history rather than keep or replace the repository. Done with `git filter-repo` in a fresh clone after a full backup, with the working tree unchanged (identical tree hash to the deployed `main`), a lease-protected force push, and deletion of the merged branches. Every commit hash changed and earlier clones must be discarded. GitHub keeps old commits reachable by SHA through hidden pull-request refs, so the purge is complete only after GitHub Support removes them; the request is prepared outside Git. Pull requests merge into `main` as before, and `npm.cmd run security:gated` prevents a repeat.
+The repository must stay public because of platform limitations, and gated planning and course material had been committed in early history. Because the repository was three days old with no forks, stars, or watchers, the owner chose to rewrite history rather than keep or replace the repository. Done with `git filter-repo` in a fresh clone after a full backup, with the working tree unchanged (identical tree hash to the deployed `main`), a lease-protected force push, and deletion of the merged branches. Every commit hash changed and earlier clones must be discarded. GitHub keeps old commits reachable by SHA through hidden pull-request refs, so the purge is complete only after GitHub Support removes them; the request is prepared outside Git. Pull requests merge into `main` as before, and `npm.cmd run security:gated` prevents a repeat. Resolved on 2026-11-17: the old repository was deleted after the move to `werks-session`, so its commits no longer resolve anywhere and no support request is outstanding.
 
 ## 2026-10-18: Split the Public Cupping guide into a public teaser and a gated guide
 

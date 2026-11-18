@@ -15,10 +15,10 @@ The checked-in Firebase web-app configuration is public client configuration, no
 
 - **Signed out:** the learner can select Google and is told that signing in does not create access.
 - **Signed in, pending:** the learner sees no course or cohort data. Staff separately confirm the booking and create the manual documents described in `SPARK_ACCESS_GRANTS.md`.
-- **Granted:** not part of Phase 2.1. It begins only after the live Firestore Rules and manual grant workflow have been proved.
+- **Granted:** implemented after Phase 2.1. A learner with an active grant and a confirmed enrolment sees only their confirmed sessions, guide, and practice record; staff create those documents as described in `SPARK_ACCESS_GRANTS.md`.
 
-## Pre-release check
+## Pre-release check (completed 2026-10-17, re-run after identity changes)
 
-- Test Google sign-in and sign-out on `https://werks-session.web.app`.
-- Confirm the new Firebase Authentication user has no Firestore data access before a staff grant exists.
-- Do not deploy Firestore Rules until the first staff-controlled learner and instructor records are ready for the live grant test.
+- Google sign-in and sign-out work on `https://werks-session.web.app`; the owner re-confirmed a live sign-in on 2026-11-18.
+- A new Firebase Authentication user has no Firestore data access before a staff grant exists.
+- Firestore Rules were released on 2026-10-17 once the first staff-controlled learner and instructor records were ready for the live grant test. Re-run this check whenever the provider, authorised domains, or Rules change.

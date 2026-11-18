@@ -1,6 +1,6 @@
 # Werks Sessions
 
-Werks Sessions is Grey Matter Coffee Werks' small, hands-on coffee-learning loop. It begins with Public Cupping and Brew 101, and stays focused on real tables, deliberate practice, and human follow-through rather than generic courseware.
+Werks Sessions is Grey Matter Coffee Werks' small, hands-on coffee-learning loop. It offers Public Cupping, Brew 101, and Barista 101, and stays focused on real tables, deliberate practice, and human follow-through rather than generic courseware.
 
 ## Spark MVP
 
@@ -8,7 +8,7 @@ The live MVP runs on Firebase Spark. The public site is hosted on Firebase Hosti
 
 - The front page lists the next dates that staff publish from the instructor page, each with an "Ask about this date" email link. Visitors can also select a session and open a prefilled email enquiry. Enquiring does not create an account or reserve a place.
 - Staff confirm suitability, payment, a date, and learner access manually.
-- No Cloud Functions, Firebase Storage, signed downloads, transactional email, or email-link sign-in are part of the Spark launch.
+- Cloud Functions, Firebase Storage, signed downloads, transactional email, and email-link sign-in are not used by the Spark launch. The trusted Functions code remains in `functions/` for a future Blaze migration and is never deployed while the project is on Spark.
 - Brew 101 remains non-assessed. Attendance and practice feedback are not certification or competency claims.
 
 ## Local setup
@@ -33,7 +33,7 @@ The public Spark launch does not require Firebase browser configuration. Do not 
 - `docs/PROJECT_MEMORY.md`, `docs/DECISIONS.md`, `CONVENTIONS.md`: product, architecture decisions, and working rules.
 - `docs/ROADMAP.md`: Spark MVP phases.
 - `docs/SPARK_ACCESS_GRANTS.md`: the staff procedure for access, enrolment, and teaching records.
-- `docs/GATED_SESSION_GUIDE_PLAN.md`: the planned learner-only Public Cupping guide.
+- `docs/GATED_SESSION_GUIDE_PLAN.md`: the learner-only Public Cupping guide, built and released but not yet seeded in production.
 - `CHANGELOG.md`: user-visible, operational, and security-impacting changes.
 
 ## Future SeduhID handoff
