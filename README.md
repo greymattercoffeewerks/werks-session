@@ -13,9 +13,10 @@ The live MVP runs on Firebase Spark. The public site is hosted on Firebase Hosti
 
 ## Local setup
 
-1. Install root dependencies: `npm.cmd install`.
-2. Install Functions dependencies only when working on the future Blaze-compatible backend: `npm.cmd install --prefix functions`.
-3. Run `npm.cmd run dev` for the interface or `npm.cmd run build` for a production build.
+1. Use Node 20, the version pinned in `.nvmrc` (`nvm use`); CI reads the same file. The `engines` field is a floor, so a newer Node installs, but Node 20 is the supported runtime. Java 21 or later is needed for the Firestore and Storage emulators.
+2. Install root dependencies: `npm.cmd install`.
+3. Install Functions dependencies only when working on the future Blaze-compatible backend: `npm.cmd install --prefix functions`.
+4. Run `npm.cmd run dev` for the interface or `npm.cmd run build` for a production build.
 
 The public Spark launch does not require Firebase browser configuration. Do not deploy Functions from this repository while the project remains on Spark.
 

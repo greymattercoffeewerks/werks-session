@@ -21,4 +21,4 @@ Use the playbooks as scoped subagent prompts when subagents are available. If th
 - Preserve Firestore and Storage deny-by-default behavior and validate Firebase Rules changes with emulator tests.
 - Keep authorization checks server-side; never trust a client-provided role, person ID, or resource URL.
 - Do not commit secrets, credentials, `.env` files, private keys, or Firebase service-account JSON.
-- Use Node 20-compatible tooling. Run root and Functions checks whenever their respective code changes.
+- Use Node 20-compatible tooling, pinned in `.nvmrc` and read by CI. Run root and Functions checks whenever their respective code changes.
