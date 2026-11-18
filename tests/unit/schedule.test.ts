@@ -83,6 +83,38 @@ describe('upcomingItems', () => {
   it('returns nothing when everything has passed', () => {
     expect(upcomingItems([item({ date: '2020-01-01' })], now)).toEqual([]);
   });
+
+  it('orders same-day items by the clock, not by the text of the time', () => {
+    const result = upcomingItems([
+      item({ id: 'evening', date: '2026-11-08', time: '8:00 pm' }),
+      item({ id: 'late-morning', date: '2026-11-08', time: '10:00 am' }),
+      item({ id: 'early', date: '2026-11-08', time: '8:00 am' }),
+      item({ id: 'noon', date: '2026-11-08', time: '12:00 pm' }),
+      item({ id: 'midnight', date: '2026-11-08', time: '12:00 am' }),
+      item({ id: 'tbc', date: '2026-11-08', time: '' }),
+      item({ id: 'unreadable', date: '2026-11-08', time: 'doors at seven' }),
+    ], now);
+    expect(result.map((entry) => entry.id)).toEqual([
+      'midnight', 'early', 'late-morning', 'noon', 'evening', 'tbc', 'unreadable',
+    ]);
+  });
+
+  it('keeps the published order for items whose times are equally unreadable', () => {
+    const result = upcomingItems([
+      item({ id: 'first', date: '2026-11-08', time: '' }),
+      item({ id: 'second', date: '2026-11-08', time: 'to be confirmed' }),
+    ], now);
+    expect(result.map((entry) => entry.id)).toEqual(['first', 'second']);
+  });
+
+  it('reads 24-hour times and rejects impossible minutes', () => {
+    const result = upcomingItems([
+      item({ id: 'afternoon', date: '2026-11-08', time: '14:30' }),
+      item({ id: 'morning', date: '2026-11-08', time: '09:15' }),
+      item({ id: 'impossible', date: '2026-11-08', time: '09:75' }),
+    ], now);
+    expect(result.map((entry) => entry.id)).toEqual(['morning', 'afternoon', 'impossible']);
+  });
 });
 
 describe('loadPublicSchedule, loadPublicScheduleForEditing, and savePublicSchedule', () => {

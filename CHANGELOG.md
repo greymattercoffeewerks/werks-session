@@ -17,6 +17,13 @@ All notable user-visible, operational, and security-impacting changes are record
 
 - The front page now reloads the upcoming dates whenever it is shown, so a date an instructor has just published appears without a browser reload. The new browser suite found this.
 - Darkened the muted label colour and removed the opacity from the method numbers, clearing the colour-contrast failures the accessibility check found (4.46:1 and 3.66:1 for 13px label text).
+- Same-day dates on the front page now sort by the clock instead of by the text of the time, so "8:00 am" comes before "10:00 am" (previously "10:00 am" won). A time that cannot be read sorts after the readable ones.
+- The night-record form no longer loses unsaved edits silently when the host switches sessions: it asks before discarding them and shows "Unsaved changes" until the record is saved.
+
+### Changed
+
+- Lint now checks React hook dependencies and hook order, plus the accessibility rules in `eslint-plugin-jsx-a11y`. The night-record loading effect no longer closes over `hostName`, `selectedId`, and `sessions`.
+- Removed the unused demo fixtures (`sessions`, `demoEnrolment`, `demoChallenge`, `demoRecords`) and the unused `VITE_AUTH_CONTINUE_URL` placeholder.
 
 ### Security
 
