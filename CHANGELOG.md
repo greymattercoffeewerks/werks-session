@@ -7,6 +7,7 @@ All notable user-visible, operational, and security-impacting changes are record
 ### Operational
 
 - Released the front-page date refresh and the colour-contrast fixes to Firebase Hosting from merged `main` (`36f498f`). The live site serves entry chunk `index-BV9WeJF9.js` and stylesheet `index-DYT2af2g.css`; the post-deploy smoke check passed 12/12. Firestore Rules, indexes, Functions, and Storage were not deployed.
+- Released the clock-order and unsaved-edit fixes to Firebase Hosting from merged `main` (`bc7881a`). The live site serves entry chunk `index-bmo8uaCn.js`; the post-deploy smoke check passed 12/12.
 
 ### Added
 
