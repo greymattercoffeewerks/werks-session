@@ -26,7 +26,7 @@ Gating is for sequencing and to protect the vocabulary list, not secrecy. Anyone
 3. **Render as text.** The guide is structured data rendered by React. Never inject HTML from Firestore.
 4. **Every new allow path needs a Rules emulator test** (`CONVENTIONS.md`).
 5. **Do not enable Firestore offline persistence** for this feature, so the guide is not cached in the browser beyond the session.
-6. Work on a feature branch and open a PR. `main` has no branch protection.
+6. Work on a feature branch and open a PR. `main` is protected by the `Protect Main` ruleset, which requires the `verify` and `dependency audit` checks.
 
 ## Phase 0 (no code): email the PDF
 

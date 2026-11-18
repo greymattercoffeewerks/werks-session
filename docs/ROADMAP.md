@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Launch a small, premium coffee-learning loop while keeping Firebase on Spark. The product remains Werks Sessions: Public Cupping and Brew 101, not a generic LMS, public calendar, or certification pathway.
+Launch a small, premium coffee-learning loop while keeping Firebase on Spark. The product remains Werks Sessions: Public Cupping, Brew 101, and Barista 101, not a generic LMS, public calendar, or certification pathway.
 
 ## Spark boundaries
 
@@ -74,12 +74,12 @@ Make the Brew 101 follow-through useful without overstating it as assessment or 
 
 - Public "How the evening runs" teaser on the Public Cupping offer (released 2026-10-18).
 - Self-hosted Figtree and Archivo brand fonts; Gotham no longer shipped (released 2026-10-18).
-
-- Third offering, Barista 101 (Espresso Foundations): public offer card with email enquiry only, `barista101` session label, gated guide carrying extra `sections`, and local-only take-home cards. No espresso practice record in v1. Not yet released; see `docs/SESSION_HANDOFF.md`.
+- Third offering, Barista 101 (Espresso Foundations): public offer card with email enquiry only, `barista101` session label, gated guide carrying extra `sections`, and local-only take-home cards. No espresso practice record in v1. Released to Hosting on 2026-10-21; nothing is seeded yet.
+- Gated Public Cupping and Barista 101 table guide at `sessions/{sessionId}/guide/main`, delivered from Firestore under the enrolment Rules, offering-aware in the learner page, rendered as text with print styles. Rules and Hosting released 2026-10-18; the guide document is not yet seeded in production, and staff still email the PDF until it is.
 
 ### Planned
 
-- Gated Public Cupping table guide for confirmed guests, delivered from Firestore under the existing enrolment Rules and made offering-aware in the learner page. See `docs/GATED_SESSION_GUIDE_PLAN.md`. Until then, staff email the finished PDF with the booking confirmation.
+- Seed the guide documents and run the authenticated guide smoke test after editorial sign-off (see `docs/SESSION_HANDOFF.md` next action).
 
 ### Not included
 
