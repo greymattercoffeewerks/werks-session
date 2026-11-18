@@ -44,7 +44,7 @@ Written 2026-10-18 for Codex (and any other assistant). Read this once, then fol
 - **New runtime dependencies:** `@fontsource/figtree` and `@fontsource/archivo` (OFL-1.1). They are imported in `src/main.tsx`. `npm.cmd ci` installs them.
 - **No other dependency changes.** Functions dependencies are unchanged.
 - **Fonts:** Figtree (display) and Archivo (body and UI) are self-hosted through those packages. `components/bundle.css` no longer imports Google Fonts, and the three Gotham OTF files and their `@font-face` rules are gone. Do not reintroduce Google Fonts or Gotham.
-- **Node:** keep Node 20-compatible tooling (`engines.node >= 20`).
+- **Node:** Node 24 is the supported runtime, pinned in `.nvmrc` and read by CI (`engines.node >= 22`). Updated 2026-11-18 after Node 20 reached end of life in April 2026.
 - **New script:** `npm.cmd run security:gated` (`scripts/check-gated-content.mjs`). It is part of `npm.cmd run verify`, so the pre-commit hook and CI both run it.
 
 ## 3. This repository is public: gated material never goes in it

@@ -32,7 +32,7 @@
     "hosting:preview": "firebase hosting:channel:deploy preview"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "overrides": {
     "@grpc/grpc-js": "1.14.6"
