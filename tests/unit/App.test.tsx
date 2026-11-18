@@ -477,6 +477,23 @@ describe('portal navigation and interest registration', () => {
     expect(nightMock.loadNightRecord).toHaveBeenCalledTimes(2);
   });
 
+  it('shows another host\'s night record read-only instead of offering a save that the Rules refuse', async () => {
+    signInAsInstructor([cuppingSession]);
+    nightMock.loadNightRecord.mockResolvedValueOnce(parseNightRecord({
+      status: 'final', date: '2026-10-24', theme: 'Range Night', host: 'Firdaus', guests: 1, hostUid: 'another-host-uid', createdAt: 'stored',
+    }));
+
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
+
+    expect(await screen.findByRole('heading', { name: 'Record a night' })).toBeInTheDocument();
+    expect(screen.getByText('Only the host who created this record can edit it. You can read it and download the CSV.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save draft' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save as final' })).not.toBeInTheDocument();
+    expect(document.querySelector('fieldset.night-readonly')).toHaveAttribute('disabled');
+    expect(screen.getByLabelText('Theme')).toHaveValue('Range Night');
+  });
+
   it('shows both the review queue and the night record to an instructor with both kinds of session', async () => {
     signInAsInstructor([cuppingSession, { id: 'brew101-01', title: 'Manual Brew Foundations', offeringId: 'brew101', reviews: [] }]);
 

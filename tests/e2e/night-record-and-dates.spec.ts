@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { Timestamp, doc, setDoc } from 'firebase/firestore';
 import { createTestEnvironment, currentUid, reopenAccess, seed, seedInstructor, signInWithGoogle } from './support/app';
 
 /** A date far enough ahead that the "upcoming" filter cannot hide it as the calendar moves. */
@@ -72,4 +73,44 @@ test('an instructor publishes a date and it appears on the public page', async (
   await expect(page.getByRole('link', { name: 'Ask about this date →' })).toBeVisible();
 
   await environment.cleanup();
+});
+
+test('an instructor who did not host a night sees that record read-only', async ({ page }) => {
+  const environment = await createTestEnvironment();
+  await environment.clearFirestore();
+  const sessionId = 'cupping-readonly';
+
+  await page.goto('/');
+  await signInWithGoogle(page, 'second-host@werks.test');
+  const uid = await currentUid(page);
+
+  await seed(environment, async (database) => {
+    await seedInstructor(database, { uid, sessionId, title: 'Public Cupping', offeringId: 'cupping' });
+    await setDoc(doc(database, 'sessions', sessionId, 'night_record', 'main'), {
+      sessionId,
+      hostUid: 'original-host-uid',
+      status: 'final',
+      date: '2026-11-01',
+      theme: 'Range Night',
+      host: 'Firdaus',
+      guests: 1,
+      redeemed: 0,
+      flight: ['a', 'b', 'c', 'd'],
+      seats: {},
+      tally: {},
+      words: [],
+      notes: '',
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+    });
+  });
+
+  await reopenAccess(page);
+  const nightRecord = page.getByRole('region', { name: 'Record a night' });
+  await expect(nightRecord).toBeVisible();
+  await expect(nightRecord.getByText('Only the host who created this record can edit it.')).toBeVisible();
+  await expect(nightRecord.getByRole('button', { name: 'Save draft' })).toHaveCount(0);
+  await expect(nightRecord.getByRole('button', { name: 'Save as final' })).toHaveCount(0);
+  await expect(nightRecord.getByLabel('Theme', { exact: true })).toBeDisabled();
+  await expect(nightRecord.getByLabel('Theme', { exact: true })).toHaveValue('Range Night');
 });
