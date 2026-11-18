@@ -27,6 +27,7 @@ export function NightRecordWorkspace({ sessions, uid, hostName }: { sessions: In
   const [selectedId, setSelectedId] = useState(sessions[0]?.id ?? '');
   const [saved, setSaved] = useState<Record<string, NightRecord | null> | undefined>(undefined);
   const [draft, setDraft] = useState<NightRecord>(() => emptyNightRecord(hostName));
+  const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -35,27 +36,37 @@ export function NightRecordWorkspace({ sessions, uid, hostName }: { sessions: In
 
   useEffect(() => {
     let cancelled = false;
+    const ids = sessionKey === '' ? [] : sessionKey.split('|');
     setSaved(undefined);
-    Promise.all(sessions.map((session) => loadNightRecord(session.id).then((record) => [session.id, record] as const).catch(() => [session.id, null] as const)))
+    Promise.all(ids.map((id) => loadNightRecord(id).then((record) => [id, record] as const).catch(() => [id, null] as const)))
       .then((pairs) => {
         if (cancelled) return;
-        const map = Object.fromEntries(pairs);
-        setSaved(map);
-        setDraft(map[selectedId] ?? emptyNightRecord(hostName));
+        setSaved(Object.fromEntries(pairs));
       });
     return () => { cancelled = true; };
-    // Reload only when the assigned sessions change; selection is applied separately.
+    // Loads by session id so a new array identity from the parent does not reload every record.
   }, [sessionKey]);
 
+  // The selected night's stored record, or a blank one, becomes the working draft. Editing
+  // the draft does not touch either dependency, so unsaved edits survive re-renders.
+  useEffect(() => {
+    if (!saved) return;
+    setDraft(saved[selectedId] ?? emptyNightRecord(hostName));
+  }, [saved, selectedId, hostName]);
+
   const selectSession = (sessionId: string) => {
+    if (sessionId === selectedId) return;
+    if (dirty && !window.confirm('Discard the unsaved changes to this night record?')) return;
     setSelectedId(sessionId);
     setDraft(saved?.[sessionId] ?? emptyNightRecord(hostName));
+    setDirty(false);
     setMessage('');
     setError('');
   };
 
   const update = (change: Partial<NightRecord>) => {
     setDraft((current) => ({ ...current, ...change }));
+    setDirty(true);
     setMessage('');
   };
   const updateSeat = (id: NightSeatId, change: Partial<NightSeat>) => update({ seats: { ...draft.seats, [id]: { ...draft.seats[id], ...change } } });
@@ -78,7 +89,7 @@ export function NightRecordWorkspace({ sessions, uid, hostName }: { sessions: In
       // Reload so the stored host and creation time travel with every later update, as the Rules require.
       const stored = await loadNightRecord(selectedId);
       setSaved((current) => ({ ...(current ?? {}), [selectedId]: stored }));
-      if (stored) setDraft(stored);
+      setDirty(false);
       setMessage(status === 'final' ? 'Night record saved as final. You can still edit it.' : 'Night record saved as a draft.');
     } catch {
       setError('We could not save this night record. Please try again.');
@@ -177,7 +188,7 @@ export function NightRecordWorkspace({ sessions, uid, hostName }: { sessions: In
         <div className="night-actions">
           <button className="button secondary" type="button" onClick={() => save('draft')} disabled={busy}>{busy ? 'Saving…' : 'Save draft'}</button>
           <button className="button primary" type="button" onClick={() => save('final')} disabled={busy}>{busy ? 'Saving…' : 'Save as final'}</button>
-          <span className="night-status">{draft.status === 'final' ? 'Status: final' : 'Status: draft'}</span>
+          <span className="night-status">{dirty ? 'Unsaved changes' : draft.status === 'final' ? 'Status: final' : 'Status: draft'}</span>
         </div>
         {message && <p className="form-success" role="status">{message}</p>}
         {error && <p className="auth-message" role="alert">{error}</p>}

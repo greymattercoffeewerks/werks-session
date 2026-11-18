@@ -77,11 +77,42 @@ export function parseSchedule(value: unknown): ScheduleItem[] {
   return items;
 }
 
-/** Hides dates that have passed (a date stays up through its own day), dated items first by date, then undated. */
+/** Minutes since midnight for a staff-entered time such as "8 pm", "7:30 pm", or "20:00". */
+function timeOfDay(time: string): number {
+  const match = /^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/i.exec(time.trim());
+  if (!match) return Number.POSITIVE_INFINITY;
+
+  let hours = Number(match[1]);
+  const minutes = match[2] ? Number(match[2]) : 0;
+  const meridiem = match[3]?.toLowerCase();
+
+  if (minutes > 59) return Number.POSITIVE_INFINITY;
+  if (meridiem) {
+    if (hours < 1 || hours > 12) return Number.POSITIVE_INFINITY;
+    hours = (hours % 12) + (meridiem === 'pm' ? 12 : 0);
+  } else if (hours > 23) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  return hours * 60 + minutes;
+}
+
+/**
+ * Hides dates that have passed (a date stays up through its own day), dated items first by
+ * date and then by the clock, with undated items last. Times are compared as clock times, not
+ * as text, so "10:00 am" comes after "8:00 am"; a time that cannot be read sorts last.
+ */
 export function upcomingItems(items: ScheduleItem[], now: Date = new Date()): ScheduleItem[] {
   const today = todayDate(now);
   const live = items.filter((item) => item.date === '' || item.date >= today);
-  const dated = live.filter((item) => item.date !== '').sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+  const dated = live.filter((item) => item.date !== '').sort((a, b) => {
+    const byDate = a.date.localeCompare(b.date);
+    if (byDate !== 0) return byDate;
+    const left = timeOfDay(a.time);
+    const right = timeOfDay(b.time);
+    if (left === right) return 0;
+    return left < right ? -1 : 1;
+  });
   return [...dated, ...live.filter((item) => item.date === '')];
 }
 

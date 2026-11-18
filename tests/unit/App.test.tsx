@@ -55,6 +55,7 @@ import { parseNightRecord } from '../../src/lib/night-record-model';
 
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
   vi.clearAllMocks();
 });
 
@@ -412,6 +413,33 @@ describe('portal navigation and interest registration', () => {
     instructorAccessMock.loadInstructorAccess.mockResolvedValueOnce({ state: 'assigned', sessions });
   };
   const cuppingSession = { id: 'cupping-01', title: 'Range Night', offeringId: 'cupping', reviews: [] };
+  const secondCuppingSession = { id: 'cupping-02', title: 'Second Night', offeringId: 'cupping', reviews: [] };
+
+  it('keeps unsaved night-record edits when a session switch is cancelled', async () => {
+    signInAsInstructor([cuppingSession, secondCuppingSession]);
+    nightMock.loadNightRecord.mockResolvedValue(null);
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Learner access' }));
+
+    const nightRecord = await screen.findByRole('region', { name: 'Record a night' });
+    const sessionSelect = within(nightRecord).getByLabelText('Session');
+
+    fireEvent.change(screen.getByLabelText('Theme'), { target: { value: 'Unsaved theme' } });
+    expect(screen.getByText('Unsaved changes')).toBeInTheDocument();
+
+    fireEvent.change(sessionSelect, { target: { value: 'cupping-02' } });
+    expect(confirmSpy).toHaveBeenCalledWith('Discard the unsaved changes to this night record?');
+    expect(screen.getByLabelText('Theme')).toHaveValue('Unsaved theme');
+    expect(sessionSelect).toHaveValue('cupping-01');
+
+    confirmSpy.mockReturnValue(true);
+    fireEvent.change(sessionSelect, { target: { value: 'cupping-02' } });
+    expect(screen.getByLabelText('Theme')).toHaveValue('');
+    expect(screen.getByText('Status: draft')).toBeInTheDocument();
+    confirmSpy.mockRestore();
+  });
 
   it('gives a cupping-only instructor the night record instead of the review queue, and saves it', async () => {
     signInAsInstructor([cuppingSession]);
@@ -433,10 +461,13 @@ describe('portal navigation and interest registration', () => {
     fireEvent.change(screen.getByLabelText('Seat 1: bought tonight'), { target: { value: 'yes' } });
     fireEvent.change(screen.getByLabelText('Ranked 1 for cup 2'), { target: { value: '5' } });
     expect(screen.getByText('1 (100%)')).toBeInTheDocument();
+    expect(screen.getByText('Unsaved changes')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Save as final' }));
 
     expect(await screen.findByText('Night record saved as final. You can still edit it.')).toBeInTheDocument();
+    expect(screen.queryByText('Unsaved changes')).not.toBeInTheDocument();
+    expect(screen.getByText('Status: final')).toBeInTheDocument();
     expect(nightMock.saveNightRecord).toHaveBeenCalledWith('cupping-01', 'instructor-uid', expect.objectContaining({
       status: 'final',
       theme: 'Range Night',
