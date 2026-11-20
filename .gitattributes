@@ -1,0 +1,7 @@
+# Keep one line ending in the repository and in every checkout, so Prettier's
+# `endOfLine: lf` does not fight Windows' `core.autocrlf`.
+* text=auto eol=lf
+*.woff2 binary
+*.png binary
+*.jpg binary
+*.ico binary
