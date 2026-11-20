@@ -14,7 +14,8 @@ All notable user-visible, operational, and security-impacting changes are record
 
 ### Operational
 
-- Adopted Prettier for the code base. `npm.cmd run format` formats; `npm.cmd run format:check` now runs inside `verify`, so unformatted code blocks a commit. Hand-written prose (Markdown), the vendored design system, `firestore.rules`, and lockfiles are deliberately outside the formatter, and `.git-blame-ignore-revs` records the one-off reformat commit so blame stays useful. The reformat is mechanical: no behaviour changed, and the full gate still passes.
+- Released the per-week practice model on 2026-11-20 from merged `main` (`64150fc`): `firebase deploy --only firestore:rules,firestore:indexes` released the new Rules and the two `weeks` collection-group indexes, then `--only hosting` shipped entry `index-D2pBPWsJ.js`, stylesheet `index-DZq500UX.css`, and lazy `LearnerAccess-kRA8Zol8.js`. The post-deploy smoke check passed 15/15 (deep links, missing asset 404, fonts, no emulator endpoints, five anonymous Firestore denials). The authenticated instructor queue was not exercised on the live project because there are no production credentials; its query shape and Rules are covered by the 11 emulator Rules tests and the 7-test browser suite. Legacy challenge documents were left unread by design.
+- Adopted Prettier for the code base. `npm.cmd run format` formats; `npm.cmd run format:check` now runs inside `verify`, so unformatted code blocks a commit. Hand-written prose (Markdown), the vendored design system, `firestore.rules`, and lockfiles are deliberately outside the formatter, and `.git-blame-ignore-revs` records the one-off reformat commit so blame stays useful. The reformat is mechanical: no behaviour changed, and the full gate still passes. A new `.gitattributes` pins `eol=lf` so a Windows checkout does not arrive with CRLF and fail the format check.
 
 ## [2026-11-18]
 
