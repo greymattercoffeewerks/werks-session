@@ -2,7 +2,7 @@ import type { OfferingKind } from '../types';
 import { parseOfferingKind } from './offering';
 
 export const scheduleStatuses = ['interest', 'open', 'limited', 'full', 'tbc'] as const;
-export type ScheduleStatus = typeof scheduleStatuses[number];
+export type ScheduleStatus = (typeof scheduleStatuses)[number];
 
 /** Status labels, not seat counts: staff set them by hand, so they never claim more than staff know. */
 export const scheduleStatusLabels: Record<ScheduleStatus, string> = {
@@ -70,7 +70,9 @@ export function parseSchedule(value: unknown): ScheduleItem[] {
       date: validDate(source.date),
       time: text(source.time, limits.time),
       venue: text(source.venue, limits.venue),
-      status: (scheduleStatuses as readonly unknown[]).includes(source.status) ? source.status as ScheduleStatus : 'tbc',
+      status: (scheduleStatuses as readonly unknown[]).includes(source.status)
+        ? (source.status as ScheduleStatus)
+        : 'tbc',
       note: text(source.note, limits.note),
     });
   });
@@ -105,14 +107,16 @@ function timeOfDay(time: string): number {
 export function upcomingItems(items: ScheduleItem[], now: Date = new Date()): ScheduleItem[] {
   const today = todayDate(now);
   const live = items.filter((item) => item.date === '' || item.date >= today);
-  const dated = live.filter((item) => item.date !== '').sort((a, b) => {
-    const byDate = a.date.localeCompare(b.date);
-    if (byDate !== 0) return byDate;
-    const left = timeOfDay(a.time);
-    const right = timeOfDay(b.time);
-    if (left === right) return 0;
-    return left < right ? -1 : 1;
-  });
+  const dated = live
+    .filter((item) => item.date !== '')
+    .sort((a, b) => {
+      const byDate = a.date.localeCompare(b.date);
+      if (byDate !== 0) return byDate;
+      const left = timeOfDay(a.time);
+      const right = timeOfDay(b.time);
+      if (left === right) return 0;
+      return left < right ? -1 : 1;
+    });
   return [...dated, ...live.filter((item) => item.date === '')];
 }
 

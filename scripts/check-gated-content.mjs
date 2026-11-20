@@ -8,10 +8,16 @@ const tracked = execFileSync('git', ['ls-files', '-z'], { encoding: 'utf8' }).sp
 
 const allowedPlaceholders = new Set(['Handoff and Planning Docs/README.md', 'content-drafts/README.md']);
 const gatedPatterns = [
-  { label: 'planning or course-work folder', test: (path) => path.startsWith('Handoff and Planning Docs/') || path.startsWith('content-drafts/') },
+  {
+    label: 'planning or course-work folder',
+    test: (path) => path.startsWith('Handoff and Planning Docs/') || path.startsWith('content-drafts/'),
+  },
   { label: 'gated folder', test: (path) => path.startsWith('gated/') },
   { label: 'GMCW course document', test: (path) => /(^|\/)GMCW_/.test(path) },
-  { label: 'guide, seed, or gated file', test: (path) => /(student-guide|table-guide|guide-seed|\.gated\.)/i.test(path) },
+  {
+    label: 'guide, seed, or gated file',
+    test: (path) => /(student-guide|table-guide|guide-seed|\.gated\.)/i.test(path),
+  },
   { label: 'PDF or archive', test: (path) => /\.(pdf|zip)$/i.test(path) },
 ];
 
@@ -48,7 +54,10 @@ const unignored = sampleGatedPaths.filter((path) => {
 // is absent there, and marker text is never printed, so public CI logs cannot leak it.
 const markerFile = 'content-drafts/gated-markers.txt';
 const markers = existsSync(markerFile)
-  ? readFileSync(markerFile, 'utf8').split(String.fromCharCode(10)).map((line) => line.trim().toLowerCase()).filter((line) => line && !line.startsWith('#'))
+  ? readFileSync(markerFile, 'utf8')
+      .split(String.fromCharCode(10))
+      .map((line) => line.trim().toLowerCase())
+      .filter((line) => line && !line.startsWith('#'))
   : [];
 const markerHits = [];
 if (markers.length > 0) {
@@ -80,8 +89,12 @@ if (violations.length > 0 || unignored.length > 0 || markerHits.length > 0) {
   for (const violation of violations) console.error(`  tracked gated file: ${violation}`);
   for (const path of unignored) console.error(`  .gitignore no longer covers: ${path}`);
   for (const hit of markerHits) console.error(`  gated text found: ${hit}`);
-  console.error('Keep learner-gated material out of this public repository. Remove it from the index with `git rm --cached` and keep it in the gitignored content-drafts/ folder.');
+  console.error(
+    'Keep learner-gated material out of this public repository. Remove it from the index with `git rm --cached` and keep it in the gitignored content-drafts/ folder.',
+  );
   process.exit(1);
 }
 
-console.log(`Gated-content check passed: ${tracked.length} tracked files, none gated; ${sampleGatedPaths.length} gated sample paths ignored; ${markers.length > 0 ? `${markers.length} private markers absent from tracked files and dist/` : 'private marker check skipped (no content-drafts/gated-markers.txt)'}.`);
+console.log(
+  `Gated-content check passed: ${tracked.length} tracked files, none gated; ${sampleGatedPaths.length} gated sample paths ignored; ${markers.length > 0 ? `${markers.length} private markers absent from tracked files and dist/` : 'private marker check skipped (no content-drafts/gated-markers.txt)'}.`,
+);

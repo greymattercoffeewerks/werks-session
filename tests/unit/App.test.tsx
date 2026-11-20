@@ -97,10 +97,7 @@ describe('portal navigation and interest registration', () => {
     fireEvent.change(app.getByLabelText('Choose a session'), { target: { value: 'brew101' } });
     const enquiryLink = app.getByRole('link', { name: 'Ask about Brew 101' });
     expect(enquiryLink).toHaveAttribute('href', expect.stringContaining('mailto:greymatter.cw@outlook.com'));
-    expect(enquiryLink).toHaveAttribute(
-      'href',
-      expect.stringContaining('Ask%20about%20Brew%20101'),
-    );
+    expect(enquiryLink).toHaveAttribute('href', expect.stringContaining('Ask%20about%20Brew%20101'));
   });
 
   it('shows Barista 101 as a public offer card with a teaser-free, enquiry-only flow', () => {
@@ -109,10 +106,15 @@ describe('portal navigation and interest registration', () => {
     expect(within(card).getByText(/not an sca-certified course/i)).toBeInTheDocument();
     expect(within(card).queryByText('How the evening runs')).not.toBeInTheDocument();
     fireEvent.change(app.getByLabelText('Choose a session'), { target: { value: 'barista101' } });
-    expect(app.getByRole('link', { name: 'Ask about Barista 101' })).toHaveAttribute('href', expect.stringContaining('Ask%20about%20Barista%20101'));
+    expect(app.getByRole('link', { name: 'Ask about Barista 101' })).toHaveAttribute(
+      'href',
+      expect.stringContaining('Ask%20about%20Barista%20101'),
+    );
     const text = (app.container.textContent ?? '').toLowerCase();
     // Structural markers only: the method, run sheet and cards are learner-only.
-    ['dial-in card', 'station sequence', 'fault', 'shot log', 'backflush'].forEach((guideOnly) => expect(text).not.toContain(guideOnly));
+    ['dial-in card', 'station sequence', 'fault', 'shot log', 'backflush'].forEach((guideOnly) =>
+      expect(text).not.toContain(guideOnly),
+    );
   });
 
   it('offers Google sign-in without promising self-service learner access', async () => {
@@ -175,7 +177,7 @@ describe('portal navigation and interest registration', () => {
     fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Start my practice' }));
 
-    expect((await screen.findAllByLabelText('Focus'))).toHaveLength(4);
+    expect(await screen.findAllByLabelText('Focus')).toHaveLength(4);
     expect(screen.getAllByLabelText('This week is complete')).toHaveLength(4);
     expect(screen.getAllByRole('button', { name: 'Save week' })).toHaveLength(4);
     const weekOne = screen.getByRole('group', { name: 'Week 1 Notice the cup' });
@@ -189,14 +191,25 @@ describe('portal navigation and interest registration', () => {
     expect(within(weekOne).getByRole('button', { name: 'Submit week 1' })).toBeEnabled();
     fireEvent.click(within(weekOne).getByRole('button', { name: 'Save week' }));
     expect(await screen.findByText('Week 1 draft saved.')).toBeInTheDocument();
-    expect(practiceMock.savePracticeChallenge).toHaveBeenCalledWith('brew101-01', 'learner-uid', expect.objectContaining({
-      week1: expect.objectContaining({ focus: 'Ratio' }),
-    }));
+    expect(practiceMock.savePracticeChallenge).toHaveBeenCalledWith(
+      'brew101-01',
+      'learner-uid',
+      expect.objectContaining({
+        week1: expect.objectContaining({ focus: 'Ratio' }),
+      }),
+    );
     fireEvent.click(within(weekOne).getByRole('button', { name: 'Submit week 1' }));
-    expect(await screen.findByText('Week 1 submitted. It is now locked while your instructor responds.')).toBeInTheDocument();
-    expect(practiceMock.submitPracticeWeek).toHaveBeenCalledWith('brew101-01', 'learner-uid', 'week1', expect.objectContaining({
-      week1: expect.objectContaining({ status: 'draft' }),
-    }));
+    expect(
+      await screen.findByText('Week 1 submitted. It is now locked while your instructor responds.'),
+    ).toBeInTheDocument();
+    expect(practiceMock.submitPracticeWeek).toHaveBeenCalledWith(
+      'brew101-01',
+      'learner-uid',
+      'week1',
+      expect.objectContaining({
+        week1: expect.objectContaining({ status: 'draft' }),
+      }),
+    );
     expect(practiceMock.startPracticeChallenge).toHaveBeenCalledWith('brew101-01', 'learner-uid');
   });
 
@@ -208,21 +221,65 @@ describe('portal navigation and interest registration', () => {
     learnerAccessMock.loadLearnerAccess.mockResolvedValueOnce({ state: 'pending' });
     instructorAccessMock.loadInstructorAccess.mockResolvedValueOnce({
       state: 'assigned',
-      sessions: [{
-        id: 'brew101-01',
-        title: 'Manual Brew Foundations',
-        reviews: [{
-          learnerUid: 'learner-uid',
-          weekId: 'week1',
-          week: { focus: 'Ratio', coffee: 'Konga', recipe: '15 g : 250 g', tastingNote: 'Sweet and clear.', changeMade: 'Grind finer', complete: true, status: 'submitted' },
-          weeks: {
-            week1: { focus: 'Ratio', coffee: 'Konga', recipe: '15 g : 250 g', tastingNote: 'Sweet and clear.', changeMade: 'Grind finer', complete: true, status: 'submitted' },
-            week2: { focus: '', coffee: '', recipe: '', tastingNote: '', changeMade: '', complete: false, status: 'draft' },
-            week3: { focus: '', coffee: '', recipe: '', tastingNote: '', changeMade: '', complete: false, status: 'draft' },
-            week4: { focus: '', coffee: '', recipe: '', tastingNote: '', changeMade: '', complete: false, status: 'draft' },
-          },
-        }],
-      }],
+      sessions: [
+        {
+          id: 'brew101-01',
+          title: 'Manual Brew Foundations',
+          reviews: [
+            {
+              learnerUid: 'learner-uid',
+              weekId: 'week1',
+              week: {
+                focus: 'Ratio',
+                coffee: 'Konga',
+                recipe: '15 g : 250 g',
+                tastingNote: 'Sweet and clear.',
+                changeMade: 'Grind finer',
+                complete: true,
+                status: 'submitted',
+              },
+              weeks: {
+                week1: {
+                  focus: 'Ratio',
+                  coffee: 'Konga',
+                  recipe: '15 g : 250 g',
+                  tastingNote: 'Sweet and clear.',
+                  changeMade: 'Grind finer',
+                  complete: true,
+                  status: 'submitted',
+                },
+                week2: {
+                  focus: '',
+                  coffee: '',
+                  recipe: '',
+                  tastingNote: '',
+                  changeMade: '',
+                  complete: false,
+                  status: 'draft',
+                },
+                week3: {
+                  focus: '',
+                  coffee: '',
+                  recipe: '',
+                  tastingNote: '',
+                  changeMade: '',
+                  complete: false,
+                  status: 'draft',
+                },
+                week4: {
+                  focus: '',
+                  coffee: '',
+                  recipe: '',
+                  tastingNote: '',
+                  changeMade: '',
+                  complete: false,
+                  status: 'draft',
+                },
+              },
+            },
+          ],
+        },
+      ],
     });
     instructorAccessMock.reviewPracticeWeek.mockResolvedValueOnce(undefined);
 
@@ -232,7 +289,9 @@ describe('portal navigation and interest registration', () => {
 
     expect(await screen.findByRole('heading', { name: 'Manual Brew Foundations' })).toBeInTheDocument();
     expect(screen.getByText('Sweet and clear.')).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('Feedback for the learner'), { target: { value: 'Clear observation. Keep this ratio for one more brew.' } });
+    fireEvent.change(screen.getByLabelText('Feedback for the learner'), {
+      target: { value: 'Clear observation. Keep this ratio for one more brew.' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Approve week 1' }));
 
     expect(await screen.findByRole('heading', { name: 'No submitted weeks are waiting.' })).toBeInTheDocument();
@@ -247,13 +306,36 @@ describe('portal navigation and interest registration', () => {
     );
   });
 
-  const submittedWeek = { focus: 'Ratio', coffee: 'Konga', recipe: '15 g : 250 g', tastingNote: 'Sweet and clear.', changeMade: 'Grind finer', complete: true, status: 'submitted' };
-  const blankWeek = { focus: '', coffee: '', recipe: '', tastingNote: '', changeMade: '', complete: false, status: 'draft' };
+  const submittedWeek = {
+    focus: 'Ratio',
+    coffee: 'Konga',
+    recipe: '15 g : 250 g',
+    tastingNote: 'Sweet and clear.',
+    changeMade: 'Grind finer',
+    complete: true,
+    status: 'submitted',
+  };
+  const blankWeek = {
+    focus: '',
+    coffee: '',
+    recipe: '',
+    tastingNote: '',
+    changeMade: '',
+    complete: false,
+    status: 'draft',
+  };
   const waitingSession = {
     id: 'brew101-01',
     title: 'Manual Brew Foundations',
     offeringId: 'brew101',
-    reviews: [{ learnerUid: 'learner-uid', weekId: 'week1', week: submittedWeek, weeks: { week1: submittedWeek, week2: blankWeek, week3: blankWeek, week4: blankWeek } }],
+    reviews: [
+      {
+        learnerUid: 'learner-uid',
+        weekId: 'week1',
+        week: submittedWeek,
+        weeks: { week1: submittedWeek, week2: blankWeek, week3: blankWeek, week4: blankWeek },
+      },
+    ],
     history: [],
   };
 
@@ -290,7 +372,9 @@ describe('portal navigation and interest registration', () => {
     fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
     await openInstructorTab('Review');
 
-    fireEvent.change(await screen.findByLabelText('Feedback for the learner'), { target: { value: 'Half-typed note' } });
+    fireEvent.change(await screen.findByLabelText('Feedback for the learner'), {
+      target: { value: 'Half-typed note' },
+    });
     await openInstructorTab('Nights');
     await openInstructorTab('Review');
 
@@ -309,7 +393,17 @@ describe('portal navigation and interest registration', () => {
     practiceMock.loadPracticeChallenge.mockResolvedValueOnce({
       status: 'in_progress',
       weeks: {
-        week1: { focus: 'Ratio', coffee: 'Konga', recipe: '15 g : 250 g', tastingNote: 'Sweet and clear.', changeMade: 'Grind finer', complete: true, status: 'returned', reviewerNote: 'Compare this ratio one more time.', reviewedAt: 'reviewed-at' },
+        week1: {
+          focus: 'Ratio',
+          coffee: 'Konga',
+          recipe: '15 g : 250 g',
+          tastingNote: 'Sweet and clear.',
+          changeMade: 'Grind finer',
+          complete: true,
+          status: 'returned',
+          reviewerNote: 'Compare this ratio one more time.',
+          reviewedAt: 'reviewed-at',
+        },
         week2: { focus: '', coffee: '', recipe: '', tastingNote: '', changeMade: '', complete: false, status: 'draft' },
         week3: { focus: '', coffee: '', recipe: '', tastingNote: '', changeMade: '', complete: false, status: 'draft' },
         week4: { focus: '', coffee: '', recipe: '', tastingNote: '', changeMade: '', complete: false, status: 'draft' },
@@ -321,17 +415,39 @@ describe('portal navigation and interest registration', () => {
     fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
 
     const weekOne = await screen.findByRole('group', { name: 'Week 1 Notice the cup' });
-    expect(within(weekOne).getByText('Your instructor has sent this back for one more try. Read the feedback below, update the entry, save it, and submit it again when ready.')).toBeInTheDocument();
+    expect(
+      within(weekOne).getByText(
+        'Your instructor has sent this back for one more try. Read the feedback below, update the entry, save it, and submit it again when ready.',
+      ),
+    ).toBeInTheDocument();
     const feedback = within(weekOne).getByText('Instructor feedback').closest('blockquote')!;
     expect(feedback).toHaveTextContent('Compare this ratio one more time.');
-    expect(within(weekOne).getByText('Your instructor has sent this back for one more try. Read the feedback below, update the entry, save it, and submit it again when ready.')).not.toHaveTextContent('Compare this ratio');
+    expect(
+      within(weekOne).getByText(
+        'Your instructor has sent this back for one more try. Read the feedback below, update the entry, save it, and submit it again when ready.',
+      ),
+    ).not.toHaveTextContent('Compare this ratio');
     fireEvent.click(within(weekOne).getByRole('button', { name: 'Save week' }));
-    expect(await within(weekOne).findByText('You are revising this week. Your instructor’s feedback is kept here until you submit again.')).toBeInTheDocument();
-    expect(within(weekOne).getByText('Instructor feedback').closest('blockquote')).toHaveTextContent('Compare this ratio one more time.');
+    expect(
+      await within(weekOne).findByText(
+        'You are revising this week. Your instructor’s feedback is kept here until you submit again.',
+      ),
+    ).toBeInTheDocument();
+    expect(within(weekOne).getByText('Instructor feedback').closest('blockquote')).toHaveTextContent(
+      'Compare this ratio one more time.',
+    );
 
-    expect(practiceMock.savePracticeChallenge).toHaveBeenCalledWith('brew101-01', 'learner-uid', expect.objectContaining({
-      week1: expect.objectContaining({ status: 'draft', reviewerNote: 'Compare this ratio one more time.', reviewedAt: 'reviewed-at' }),
-    }));
+    expect(practiceMock.savePracticeChallenge).toHaveBeenCalledWith(
+      'brew101-01',
+      'learner-uid',
+      expect.objectContaining({
+        week1: expect.objectContaining({
+          status: 'draft',
+          reviewerNote: 'Compare this ratio one more time.',
+          reviewedAt: 'reviewed-at',
+        }),
+      }),
+    );
   });
 
   it('shows the learner-only guide for a confirmed cupping session and no Brew 101 practice record', async () => {
@@ -393,7 +509,13 @@ describe('portal navigation and interest registration', () => {
       basics: [],
       vocabulary: [],
       vocabularyNote: '',
-      sections: [{ title: 'Section title', intro: 'Section intro <i>not italic</i>', rows: [{ label: 'Row label', text: 'Row text' }] }],
+      sections: [
+        {
+          title: 'Section title',
+          intro: 'Section intro <i>not italic</i>',
+          rows: [{ label: 'Row label', text: 'Row text' }],
+        },
+      ],
       beforeYouCome: [],
       footer: '',
     });
@@ -459,14 +581,18 @@ describe('portal navigation and interest registration', () => {
     learnerAccessMock.loadLearnerAccess.mockResolvedValueOnce({ state: 'pending' });
     const pending = render(<App />);
     fireEvent.click(pending.getByRole('link', { name: 'Learner access' }));
-    expect(await pending.findByRole('heading', { name: 'Signing in does not create learner access.' })).toBeInTheDocument();
+    expect(
+      await pending.findByRole('heading', { name: 'Signing in does not create learner access.' }),
+    ).toBeInTheDocument();
     expect(sessionGuideMock.loadSessionGuide).not.toHaveBeenCalled();
   });
   const signInAsInstructor = (sessions: unknown[]) => {
-    authMock.observeAccount.mockImplementationOnce((callback: (user: { uid: string; email: string; displayName: string }) => void) => {
-      callback({ uid: 'instructor-uid', email: 'host@example.com', displayName: 'Firdaus' });
-      return () => undefined;
-    });
+    authMock.observeAccount.mockImplementationOnce(
+      (callback: (user: { uid: string; email: string; displayName: string }) => void) => {
+        callback({ uid: 'instructor-uid', email: 'host@example.com', displayName: 'Firdaus' });
+        return () => undefined;
+      },
+    );
     learnerAccessMock.loadLearnerAccess.mockResolvedValueOnce({ state: 'pending' });
     instructorAccessMock.loadInstructorAccess.mockResolvedValueOnce({ state: 'assigned', sessions });
   };
@@ -502,9 +628,17 @@ describe('portal navigation and interest registration', () => {
 
   it('gives a cupping-only instructor the night record instead of the review queue, and saves it', async () => {
     signInAsInstructor([cuppingSession]);
-    nightMock.loadNightRecord
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(parseNightRecord({ status: 'final', date: '2026-10-24', theme: 'Range Night', host: 'Firdaus', guests: 1, hostUid: 'instructor-uid', createdAt: 'stored' }));
+    nightMock.loadNightRecord.mockResolvedValueOnce(null).mockResolvedValueOnce(
+      parseNightRecord({
+        status: 'final',
+        date: '2026-10-24',
+        theme: 'Range Night',
+        host: 'Firdaus',
+        guests: 1,
+        hostUid: 'instructor-uid',
+        createdAt: 'stored',
+      }),
+    );
 
     render(<App />);
     fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
@@ -532,27 +666,41 @@ describe('portal navigation and interest registration', () => {
     expect(await screen.findByText('Night record saved as final. You can still edit it.')).toBeInTheDocument();
     expect(screen.queryByText('Unsaved changes')).not.toBeInTheDocument();
     expect(screen.getByText('Status: final')).toBeInTheDocument();
-    expect(nightMock.saveNightRecord).toHaveBeenCalledWith('cupping-01', 'instructor-uid', expect.objectContaining({
-      status: 'final',
-      theme: 'Range Night',
-      seats: expect.objectContaining({ s1: { cup: 2, buy: 'yes', bought: 'yes', words: '' } }),
-      tally: { r1c2: 5 },
-    }));
+    expect(nightMock.saveNightRecord).toHaveBeenCalledWith(
+      'cupping-01',
+      'instructor-uid',
+      expect.objectContaining({
+        status: 'final',
+        theme: 'Range Night',
+        seats: expect.objectContaining({ s1: { cup: 2, buy: 'yes', bought: 'yes', words: '' } }),
+        tally: { r1c2: 5 },
+      }),
+    );
     expect(nightMock.loadNightRecord).toHaveBeenCalledTimes(2);
   });
 
-  it('shows another host\'s night record read-only instead of offering a save that the Rules refuse', async () => {
+  it("shows another host's night record read-only instead of offering a save that the Rules refuse", async () => {
     signInAsInstructor([cuppingSession]);
-    nightMock.loadNightRecord.mockResolvedValueOnce(parseNightRecord({
-      status: 'final', date: '2026-10-24', theme: 'Range Night', host: 'Firdaus', guests: 1, hostUid: 'another-host-uid', createdAt: 'stored',
-    }));
+    nightMock.loadNightRecord.mockResolvedValueOnce(
+      parseNightRecord({
+        status: 'final',
+        date: '2026-10-24',
+        theme: 'Range Night',
+        host: 'Firdaus',
+        guests: 1,
+        hostUid: 'another-host-uid',
+        createdAt: 'stored',
+      }),
+    );
 
     render(<App />);
     fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
     await openInstructorTab('Nights');
 
     expect(await screen.findByRole('heading', { name: 'Record a night' })).toBeInTheDocument();
-    expect(screen.getByText('Only the host who created this record can edit it. You can read it and download the CSV.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Only the host who created this record can edit it. You can read it and download the CSV.'),
+    ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Save draft' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Save as final' })).not.toBeInTheDocument();
     expect(document.querySelector('fieldset.night-readonly')).toHaveAttribute('disabled');
@@ -560,7 +708,10 @@ describe('portal navigation and interest registration', () => {
   });
 
   it('shows both the review queue and the night record to an instructor with both kinds of session', async () => {
-    signInAsInstructor([cuppingSession, { id: 'brew101-01', title: 'Manual Brew Foundations', offeringId: 'brew101', reviews: [], history: [] }]);
+    signInAsInstructor([
+      cuppingSession,
+      { id: 'brew101-01', title: 'Manual Brew Foundations', offeringId: 'brew101', reviews: [], history: [] },
+    ]);
 
     render(<App />);
     fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
@@ -573,7 +724,9 @@ describe('portal navigation and interest registration', () => {
   });
 
   it('shows a Barista 101-only instructor no review queue and no night record', async () => {
-    signInAsInstructor([{ id: 'barista101-01', title: 'Espresso Foundations', offeringId: 'barista101', reviews: [], history: [] }]);
+    signInAsInstructor([
+      { id: 'barista101-01', title: 'Espresso Foundations', offeringId: 'barista101', reviews: [], history: [] },
+    ]);
 
     render(<App />);
     fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
@@ -602,10 +755,23 @@ describe('portal navigation and interest registration', () => {
 
   it('summarises saved nights and downloads them as a CSV', async () => {
     signInAsInstructor([cuppingSession]);
-    nightMock.loadNightRecord.mockResolvedValue(parseNightRecord({
-      status: 'final', date: '2026-10-24', theme: 'Range Night', host: 'Firdaus', guests: 4, redeemed: 2, flight: ['a', 'b', 'c', 'd'],
-      seats: { s1: { cup: 2, buy: 'yes', bought: 'yes', words: 'sweet' }, s2: { cup: 1, buy: 'yes', bought: 'no', words: '' } }, hostUid: 'instructor-uid', createdAt: 'stored',
-    }));
+    nightMock.loadNightRecord.mockResolvedValue(
+      parseNightRecord({
+        status: 'final',
+        date: '2026-10-24',
+        theme: 'Range Night',
+        host: 'Firdaus',
+        guests: 4,
+        redeemed: 2,
+        flight: ['a', 'b', 'c', 'd'],
+        seats: {
+          s1: { cup: 2, buy: 'yes', bought: 'yes', words: 'sweet' },
+          s2: { cup: 1, buy: 'yes', bought: 'no', words: '' },
+        },
+        hostUid: 'instructor-uid',
+        createdAt: 'stored',
+      }),
+    );
     const createObjectURL = vi.fn(() => 'blob:csv');
     const revokeObjectURL = vi.fn();
     Object.assign(URL, { createObjectURL, revokeObjectURL });
@@ -616,7 +782,9 @@ describe('portal navigation and interest registration', () => {
     await openInstructorTab('Nights');
 
     expect(await screen.findByRole('heading', { name: 'Across your nights' })).toBeInTheDocument();
-    expect(screen.getByText(/1 night, 4 guests, 2 would buy, 1 bought\. Of those who said yes, 50% bought\./)).toBeInTheDocument();
+    expect(
+      screen.getByText(/1 night, 4 guests, 2 would buy, 1 bought\. Of those who said yes, 50% bought\./),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Download CSV' }));
 
     expect(createObjectURL).toHaveBeenCalledTimes(1);
@@ -629,12 +797,29 @@ describe('portal navigation and interest registration', () => {
     nightMock.loadNightRecord.mockReset();
     nightMock.loadNightRecord.mockResolvedValue(null);
   });
-  const dateItem = (overrides: Record<string, unknown> = {}) => ({ id: 'd1', offeringId: 'cupping', title: 'Range Night', date: '2099-12-31', time: '8:00 pm', venue: 'Noice, after hours', status: 'open', note: '', ...overrides });
+  const dateItem = (overrides: Record<string, unknown> = {}) => ({
+    id: 'd1',
+    offeringId: 'cupping',
+    title: 'Range Night',
+    date: '2099-12-31',
+    time: '8:00 pm',
+    venue: 'Noice, after hours',
+    status: 'open',
+    note: '',
+    ...overrides,
+  });
 
   it('lists upcoming dates on the front page with a status and a per-date enquiry, and hides past dates', async () => {
     scheduleMock.loadPublicSchedule.mockResolvedValueOnce([
       dateItem({ id: 'past', title: 'Old Night', date: '2000-01-01' }),
-      dateItem({ id: 'later', title: 'Brew Foundations', offeringId: 'brew101', date: '2099-12-31', status: 'limited', note: 'Small group' }),
+      dateItem({
+        id: 'later',
+        title: 'Brew Foundations',
+        offeringId: 'brew101',
+        date: '2099-12-31',
+        status: 'limited',
+        note: 'Small group',
+      }),
       dateItem({ id: 'soon', title: 'Range Night', date: '2099-11-07', status: 'open' }),
       dateItem({ id: 'tbc', title: 'Origins Night', date: '', time: '', venue: '', status: 'tbc' }),
     ]);
@@ -644,7 +829,11 @@ describe('portal navigation and interest registration', () => {
     const section = await screen.findByRole('region', { name: 'Next tables.' });
     expect(within(section).queryByText('Old Night')).not.toBeInTheDocument();
     const cards = within(section).getAllByRole('listitem');
-    expect(cards.map((card) => within(card).getByRole('heading', { level: 3 }).textContent)).toEqual(['Range Night', 'Brew Foundations', 'Origins Night']);
+    expect(cards.map((card) => within(card).getByRole('heading', { level: 3 }).textContent)).toEqual([
+      'Range Night',
+      'Brew Foundations',
+      'Origins Night',
+    ]);
     expect(within(cards[0]).getByText('Seats available')).toBeInTheDocument();
     expect(within(cards[0]).getByText('8:00 pm · Noice, after hours')).toBeInTheDocument();
     expect(within(cards[1]).getByText('Few seats left')).toBeInTheDocument();
@@ -652,8 +841,14 @@ describe('portal navigation and interest registration', () => {
     expect(within(cards[2]).getByText('Date to be confirmed')).toBeInTheDocument();
     const link = within(cards[0]).getByRole('link', { name: 'Ask about this date →' });
     expect(link).toHaveAttribute('href', expect.stringContaining('mailto:greymatter.cw@outlook.com'));
-    expect(link).toHaveAttribute('href', expect.stringContaining(encodeURIComponent('Ask about Range Night on Sat 7 Nov 2099')));
-    expect(within(cards[2]).getByRole('link', { name: 'Ask about this date →' })).toHaveAttribute('href', expect.stringContaining(encodeURIComponent('Ask about Origins Night')));
+    expect(link).toHaveAttribute(
+      'href',
+      expect.stringContaining(encodeURIComponent('Ask about Range Night on Sat 7 Nov 2099')),
+    );
+    expect(within(cards[2]).getByRole('link', { name: 'Ask about this date →' })).toHaveAttribute(
+      'href',
+      expect.stringContaining(encodeURIComponent('Ask about Origins Night')),
+    );
   });
 
   it('shows a calm empty state when no dates are published or all have passed', async () => {
@@ -675,8 +870,12 @@ describe('portal navigation and interest registration', () => {
     fireEvent.change(await screen.findByDisplayValue('Range Night'), { target: { value: 'Origins Night' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add a date' }));
     expect(screen.getByRole('group', { name: 'Date 2' })).toBeInTheDocument();
-    fireEvent.change(within(screen.getByRole('group', { name: 'Date 2' })).getByLabelText('Title'), { target: { value: 'Process Night' } });
-    fireEvent.change(within(screen.getByRole('group', { name: 'Date 2' })).getByLabelText('Status'), { target: { value: 'full' } });
+    fireEvent.change(within(screen.getByRole('group', { name: 'Date 2' })).getByLabelText('Title'), {
+      target: { value: 'Process Night' },
+    });
+    fireEvent.change(within(screen.getByRole('group', { name: 'Date 2' })).getByLabelText('Status'), {
+      target: { value: 'full' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Publish dates' }));
 
     expect(await screen.findByText(/Published\. The front page shows these dates now/)).toBeInTheDocument();

@@ -38,7 +38,11 @@ function text(value: unknown): string {
 
 function records(value: unknown): Record<string, unknown>[] {
   return Array.isArray(value)
-    ? value.slice(0, maxItems).filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object' && !Array.isArray(item))
+    ? value
+        .slice(0, maxItems)
+        .filter(
+          (item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object' && !Array.isArray(item),
+        )
     : [];
 }
 
@@ -55,36 +59,61 @@ export function parseSessionGuide(value: unknown): SessionGuide | null {
     return null;
   }
   const source = value as Record<string, unknown>;
-  const card = source.tastingCard && typeof source.tastingCard === 'object' && !Array.isArray(source.tastingCard)
-    ? source.tastingCard as Record<string, unknown>
-    : null;
+  const card =
+    source.tastingCard && typeof source.tastingCard === 'object' && !Array.isArray(source.tastingCard)
+      ? (source.tastingCard as Record<string, unknown>)
+      : null;
 
   const guide: SessionGuide = {
     offeringId: parseOfferingKind(source.offeringId),
     version: typeof source.version === 'number' && Number.isFinite(source.version) ? source.version : 1,
     title: text(source.title),
     intro: text(source.intro),
-    facts: records(source.facts).map((item) => ({ label: text(item.label), value: text(item.value) })).filter((item) => item.label && item.value),
-    schedule: records(source.schedule).map((item) => ({ when: text(item.when), what: text(item.what) })).filter((item) => item.when && item.what),
+    facts: records(source.facts)
+      .map((item) => ({ label: text(item.label), value: text(item.value) }))
+      .filter((item) => item.label && item.value),
+    schedule: records(source.schedule)
+      .map((item) => ({ when: text(item.when), what: text(item.what) }))
+      .filter((item) => item.when && item.what),
     tastingCard: card
       ? {
-        title: text(card.title),
-        prompts: records(card.prompts).map((item) => ({ name: text(item.name), help: text(item.help) })).filter((item) => item.name),
-        note: text(card.note),
-      }
+          title: text(card.title),
+          prompts: records(card.prompts)
+            .map((item) => ({ name: text(item.name), help: text(item.help) }))
+            .filter((item) => item.name),
+          note: text(card.note),
+        }
       : null,
-    basics: records(source.basics).map((item) => ({ step: text(item.step), text: text(item.text) })).filter((item) => item.step && item.text),
-    vocabulary: records(source.vocabulary).map((item) => ({ group: text(item.group), words: texts(item.words) })).filter((item) => item.group && item.words.length > 0),
+    basics: records(source.basics)
+      .map((item) => ({ step: text(item.step), text: text(item.text) }))
+      .filter((item) => item.step && item.text),
+    vocabulary: records(source.vocabulary)
+      .map((item) => ({ group: text(item.group), words: texts(item.words) }))
+      .filter((item) => item.group && item.words.length > 0),
     vocabularyNote: text(source.vocabularyNote),
-    sections: records(source.sections).slice(0, maxSections)
-      .map((item) => ({ title: text(item.title), intro: text(item.intro), rows: records(item.rows).map((row) => ({ label: text(row.label), text: text(row.text) })).filter((row) => row.label && row.text) }))
+    sections: records(source.sections)
+      .slice(0, maxSections)
+      .map((item) => ({
+        title: text(item.title),
+        intro: text(item.intro),
+        rows: records(item.rows)
+          .map((row) => ({ label: text(row.label), text: text(row.text) }))
+          .filter((row) => row.label && row.text),
+      }))
       .filter((section) => section.title && section.rows.length > 0),
     beforeYouCome: texts(source.beforeYouCome),
     footer: text(source.footer),
   };
 
-  const hasContent = guide.intro || guide.facts.length || guide.schedule.length || guide.basics.length
-    || guide.vocabulary.length || guide.sections.length || guide.beforeYouCome.length || (guide.tastingCard && guide.tastingCard.prompts.length);
+  const hasContent =
+    guide.intro ||
+    guide.facts.length ||
+    guide.schedule.length ||
+    guide.basics.length ||
+    guide.vocabulary.length ||
+    guide.sections.length ||
+    guide.beforeYouCome.length ||
+    (guide.tastingCard && guide.tastingCard.prompts.length);
   return hasContent ? guide : null;
 }
 
@@ -94,7 +123,7 @@ function jsonObject(value: unknown): Record<string, unknown> | null {
   }
   try {
     const parsed: unknown = JSON.parse(value);
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, unknown> : null;
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : null;
   } catch {
     return null;
   }

@@ -15,7 +15,13 @@ const baseUrl = (process.argv[2] ?? process.env.SMOKE_BASE_URL ?? 'https://werks
 const firebaseProject = 'werks-session';
 const firebaseApiKey = 'AIzaSyCWud7NIXKX4NSzmAJ4UEZxzbmFhTbIekw';
 
-const signedInMarkers = ['Record a night', 'Instructor review', 'Upcoming dates', 'Continue with Google', 'Start my practice'];
+const signedInMarkers = [
+  'Record a night',
+  'Instructor review',
+  'Upcoming dates',
+  'Continue with Google',
+  'Start my practice',
+];
 
 const failures = [];
 const record = (name, ok, detail) => {
@@ -42,7 +48,11 @@ if (!entryPath || !stylePath) {
 
   const entry = await fetchText(`${baseUrl}${entryPath}`);
   const leaked = signedInMarkers.filter((marker) => entry.text.includes(marker));
-  record('entry chunk carries no signed-in UI', entry.response.status === 200 && leaked.length === 0, leaked.join(', '));
+  record(
+    'entry chunk carries no signed-in UI',
+    entry.response.status === 200 && leaked.length === 0,
+    leaked.join(', '),
+  );
 
   // Vite emits the dynamic import relative to the entry ("../assets/..." or "./LearnerAccess-...js").
   const lazySpecifier = entry.text.match(/["']([^"']*LearnerAccess-[\w-]+\.js)["']/)?.[1];
@@ -53,7 +63,11 @@ if (!entryPath || !stylePath) {
     const lazyUrl = new URL(lazySpecifier, new URL(entryPath, baseUrl));
     const lazy = await fetchText(lazyUrl.href);
     lazyText = lazy.text;
-    record('lazy signed-in chunk is served', lazy.response.status === 200 && lazy.text.includes('Record a night'), lazyUrl.pathname);
+    record(
+      'lazy signed-in chunk is served',
+      lazy.response.status === 200 && lazy.text.includes('Record a night'),
+      lazyUrl.pathname,
+    );
   }
 
   const style = await fetchText(`${baseUrl}${stylePath}`);
@@ -62,7 +76,11 @@ if (!entryPath || !stylePath) {
     record('stylesheet references a self-hosted WOFF2 font', false);
   } else {
     const font = await fetch(`${baseUrl}${fontPath}`, { signal: AbortSignal.timeout(15_000) });
-    record('WOFF2 font is served', font.status === 200 && font.headers.get('content-type')?.includes('font/woff2'), fontPath);
+    record(
+      'WOFF2 font is served',
+      font.status === 200 && font.headers.get('content-type')?.includes('font/woff2'),
+      fontPath,
+    );
   }
 
   const legacyWoff = style.text.match(/url\((\/assets\/[\w-]+\.woff)\)/)?.[1];
@@ -70,16 +88,28 @@ if (!entryPath || !stylePath) {
 
   // The signed-in pages are routes, so a cold load or a refresh must reach the app.
   const deepLink = await fetchText(`${baseUrl}/instructor/review`);
-  record('an instructor deep link serves the app', deepLink.response.status === 200 && deepLink.text.includes('id="root"'), 'status ' + deepLink.response.status);
+  record(
+    'an instructor deep link serves the app',
+    deepLink.response.status === 200 && deepLink.text.includes('id="root"'),
+    'status ' + deepLink.response.status,
+  );
   const accessLink = await fetchText(`${baseUrl}/access`);
-  record('the access deep link serves the app', accessLink.response.status === 200 && accessLink.text.includes('id="root"'), 'status ' + accessLink.response.status);
+  record(
+    'the access deep link serves the app',
+    accessLink.response.status === 200 && accessLink.text.includes('id="root"'),
+    'status ' + accessLink.response.status,
+  );
   const missingAsset = await fetch(`${baseUrl}/assets/does-not-exist.js`, { signal: AbortSignal.timeout(15_000) });
   record('a missing asset still returns 404', missingAsset.status === 404, 'status ' + missingAsset.status);
 
   // A build that accidentally included the emulator flag would point visitors at localhost.
   const emulatorMarkers = ['127.0.0.1', 'demo-werks-sessions'];
   const leakedEmulator = emulatorMarkers.filter((marker) => entry.text.includes(marker) || lazyText.includes(marker));
-  record('live bundle points at the Firebase project, not an emulator', leakedEmulator.length === 0, leakedEmulator.join(', '));
+  record(
+    'live bundle points at the Firebase project, not an emulator',
+    leakedEmulator.length === 0,
+    leakedEmulator.join(', '),
+  );
 }
 
 const documents = `https://firestore.googleapis.com/v1/projects/${firebaseProject}/databases/(default)/documents`;

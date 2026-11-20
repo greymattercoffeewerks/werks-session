@@ -68,7 +68,9 @@ test('an instructor publishes a date and it appears on the public page', async (
   await editor.getByLabel('Time', { exact: true }).fill('8:00 pm');
   await editor.getByLabel('Venue', { exact: true }).fill('Noice, after hours');
   await editor.getByRole('button', { name: 'Publish dates' }).click();
-  await expect(page.getByText('Published. The front page shows these dates now, and past dates hide on their own.')).toBeVisible();
+  await expect(
+    page.getByText('Published. The front page shows these dates now, and past dates hide on their own.'),
+  ).toBeVisible();
 
   await page.getByRole('link', { name: 'Sessions', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Next tables.' })).toBeVisible();

@@ -17,7 +17,10 @@ export async function createTestEnvironment(): Promise<RulesTestEnvironment> {
   });
 }
 
-export async function seed(environment: RulesTestEnvironment, write: (database: Firestore) => Promise<void>): Promise<void> {
+export async function seed(
+  environment: RulesTestEnvironment,
+  write: (database: Firestore) => Promise<void>,
+): Promise<void> {
   await environment.withSecurityRulesDisabled(async (context) => {
     // The test environment hands back the compat-typed instance; it is the same client
     // the modular helpers below expect at runtime.
@@ -45,13 +48,13 @@ export async function signInWithGoogle(page: Page, email: string): Promise<void>
   const existingAccount = popup.locator('.js-reuse-account', { hasText: email });
   const closed = popup.waitForEvent('close');
 
-  if (await existingAccount.count() > 0) {
+  if ((await existingAccount.count()) > 0) {
     await existingAccount.first().click();
   } else {
     await popup.locator('#add-account-button').click();
     await popup.locator('#email-input').fill(email);
     const displayName = popup.locator('#display-name-input');
-    if (await displayName.count() > 0) {
+    if ((await displayName.count()) > 0) {
       await displayName.fill(email.split('@')[0]);
     }
     await popup.locator('#sign-in').click();
@@ -70,7 +73,9 @@ export async function reopenAccess(page: Page): Promise<void> {
   await page.getByRole('link', { name: 'Learner access' }).click();
 }
 
-/** Reads the signed-in uid from Firebase Auth's IndexedDB persistence. */export async function currentUid(page: Page): Promise<string> {
+/** Reads the signed-in uid from Firebase Auth's IndexedDB persistence. */ export async function currentUid(
+  page: Page,
+): Promise<string> {
   const uid = await page.evaluate(async () => {
     const database = await new Promise<IDBDatabase>((resolve, reject) => {
       const request = indexedDB.open('firebaseLocalStorageDb');
@@ -86,8 +91,13 @@ export async function reopenAccess(page: Page): Promise<void> {
     });
 
     const user = entries
-      .map((entry) => (entry && typeof entry === 'object' && 'value' in entry ? (entry as { value: unknown }).value : null))
-      .find((value): value is { uid: string } => Boolean(value) && typeof value === 'object' && typeof (value as { uid?: unknown }).uid === 'string');
+      .map((entry) =>
+        entry && typeof entry === 'object' && 'value' in entry ? (entry as { value: unknown }).value : null,
+      )
+      .find(
+        (value): value is { uid: string } =>
+          Boolean(value) && typeof value === 'object' && typeof (value as { uid?: unknown }).uid === 'string',
+      );
     return user?.uid ?? '';
   });
 
@@ -128,8 +138,12 @@ export async function seedInstructor(database: Firestore, options: SeedOptions):
     sessionId: options.sessionId,
     status: 'active',
   });
-  await setDoc(doc(database, 'sessions', options.sessionId), {
-    title: options.title ?? 'Brew 101',
-    offeringId: options.offeringId ?? 'brew101',
-  }, { merge: true });
+  await setDoc(
+    doc(database, 'sessions', options.sessionId),
+    {
+      title: options.title ?? 'Brew 101',
+      offeringId: options.offeringId ?? 'brew101',
+    },
+    { merge: true },
+  );
 }

@@ -5,57 +5,57 @@ version: 2
 # /functions), so both must be listed; a single entry would silently miss the
 # Functions findings that took the release gate down in November 2026.
 updates:
-  - package-ecosystem: "npm"
-    directory: "/"
+  - package-ecosystem: 'npm'
+    directory: '/'
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "08:00"
-      timezone: "Asia/Kuala_Lumpur"
+      interval: 'weekly'
+      day: 'monday'
+      time: '08:00'
+      timezone: 'Asia/Kuala_Lumpur'
     open-pull-requests-limit: 5
     commit-message:
-      prefix: "chore(deps)"
+      prefix: 'chore(deps)'
     labels:
-      - "dependencies"
+      - 'dependencies'
     groups:
       production-minor-and-patch:
-        dependency-type: "production"
+        dependency-type: 'production'
         update-types:
-          - "minor"
-          - "patch"
+          - 'minor'
+          - 'patch'
       development-minor-and-patch:
-        dependency-type: "development"
+        dependency-type: 'development'
         update-types:
-          - "minor"
-          - "patch"
+          - 'minor'
+          - 'patch'
 
-  - package-ecosystem: "npm"
-    directory: "/functions"
+  - package-ecosystem: 'npm'
+    directory: '/functions'
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "08:00"
-      timezone: "Asia/Kuala_Lumpur"
+      interval: 'weekly'
+      day: 'monday'
+      time: '08:00'
+      timezone: 'Asia/Kuala_Lumpur'
     open-pull-requests-limit: 5
     commit-message:
-      prefix: "chore(deps-functions)"
+      prefix: 'chore(deps-functions)'
     labels:
-      - "dependencies"
+      - 'dependencies'
     groups:
       production-minor-and-patch:
-        dependency-type: "production"
+        dependency-type: 'production'
         update-types:
-          - "minor"
-          - "patch"
+          - 'minor'
+          - 'patch'
 
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: 'github-actions'
+    directory: '/'
     schedule:
-      interval: "monthly"
-      time: "08:00"
-      timezone: "Asia/Kuala_Lumpur"
+      interval: 'monthly'
+      time: '08:00'
+      timezone: 'Asia/Kuala_Lumpur'
     open-pull-requests-limit: 3
     commit-message:
-      prefix: "chore(ci)"
+      prefix: 'chore(ci)'
     labels:
-      - "dependencies"
+      - 'dependencies'

@@ -11,16 +11,32 @@ vi.mock('firebase/firestore', () => firestoreMock);
 vi.mock('../../src/lib/firebase', () => ({ firestore: { name: 'test-firestore' } }));
 
 import { loadPublicSchedule, loadPublicScheduleForEditing, savePublicSchedule } from '../../src/lib/schedule';
-import { emptyScheduleItem, formatScheduleDate, parseSchedule, scheduleDateParts, todayDate, upcomingItems, validDate, type ScheduleItem } from '../../src/lib/schedule-model';
+import {
+  emptyScheduleItem,
+  formatScheduleDate,
+  parseSchedule,
+  scheduleDateParts,
+  todayDate,
+  upcomingItems,
+  validDate,
+  type ScheduleItem,
+} from '../../src/lib/schedule-model';
 
 afterEach(() => vi.clearAllMocks());
 
-const item = (overrides: Partial<ScheduleItem> = {}): ScheduleItem => ({ ...emptyScheduleItem('a'), title: 'Range Night', date: '2026-11-07', ...overrides });
+const item = (overrides: Partial<ScheduleItem> = {}): ScheduleItem => ({
+  ...emptyScheduleItem('a'),
+  title: 'Range Night',
+  date: '2026-11-07',
+  ...overrides,
+});
 
 describe('validDate, todayDate, and date formatting', () => {
   it('accepts only real calendar dates in YYYY-MM-DD form', () => {
     expect(validDate('2026-11-07')).toBe('2026-11-07');
-    ['2026-02-30', '2026-13-01', '2026-1-1', '07-11-2026', '', null, 5].forEach((value) => expect(validDate(value)).toBe(''));
+    ['2026-02-30', '2026-13-01', '2026-1-1', '07-11-2026', '', null, 5].forEach((value) =>
+      expect(validDate(value)).toBe(''),
+    );
   });
 
   it('formats a date for display and splits it for the date block', () => {
@@ -38,7 +54,16 @@ describe('validDate, todayDate, and date formatting', () => {
 describe('parseSchedule', () => {
   it('keeps well-formed items, trims and caps text, and falls back safely', () => {
     const items = parseSchedule([
-      { id: ' x ', offeringId: 'brew101', title: '  Manual Brew  ', date: '2026-12-01', time: ' 7 pm ', venue: 'V'.repeat(200), status: 'limited', note: 'N'.repeat(500) },
+      {
+        id: ' x ',
+        offeringId: 'brew101',
+        title: '  Manual Brew  ',
+        date: '2026-12-01',
+        time: ' 7 pm ',
+        venue: 'V'.repeat(200),
+        status: 'limited',
+        note: 'N'.repeat(500),
+      },
       { title: 'Plain', date: '2026-02-30', status: 'bogus', offeringId: 'other' },
       { title: '' },
       { id: 'no-title' },
@@ -46,7 +71,14 @@ describe('parseSchedule', () => {
       null,
     ]);
     expect(items).toHaveLength(2);
-    expect(items[0]).toMatchObject({ id: 'x', offeringId: 'brew101', title: 'Manual Brew', date: '2026-12-01', time: '7 pm', status: 'limited' });
+    expect(items[0]).toMatchObject({
+      id: 'x',
+      offeringId: 'brew101',
+      title: 'Manual Brew',
+      date: '2026-12-01',
+      time: '7 pm',
+      status: 'limited',
+    });
     expect(items[0].venue).toHaveLength(80);
     expect(items[0].note).toHaveLength(200);
     expect(items[1]).toMatchObject({ offeringId: 'cupping', title: 'Plain', date: '', status: 'tbc' });
@@ -69,14 +101,17 @@ describe('upcomingItems', () => {
   const now = new Date(2026, 10, 8, 15, 0);
 
   it('hides past dates but keeps today, and orders dated items before undated ones', () => {
-    const result = upcomingItems([
-      item({ id: 'undated', date: '', status: 'tbc' }),
-      item({ id: 'later', date: '2026-12-20' }),
-      item({ id: 'past', date: '2026-11-07' }),
-      item({ id: 'today', date: '2026-11-08', time: '8 pm' }),
-      item({ id: 'today-early', date: '2026-11-08', time: '10 am' }),
-      item({ id: 'soon', date: '2026-11-15' }),
-    ], now);
+    const result = upcomingItems(
+      [
+        item({ id: 'undated', date: '', status: 'tbc' }),
+        item({ id: 'later', date: '2026-12-20' }),
+        item({ id: 'past', date: '2026-11-07' }),
+        item({ id: 'today', date: '2026-11-08', time: '8 pm' }),
+        item({ id: 'today-early', date: '2026-11-08', time: '10 am' }),
+        item({ id: 'soon', date: '2026-11-15' }),
+      ],
+      now,
+    );
     expect(result.map((entry) => entry.id)).toEqual(['today-early', 'today', 'soon', 'later', 'undated']);
   });
 
@@ -85,41 +120,59 @@ describe('upcomingItems', () => {
   });
 
   it('orders same-day items by the clock, not by the text of the time', () => {
-    const result = upcomingItems([
-      item({ id: 'evening', date: '2026-11-08', time: '8:00 pm' }),
-      item({ id: 'late-morning', date: '2026-11-08', time: '10:00 am' }),
-      item({ id: 'early', date: '2026-11-08', time: '8:00 am' }),
-      item({ id: 'noon', date: '2026-11-08', time: '12:00 pm' }),
-      item({ id: 'midnight', date: '2026-11-08', time: '12:00 am' }),
-      item({ id: 'tbc', date: '2026-11-08', time: '' }),
-      item({ id: 'unreadable', date: '2026-11-08', time: 'doors at seven' }),
-    ], now);
+    const result = upcomingItems(
+      [
+        item({ id: 'evening', date: '2026-11-08', time: '8:00 pm' }),
+        item({ id: 'late-morning', date: '2026-11-08', time: '10:00 am' }),
+        item({ id: 'early', date: '2026-11-08', time: '8:00 am' }),
+        item({ id: 'noon', date: '2026-11-08', time: '12:00 pm' }),
+        item({ id: 'midnight', date: '2026-11-08', time: '12:00 am' }),
+        item({ id: 'tbc', date: '2026-11-08', time: '' }),
+        item({ id: 'unreadable', date: '2026-11-08', time: 'doors at seven' }),
+      ],
+      now,
+    );
     expect(result.map((entry) => entry.id)).toEqual([
-      'midnight', 'early', 'late-morning', 'noon', 'evening', 'tbc', 'unreadable',
+      'midnight',
+      'early',
+      'late-morning',
+      'noon',
+      'evening',
+      'tbc',
+      'unreadable',
     ]);
   });
 
   it('keeps the published order for items whose times are equally unreadable', () => {
-    const result = upcomingItems([
-      item({ id: 'first', date: '2026-11-08', time: '' }),
-      item({ id: 'second', date: '2026-11-08', time: 'to be confirmed' }),
-    ], now);
+    const result = upcomingItems(
+      [
+        item({ id: 'first', date: '2026-11-08', time: '' }),
+        item({ id: 'second', date: '2026-11-08', time: 'to be confirmed' }),
+      ],
+      now,
+    );
     expect(result.map((entry) => entry.id)).toEqual(['first', 'second']);
   });
 
   it('reads 24-hour times and rejects impossible minutes', () => {
-    const result = upcomingItems([
-      item({ id: 'afternoon', date: '2026-11-08', time: '14:30' }),
-      item({ id: 'morning', date: '2026-11-08', time: '09:15' }),
-      item({ id: 'impossible', date: '2026-11-08', time: '09:75' }),
-    ], now);
+    const result = upcomingItems(
+      [
+        item({ id: 'afternoon', date: '2026-11-08', time: '14:30' }),
+        item({ id: 'morning', date: '2026-11-08', time: '09:15' }),
+        item({ id: 'impossible', date: '2026-11-08', time: '09:75' }),
+      ],
+      now,
+    );
     expect(result.map((entry) => entry.id)).toEqual(['morning', 'afternoon', 'impossible']);
   });
 });
 
 describe('loadPublicSchedule, loadPublicScheduleForEditing, and savePublicSchedule', () => {
   it('reads public_schedule/current and parses it', async () => {
-    firestoreMock.getDoc.mockResolvedValueOnce({ exists: () => true, data: () => ({ items: [{ title: 'Range Night', date: '2026-11-07', status: 'open' }] }) });
+    firestoreMock.getDoc.mockResolvedValueOnce({
+      exists: () => true,
+      data: () => ({ items: [{ title: 'Range Night', date: '2026-11-07', status: 'open' }] }),
+    });
     const items = await loadPublicSchedule();
     expect(firestoreMock.doc).toHaveBeenCalledWith({ name: 'test-firestore' }, 'public_schedule', 'current');
     expect(items).toHaveLength(1);
@@ -141,8 +194,15 @@ describe('loadPublicSchedule, loadPublicScheduleForEditing, and savePublicSchedu
   });
 
   it('publishes cleaned items in one write with the server time', async () => {
-    await savePublicSchedule([item({ id: 'kept', title: '  Range Night  ' }), item({ id: 'dropped', title: '' }), item({ id: 'bad-date', date: '2026-02-30' })]);
-    const [ref, payload] = firestoreMock.setDoc.mock.calls[0] as unknown as [{ path: string }, { items: ScheduleItem[]; updatedAt: unknown }];
+    await savePublicSchedule([
+      item({ id: 'kept', title: '  Range Night  ' }),
+      item({ id: 'dropped', title: '' }),
+      item({ id: 'bad-date', date: '2026-02-30' }),
+    ]);
+    const [ref, payload] = firestoreMock.setDoc.mock.calls[0] as unknown as [
+      { path: string },
+      { items: ScheduleItem[]; updatedAt: unknown },
+    ];
     expect(ref.path).toBe('public_schedule/current');
     expect(Object.keys(payload).sort()).toEqual(['items', 'updatedAt']);
     expect(payload.updatedAt).toEqual({ sentinel: 'server-timestamp' });
