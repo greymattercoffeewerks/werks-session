@@ -25,28 +25,52 @@ describe('loadInstructorAccess', () => {
     firestoreMock.query.mockImplementation((ref: unknown) => ref);
     firestoreMock.getDoc.mockImplementation((ref: { path: string }) => {
       if (ref.path.startsWith('access_grants/')) {
-        return Promise.resolve({ exists: () => true, data: () => ({ status: 'active', role: 'instructor', personId: 'person-1' }) });
+        return Promise.resolve({
+          exists: () => true,
+          data: () => ({ status: 'active', role: 'instructor', personId: 'person-1' }),
+        });
       }
       return Promise.resolve({ exists: () => true, data: () => ({ title: 'Brew 101', offeringId: 'brew101' }) });
     });
-    const week = (overrides: Record<string, unknown> = {}) => ({ focus: 'Ratio', coffee: 'Konga', recipe: '15 g', tastingNote: 'Sweet', changeMade: 'Grind', complete: true, status: 'draft', ...overrides });
+    const week = (overrides: Record<string, unknown> = {}) => ({
+      focus: 'Ratio',
+      coffee: 'Konga',
+      recipe: '15 g',
+      tastingNote: 'Sweet',
+      changeMade: 'Grind',
+      complete: true,
+      status: 'draft',
+      ...overrides,
+    });
     firestoreMock.getDocs.mockImplementation((ref: { path: string }) => {
       if (ref.path === 'teaching_assignments') {
-        return Promise.resolve({ docs: [{ data: () => ({ sessionId: 'brew101-01', uid: 'instructor-uid', status: 'active' }) }] });
+        return Promise.resolve({
+          docs: [{ data: () => ({ sessionId: 'brew101-01', uid: 'instructor-uid', status: 'active' }) }],
+        });
       }
       if (ref.path === 'sessions/brew101-01/challenges') {
         return Promise.resolve({
-          docs: [{
-            data: () => ({
-              ownerUid: 'learner-1',
-              weeks: {
-                week1: week({ status: 'submitted' }),
-                week2: week({ status: 'approved', reviewerNote: 'Older approval', reviewedAt: { toMillis: () => 1_000 } }),
-                week3: week({ status: 'returned', reviewerNote: 'Newer return', reviewedAt: { toMillis: () => 2_000 } }),
-                week4: week(),
-              },
-            }),
-          }],
+          docs: [
+            {
+              data: () => ({
+                ownerUid: 'learner-1',
+                weeks: {
+                  week1: week({ status: 'submitted' }),
+                  week2: week({
+                    status: 'approved',
+                    reviewerNote: 'Older approval',
+                    reviewedAt: { toMillis: () => 1_000 },
+                  }),
+                  week3: week({
+                    status: 'returned',
+                    reviewerNote: 'Newer return',
+                    reviewedAt: { toMillis: () => 2_000 },
+                  }),
+                  week4: week(),
+                },
+              }),
+            },
+          ],
         });
       }
       return Promise.resolve({ docs: [] });
@@ -68,10 +92,20 @@ describe('reviewPracticeWeek', () => {
     const weeks = emptyPracticeWeeks();
     weeks.week2 = { ...weeks.week2, focus: 'Grind', status: 'submitted', complete: true };
 
-    await reviewPracticeWeek('brew101-01', 'learner-uid', 'week2', weeks, 'returned', '  Compare the sweetness once more.  ');
+    await reviewPracticeWeek(
+      'brew101-01',
+      'learner-uid',
+      'week2',
+      weeks,
+      'returned',
+      '  Compare the sweetness once more.  ',
+    );
 
     expect(firestoreMock.updateDoc).toHaveBeenCalledTimes(1);
-    const [ref, payload] = firestoreMock.updateDoc.mock.calls[0] as unknown as [{ path: string }, { weeks: Record<string, Record<string, unknown>>; updatedAt: unknown }];
+    const [ref, payload] = firestoreMock.updateDoc.mock.calls[0] as unknown as [
+      { path: string },
+      { weeks: Record<string, Record<string, unknown>>; updatedAt: unknown },
+    ];
     expect(ref.path).toBe('sessions/brew101-01/challenges/learner-uid');
     expect(payload.weeks.week2).toMatchObject({
       status: 'returned',
@@ -84,7 +118,9 @@ describe('reviewPracticeWeek', () => {
   });
 
   it('refuses to review without feedback', async () => {
-    await expect(reviewPracticeWeek('brew101-01', 'learner-uid', 'week1', emptyPracticeWeeks(), 'approved', '   ')).rejects.toThrow('Feedback is required');
+    await expect(
+      reviewPracticeWeek('brew101-01', 'learner-uid', 'week1', emptyPracticeWeeks(), 'approved', '   '),
+    ).rejects.toThrow('Feedback is required');
     expect(firestoreMock.updateDoc).not.toHaveBeenCalled();
   });
 });

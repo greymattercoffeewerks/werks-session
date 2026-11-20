@@ -22,12 +22,22 @@ describe('parseSessionGuide', () => {
       title: '  Title  ',
       intro: 'Intro',
       facts: [{ label: 'A', value: 'B' }, { label: 'No value' }, 'not an object', null],
-      schedule: [{ when: '1', what: '2' }, { when: '', what: 'dropped' }],
+      schedule: [
+        { when: '1', what: '2' },
+        { when: '', what: 'dropped' },
+      ],
       tastingCard: { title: 'Card', prompts: [{ name: 'P', help: 'H' }, { help: 'no name' }], note: 'N' },
       basics: [{ step: 'S', text: 'T' }],
-      vocabulary: [{ group: 'G', words: ['a', '  ', 7, 'b'] }, { group: 'Empty', words: [] }],
+      vocabulary: [
+        { group: 'G', words: ['a', '  ', 7, 'b'] },
+        { group: 'Empty', words: [] },
+      ],
       vocabularyNote: ' VN ',
-      sections: [{ title: ' Sec ', intro: ' I ', rows: [{ label: 'L', text: 'T' }, { label: 'No text' }, 'nope'] }, { title: 'Empty', rows: [] }, { rows: [{ label: 'x', text: 'y' }] }],
+      sections: [
+        { title: ' Sec ', intro: ' I ', rows: [{ label: 'L', text: 'T' }, { label: 'No text' }, 'nope'] },
+        { title: 'Empty', rows: [] },
+        { rows: [{ label: 'x', text: 'y' }] },
+      ],
       beforeYouCome: ['x', '', 5],
       footer: 'F',
     });
@@ -56,7 +66,11 @@ describe('parseSessionGuide', () => {
   });
 
   it('caps text length and item counts and ignores unknown offerings', () => {
-    const guide = parseSessionGuide({ offeringId: 'other', intro: 'x'.repeat(5000), beforeYouCome: Array.from({ length: 200 }, (_, index) => `item ${index}`) });
+    const guide = parseSessionGuide({
+      offeringId: 'other',
+      intro: 'x'.repeat(5000),
+      beforeYouCome: Array.from({ length: 200 }, (_, index) => `item ${index}`),
+    });
     expect(guide?.offeringId).toBeNull();
     expect(guide?.intro).toHaveLength(2000);
     expect(guide?.beforeYouCome).toHaveLength(60);
@@ -65,7 +79,10 @@ describe('parseSessionGuide', () => {
   it('accepts the Barista 101 offering and caps the number of sections and rows', () => {
     const guide = parseSessionGuide({
       offeringId: 'barista101',
-      sections: Array.from({ length: 30 }, (_, index) => ({ title: `S${index}`, rows: Array.from({ length: 200 }, (_, row) => ({ label: `L${row}`, text: 't' })) })),
+      sections: Array.from({ length: 30 }, (_, index) => ({
+        title: `S${index}`,
+        rows: Array.from({ length: 200 }, (_, row) => ({ label: `L${row}`, text: 't' })),
+      })),
     });
     expect(guide?.offeringId).toBe('barista101');
     expect(guide?.sections).toHaveLength(12);
@@ -75,10 +92,29 @@ describe('parseSessionGuide', () => {
 
 describe('loadSessionGuide', () => {
   it('reads sessions/{id}/guide/main and accepts content pasted as one JSON string', async () => {
-    firestoreMock.getDoc.mockResolvedValueOnce(snapshot({ offeringId: 'cupping', version: 3, title: 'From fields', contentJson: JSON.stringify({ intro: 'From JSON', beforeYouCome: ['Arrive on time.'] }) }));
+    firestoreMock.getDoc.mockResolvedValueOnce(
+      snapshot({
+        offeringId: 'cupping',
+        version: 3,
+        title: 'From fields',
+        contentJson: JSON.stringify({ intro: 'From JSON', beforeYouCome: ['Arrive on time.'] }),
+      }),
+    );
     const guide = await loadSessionGuide('cupping-01');
-    expect(firestoreMock.doc).toHaveBeenCalledWith({ name: 'test-firestore' }, 'sessions', 'cupping-01', 'guide', 'main');
-    expect(guide).toMatchObject({ offeringId: 'cupping', version: 3, title: 'From fields', intro: 'From JSON', beforeYouCome: ['Arrive on time.'] });
+    expect(firestoreMock.doc).toHaveBeenCalledWith(
+      { name: 'test-firestore' },
+      'sessions',
+      'cupping-01',
+      'guide',
+      'main',
+    );
+    expect(guide).toMatchObject({
+      offeringId: 'cupping',
+      version: 3,
+      title: 'From fields',
+      intro: 'From JSON',
+      beforeYouCome: ['Arrive on time.'],
+    });
   });
 
   it('falls back to document fields when contentJson is absent or invalid', async () => {

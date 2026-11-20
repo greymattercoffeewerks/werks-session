@@ -2,6 +2,12 @@
 
 All notable user-visible, operational, and security-impacting changes are recorded by completion date.
 
+## [2026-11-20]
+
+### Operational
+
+- Adopted Prettier for the code base. `npm.cmd run format` formats; `npm.cmd run format:check` now runs inside `verify`, so unformatted code blocks a commit. Hand-written prose (Markdown), the vendored design system, `firestore.rules`, and lockfiles are deliberately outside the formatter, and `.git-blame-ignore-revs` records the one-off reformat commit so blame stays useful. The reformat is mechanical: no behaviour changed, and the full gate still passes.
+
 ## [2026-11-18]
 
 ### Changed

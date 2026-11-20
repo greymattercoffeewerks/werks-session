@@ -1,12 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 
-const files = [
-  'CONVENTIONS.md',
-  'docs/PROJECT_MEMORY.md',
-  'docs/DECISIONS.md',
-  'docs/SESSION_HANDOFF.md',
-];
+const files = ['CONVENTIONS.md', 'docs/PROJECT_MEMORY.md', 'docs/DECISIONS.md', 'docs/SESSION_HANDOFF.md'];
 
 function read(path) {
   try {
@@ -25,4 +20,10 @@ function git(args) {
 }
 
 const status = git(['status', '--short']);
-console.log(['# Grey Matter Education Portal session context', ...files.map((file) => `\n## ${file}\n${read(file)}`), `\n## Working tree\n${status}`].join('\n'));
+console.log(
+  [
+    '# Grey Matter Education Portal session context',
+    ...files.map((file) => `\n## ${file}\n${read(file)}`),
+    `\n## Working tree\n${status}`,
+  ].join('\n'),
+);

@@ -22,8 +22,20 @@ test('allows resources only for eligible enrolments', () => {
 });
 
 test('requires a staff-created learner invitation before activation', () => {
-  assert.equal(isAccountInviteEligible({ status: 'ready', role: 'learner', email: 'maya@example.com' }, 'maya@example.com'), true);
-  assert.equal(isAccountInviteEligible({ status: 'ready', role: 'learner', email: 'maya@example.com' }, 'other@example.com'), false);
-  assert.equal(isAccountInviteEligible({ status: 'claimed', role: 'learner', email: 'maya@example.com' }, 'maya@example.com'), false);
-  assert.equal(isAccountInviteEligible({ status: 'ready', role: 'admin', email: 'maya@example.com' }, 'maya@example.com'), false);
+  assert.equal(
+    isAccountInviteEligible({ status: 'ready', role: 'learner', email: 'maya@example.com' }, 'maya@example.com'),
+    true,
+  );
+  assert.equal(
+    isAccountInviteEligible({ status: 'ready', role: 'learner', email: 'maya@example.com' }, 'other@example.com'),
+    false,
+  );
+  assert.equal(
+    isAccountInviteEligible({ status: 'claimed', role: 'learner', email: 'maya@example.com' }, 'maya@example.com'),
+    false,
+  );
+  assert.equal(
+    isAccountInviteEligible({ status: 'ready', role: 'admin', email: 'maya@example.com' }, 'maya@example.com'),
+    false,
+  );
 });

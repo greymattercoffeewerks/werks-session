@@ -7,7 +7,8 @@ function requireAuth(request) {
 
 function requireRole(request, roles) {
   const auth = requireAuth(request);
-  if (!roles.includes(auth.token.role)) throw new HttpsError('permission-denied', 'You do not have access to this action.');
+  if (!roles.includes(auth.token.role))
+    throw new HttpsError('permission-denied', 'You do not have access to this action.');
   personIdFor(auth);
   return auth;
 }
@@ -20,15 +21,19 @@ function personIdFor(auth) {
 }
 
 function isResourceEligible(enrolment) {
-  return ['confirmed', 'attended'].includes(enrolment.status) || ['deposit_paid', 'paid'].includes(enrolment.paymentStatus);
+  return (
+    ['confirmed', 'attended'].includes(enrolment.status) || ['deposit_paid', 'paid'].includes(enrolment.paymentStatus)
+  );
 }
 
 function isAccountInviteEligible(invite, email) {
-  return Boolean(invite
-    && invite.status === 'ready'
-    && invite.role === 'learner'
-    && typeof invite.email === 'string'
-    && invite.email.trim().toLowerCase() === email);
+  return Boolean(
+    invite &&
+    invite.status === 'ready' &&
+    invite.role === 'learner' &&
+    typeof invite.email === 'string' &&
+    invite.email.trim().toLowerCase() === email,
+  );
 }
 
 module.exports = { isAccountInviteEligible, isResourceEligible, personIdFor, requireAuth, requireRole };

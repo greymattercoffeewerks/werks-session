@@ -93,8 +93,8 @@ const lazyHasData = signedInDataPaths.some((marker) => lazySource.includes(marke
 
 if (!lazyHasUi || !lazyHasData) {
   console.error(
-    'Public bundle check failed: the lazy chunk does not contain the signed-in app '
-    + `(UI found: ${lazyHasUi}, data paths found: ${lazyHasData}). The split is misconfigured, not cleaner.`,
+    'Public bundle check failed: the lazy chunk does not contain the signed-in app ' +
+      `(UI found: ${lazyHasUi}, data paths found: ${lazyHasData}). The split is misconfigured, not cleaner.`,
   );
   process.exit(1);
 }
@@ -137,8 +137,8 @@ const leakedEmulator = emulatorMarkers.filter((marker) => publicSource.includes(
 
 if (leakedEmulator.length > 0) {
   console.error(
-    `Public bundle check failed: a build points at a local emulator (${leakedEmulator.join(', ')}). `
-    + 'Build without VITE_FIREBASE_EMULATORS.',
+    `Public bundle check failed: a build points at a local emulator (${leakedEmulator.join(', ')}). ` +
+      'Build without VITE_FIREBASE_EMULATORS.',
   );
   process.exit(1);
 }
@@ -148,8 +148,8 @@ const entryKilobytes = entryFiles
   .reduce((total, size) => total + size, 0);
 
 console.log(
-  `Public bundle check passed: entry chunk ${entryKilobytes.toFixed(2)} kB (${entryFiles.join(', ')}) and every other public `
-  + `chunk carries none of the ${signedInMarkers.length} signed-in UI markers or ${signedInDataPaths.length} signed-in data `
-  + `paths, still contains the ${publicDataPath} public read, and the lazy chunk (${lazyFiles.join(', ')}) holds the signed-in app. `
-  + `${fontFiles.length} self-hosted WOFF2 fonts are referenced by the CSS, all present, with no legacy WOFF files.`,
+  `Public bundle check passed: entry chunk ${entryKilobytes.toFixed(2)} kB (${entryFiles.join(', ')}) and every other public ` +
+    `chunk carries none of the ${signedInMarkers.length} signed-in UI markers or ${signedInDataPaths.length} signed-in data ` +
+    `paths, still contains the ${publicDataPath} public read, and the lazy chunk (${lazyFiles.join(', ')}) holds the signed-in app. ` +
+    `${fontFiles.length} self-hosted WOFF2 fonts are referenced by the CSS, all present, with no legacy WOFF files.`,
 );

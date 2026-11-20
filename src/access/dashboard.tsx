@@ -8,25 +8,46 @@ export const weekNames: Record<PracticeWeekId, string> = {
   week4: 'Keep the next step',
 };
 
-export function DashboardHeader({ title, subtitle, headingId }: { title: string; subtitle: string; headingId?: string }) {
+export function DashboardHeader({
+  title,
+  subtitle,
+  headingId,
+}: {
+  title: string;
+  subtitle: string;
+  headingId?: string;
+}) {
   return (
     <header className="dashboard-header">
       <p className="eyebrow">Werks Sessions</p>
-      <h1 id={headingId} tabIndex={headingId ? -1 : undefined}>{title}</h1>
+      <h1 id={headingId} tabIndex={headingId ? -1 : undefined}>
+        {title}
+      </h1>
       <p>{subtitle}</p>
     </header>
   );
 }
 
 export function InstructorFeedback({ note }: { note: string }) {
-  return <blockquote className="reviewer-note"><strong>Instructor feedback</strong><span>{note}</span></blockquote>;
+  return (
+    <blockquote className="reviewer-note">
+      <strong>Instructor feedback</strong>
+      <span>{note}</span>
+    </blockquote>
+  );
 }
 
 /**
  * A route link. It is a real anchor, so it can be copied, opened in a new tab, and read by
  * assistive tech; the click is intercepted only to avoid a full page load.
  */
-export function RouteLink({ to, label, current, onNavigate, className }: {
+export function RouteLink({
+  to,
+  label,
+  current,
+  onNavigate,
+  className,
+}: {
   to: string;
   label: string;
   current: boolean;

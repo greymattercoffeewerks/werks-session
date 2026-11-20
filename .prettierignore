@@ -1,0 +1,13 @@
+# Generated or vendored files, and hand-written prose, are not reformatted.
+node_modules
+dist
+coverage
+test-results
+playwright-report
+.firebase
+public
+content-drafts
+package-lock.json
+firestore.rules
+firestore.indexes.json
+*.md

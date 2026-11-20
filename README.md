@@ -17,6 +17,7 @@ The live MVP runs on Firebase Spark. The public site is hosted on Firebase Hosti
 2. Install root dependencies: `npm.cmd install`.
 3. Install Functions dependencies only when working on the future Blaze-compatible backend: `npm.cmd install --prefix functions`.
 4. Run `npm.cmd run dev` for the interface or `npm.cmd run build` for a production build.
+5. Format with `npm.cmd run format`; `npm.cmd run format:check` runs inside the verification gate.
 
 The public Spark launch does not require Firebase browser configuration. Do not deploy Functions from this repository while the project remains on Spark.
 

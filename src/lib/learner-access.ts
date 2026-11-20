@@ -10,9 +10,7 @@ export type ConfirmedSession = {
   offeringId: OfferingKind | null;
 };
 
-export type LearnerAccess =
-  | { state: 'pending' }
-  | { state: 'confirmed'; sessions: ConfirmedSession[] };
+export type LearnerAccess = { state: 'pending' } | { state: 'confirmed'; sessions: ConfirmedSession[] };
 
 function nonBlankString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
@@ -38,31 +36,35 @@ export async function loadLearnerAccess(uid: string): Promise<LearnerAccess> {
     return { state: 'pending' };
   }
 
-  const enrolments = await getDocs(query(
-    collection(database, 'enrolments'),
-    where('uid', '==', uid),
-    where('personId', '==', grantData.personId),
-    where('status', '==', 'confirmed'),
-  ));
+  const enrolments = await getDocs(
+    query(
+      collection(database, 'enrolments'),
+      where('uid', '==', uid),
+      where('personId', '==', grantData.personId),
+      where('status', '==', 'confirmed'),
+    ),
+  );
 
-  const sessions = await Promise.all(enrolments.docs.map(async (enrolment) => {
-    const sessionId = enrolment.data().sessionId;
-    if (!nonBlankString(sessionId)) {
-      return null;
-    }
+  const sessions = await Promise.all(
+    enrolments.docs.map(async (enrolment) => {
+      const sessionId = enrolment.data().sessionId;
+      if (!nonBlankString(sessionId)) {
+        return null;
+      }
 
-    const session = await getDoc(doc(database, 'sessions', sessionId));
-    if (!session.exists()) {
-      return null;
-    }
+      const session = await getDoc(doc(database, 'sessions', sessionId));
+      if (!session.exists()) {
+        return null;
+      }
 
-    const { title, offeringId } = session.data();
-    return {
-      id: session.id,
-      title: nonBlankString(title) ? title : 'Confirmed session',
-      offeringId: parseOfferingKind(offeringId),
-    };
-  }));
+      const { title, offeringId } = session.data();
+      return {
+        id: session.id,
+        title: nonBlankString(title) ? title : 'Confirmed session',
+        offeringId: parseOfferingKind(offeringId),
+      };
+    }),
+  );
 
   return { state: 'confirmed', sessions: sessions.filter((session): session is ConfirmedSession => session !== null) };
 }

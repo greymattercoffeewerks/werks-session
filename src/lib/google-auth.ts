@@ -41,8 +41,10 @@ export async function signOut(): Promise<void> {
 
 export function authErrorMessage(error: unknown): string {
   const code = typeof error === 'object' && error && 'code' in error ? String(error.code) : '';
-  if (code === 'auth/popup-closed-by-user') return 'Sign-in was closed before it finished. You can try again when you are ready.';
-  if (code === 'auth/popup-blocked') return 'Your browser blocked the sign-in window. Allow pop-ups for this site, then try again.';
+  if (code === 'auth/popup-closed-by-user')
+    return 'Sign-in was closed before it finished. You can try again when you are ready.';
+  if (code === 'auth/popup-blocked')
+    return 'Your browser blocked the sign-in window. Allow pop-ups for this site, then try again.';
   if (code === 'auth/operation-not-allowed') return 'Google sign-in is not enabled yet. Please contact Werks Sessions.';
   return 'We could not complete sign-in. Please try again or contact Werks Sessions.';
 }

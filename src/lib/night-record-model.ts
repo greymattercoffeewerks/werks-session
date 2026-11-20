@@ -1,7 +1,7 @@
 export const nightSeatIds = ['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9', 's10', 's11', 's12'] as const;
-export type NightSeatId = typeof nightSeatIds[number];
+export type NightSeatId = (typeof nightSeatIds)[number];
 export const nightCups = [1, 2, 3, 4] as const;
-export type NightCup = typeof nightCups[number];
+export type NightCup = (typeof nightCups)[number];
 export type NightAnswer = '' | 'yes' | 'no';
 
 export type NightSeat = { cup: NightCup | null; buy: NightAnswer; bought: NightAnswer; words: string };
@@ -56,7 +56,19 @@ export function emptyNightSeat(): NightSeat {
 
 export function emptyNightRecord(host = '', now: Date = new Date()): NightRecord {
   const seats = Object.fromEntries(nightSeatIds.map((id) => [id, emptyNightSeat()])) as Record<NightSeatId, NightSeat>;
-  return { status: 'draft', date: todayIso(now), theme: '', host, guests: 0, redeemed: 0, flight: ['', '', '', ''], seats, tally: {}, words: [], notes: '' };
+  return {
+    status: 'draft',
+    date: todayIso(now),
+    theme: '',
+    host,
+    guests: 0,
+    redeemed: 0,
+    flight: ['', '', '', ''],
+    seats,
+    tally: {},
+    words: [],
+    notes: '',
+  };
 }
 
 function text(value: unknown, max: number): string {
@@ -74,17 +86,29 @@ function answer(value: unknown): NightAnswer {
 
 /** Narrows a stored document into a form-ready record. Anything malformed becomes blank rather than throwing. */
 export function parseNightRecord(value: unknown): NightRecord {
-  const source = value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+  const source = value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
   const base = emptyNightRecord('', new Date(0));
-  const sourceSeats = source.seats && typeof source.seats === 'object' && !Array.isArray(source.seats) ? source.seats as Record<string, unknown> : {};
-  const seats = Object.fromEntries(nightSeatIds.map((id) => {
-    const seat = sourceSeats[id] && typeof sourceSeats[id] === 'object' ? sourceSeats[id] as Record<string, unknown> : {};
-    const cup = typeof seat.cup === 'number' && (nightCups as readonly number[]).includes(seat.cup) ? seat.cup as NightCup : null;
-    return [id, { cup, buy: answer(seat.buy), bought: answer(seat.bought), words: text(seat.words, limits.words) }];
-  })) as Record<NightSeatId, NightSeat>;
+  const sourceSeats =
+    source.seats && typeof source.seats === 'object' && !Array.isArray(source.seats)
+      ? (source.seats as Record<string, unknown>)
+      : {};
+  const seats = Object.fromEntries(
+    nightSeatIds.map((id) => {
+      const seat =
+        sourceSeats[id] && typeof sourceSeats[id] === 'object' ? (sourceSeats[id] as Record<string, unknown>) : {};
+      const cup =
+        typeof seat.cup === 'number' && (nightCups as readonly number[]).includes(seat.cup)
+          ? (seat.cup as NightCup)
+          : null;
+      return [id, { cup, buy: answer(seat.buy), bought: answer(seat.bought), words: text(seat.words, limits.words) }];
+    }),
+  ) as Record<NightSeatId, NightSeat>;
 
   const sourceFlight = Array.isArray(source.flight) ? source.flight : [];
-  const sourceTally = source.tally && typeof source.tally === 'object' && !Array.isArray(source.tally) ? source.tally as Record<string, unknown> : {};
+  const sourceTally =
+    source.tally && typeof source.tally === 'object' && !Array.isArray(source.tally)
+      ? (source.tally as Record<string, unknown>)
+      : {};
   const tally: Record<string, number> = {};
   tallyKeys.forEach((key) => {
     if (sourceTally[key] !== undefined) tally[key] = count(sourceTally[key], limits.guests);
@@ -101,7 +125,12 @@ export function parseNightRecord(value: unknown): NightRecord {
     flight: [0, 1, 2, 3].map((index) => text(sourceFlight[index], limits.short)) as NightRecord['flight'],
     seats,
     tally,
-    words: Array.isArray(source.words) ? source.words.map((word) => text(word, limits.listWord)).filter(Boolean).slice(0, limits.listItems) : [],
+    words: Array.isArray(source.words)
+      ? source.words
+          .map((word) => text(word, limits.listWord))
+          .filter(Boolean)
+          .slice(0, limits.listItems)
+      : [],
     notes: text(source.notes, limits.notes),
     ...(typeof source.hostUid === 'string' && source.hostUid ? { hostUid: source.hostUid } : {}),
     ...(source.createdAt ? { createdAt: source.createdAt } : {}),
@@ -152,16 +181,23 @@ export type NightTrends = {
 };
 
 export function summariseTrends(entries: NightEntry[]): NightTrends {
-  const totals = entries.reduce((sum, entry) => {
-    const summary = summariseNight(entry.record);
-    return {
-      guests: sum.guests + (entry.record.guests || summary.guestsCounted),
-      wouldBuyYes: sum.wouldBuyYes + summary.wouldBuyYes,
-      bought: sum.bought + summary.bought,
-      converted: sum.converted + summary.converted,
-    };
-  }, { guests: 0, wouldBuyYes: 0, bought: 0, converted: 0 });
-  return { nights: entries.length, ...totals, conversion: totals.wouldBuyYes > 0 ? totals.converted / totals.wouldBuyYes : null };
+  const totals = entries.reduce(
+    (sum, entry) => {
+      const summary = summariseNight(entry.record);
+      return {
+        guests: sum.guests + (entry.record.guests || summary.guestsCounted),
+        wouldBuyYes: sum.wouldBuyYes + summary.wouldBuyYes,
+        bought: sum.bought + summary.bought,
+        converted: sum.converted + summary.converted,
+      };
+    },
+    { guests: 0, wouldBuyYes: 0, bought: 0, converted: 0 },
+  );
+  return {
+    nights: entries.length,
+    ...totals,
+    conversion: totals.wouldBuyYes > 0 ? totals.converted / totals.wouldBuyYes : null,
+  };
 }
 
 /** Spreadsheet formulas can run when a CSV cell begins with one of these characters, so they are neutralised. */
@@ -171,7 +207,22 @@ function csvCell(value: string | number): string {
   return /[",\n\r]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
 }
 
-const csvHeader = ['session_id', 'session', 'date', 'theme', 'host', 'status', 'guests', 'redeemed', 'seat', 'first_cup', 'first_cup_coffee', 'would_buy', 'bought', 'words_heard'];
+const csvHeader = [
+  'session_id',
+  'session',
+  'date',
+  'theme',
+  'host',
+  'status',
+  'guests',
+  'redeemed',
+  'seat',
+  'first_cup',
+  'first_cup_coffee',
+  'would_buy',
+  'bought',
+  'words_heard',
+];
 
 /** One row per seat that has data, with the night's details repeated, ready for a spreadsheet. */
 export function nightRecordsToCsv(entries: NightEntry[]): string {
@@ -180,10 +231,26 @@ export function nightRecordsToCsv(entries: NightEntry[]): string {
     nightSeatIds.forEach((id, index) => {
       const seat = record.seats[id];
       if (!seatHasData(seat)) return;
-      rows.push([
-        sessionId, sessionTitle, record.date, record.theme, record.host, record.status, record.guests, record.redeemed,
-        index + 1, seat.cup ?? '', seat.cup ? record.flight[seat.cup - 1] : '', seat.buy, seat.bought, seat.words,
-      ].map(csvCell).join(','));
+      rows.push(
+        [
+          sessionId,
+          sessionTitle,
+          record.date,
+          record.theme,
+          record.host,
+          record.status,
+          record.guests,
+          record.redeemed,
+          index + 1,
+          seat.cup ?? '',
+          seat.cup ? record.flight[seat.cup - 1] : '',
+          seat.buy,
+          seat.bought,
+          seat.words,
+        ]
+          .map(csvCell)
+          .join(','),
+      );
     });
   });
   return rows.join('\r\n') + '\r\n';

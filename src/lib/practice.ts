@@ -2,7 +2,7 @@ import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firest
 import { firestore } from './firebase';
 
 export const practiceWeekIds = ['week1', 'week2', 'week3', 'week4'] as const;
-export type PracticeWeekId = typeof practiceWeekIds[number];
+export type PracticeWeekId = (typeof practiceWeekIds)[number];
 
 export type PracticeWeek = {
   focus: string;
@@ -47,10 +47,11 @@ function nonBlankString(value: unknown): value is string {
 }
 
 export function practiceWeek(value: unknown): PracticeWeek {
-  const source = value && typeof value === 'object' ? value as Record<string, unknown> : {};
-  const status = source.status === 'submitted' || source.status === 'returned' || source.status === 'approved'
-    ? source.status
-    : 'draft';
+  const source = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+  const status =
+    source.status === 'submitted' || source.status === 'returned' || source.status === 'approved'
+      ? source.status
+      : 'draft';
   return {
     focus: nonBlankString(source.focus) ? source.focus : '',
     coffee: nonBlankString(source.coffee) ? source.coffee : '',
@@ -65,7 +66,7 @@ export function practiceWeek(value: unknown): PracticeWeek {
 }
 
 function readChallenge(value: Record<string, unknown>): PracticeChallenge {
-  const sourceWeeks = value.weeks && typeof value.weeks === 'object' ? value.weeks as Record<string, unknown> : {};
+  const sourceWeeks = value.weeks && typeof value.weeks === 'object' ? (value.weeks as Record<string, unknown>) : {};
   const status = value.status === 'submitted' || value.status === 'returned' ? value.status : 'in_progress';
   return {
     status,
@@ -123,7 +124,12 @@ export async function savePracticeChallenge(sessionId: string, uid: string, week
   });
 }
 
-export async function submitPracticeWeek(sessionId: string, uid: string, weekId: PracticeWeekId, weeks: PracticeWeeks): Promise<void> {
+export async function submitPracticeWeek(
+  sessionId: string,
+  uid: string,
+  weekId: PracticeWeekId,
+  weeks: PracticeWeeks,
+): Promise<void> {
   const submittedWeeks: PracticeWeeks = {
     ...weeks,
     [weekId]: { ...weeks[weekId], status: 'submitted' },
