@@ -1329,6 +1329,12 @@ footer {
   gap: var(--gm-space-5);
   margin-top: var(--gm-space-12);
 }
+.night-record-tools {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gm-space-3);
+}
 .night-record-heading {
   align-items: flex-end;
   border-top: var(--gm-border-ink);
@@ -1530,6 +1536,26 @@ footer {
   font-size: var(--gm-text-lg);
   font-weight: var(--gm-w-bold);
   text-transform: uppercase;
+}
+.night-trend-summary {
+  line-height: var(--gm-leading-body);
+  margin: 0;
+}
+.nights-table td:last-child,
+.nights-table th:last-child {
+  text-align: right;
+}
+.nights-table a {
+  color: inherit;
+  font: var(--font-label);
+  text-transform: uppercase;
+}
+.nights-table a:hover {
+  text-decoration: underline;
+}
+.night-row-empty th,
+.night-row-empty td {
+  color: var(--text-muted);
 }
 @media (max-width: 760px) {
   .night-record-heading,

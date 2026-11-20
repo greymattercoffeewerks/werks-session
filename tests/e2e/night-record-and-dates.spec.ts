@@ -24,6 +24,7 @@ test('the host records a Public Cupping night and it survives a reload', async (
 
   await reopenAccess(page);
   await page.getByRole('link', { name: 'Nights', exact: true }).click();
+  await page.getByRole('link', { name: /^(Open|Record) Public Cupping$/ }).click();
   const nightRecord = page.getByRole('region', { name: 'Record a night' });
   await expect(nightRecord).toBeVisible();
 
@@ -37,9 +38,10 @@ test('the host records a Public Cupping night and it survives a reload', async (
 
   await reopenAccess(page);
   await page.getByRole('link', { name: 'Nights', exact: true }).click();
+  await page.getByRole('link', { name: /^(Open|Record) Public Cupping$/ }).click();
   await expect(nightRecord.getByLabel('Date', { exact: true })).toHaveValue(futureDate);
   await expect(nightRecord.getByLabel('Theme', { exact: true })).toHaveValue('Range Night');
-  await expect(nightRecord.getByRole('button', { name: 'Download CSV' })).toBeVisible();
+  await expect(nightRecord.getByRole('button', { name: 'Download this night' })).toBeVisible();
 
   await environment.cleanup();
 });
@@ -112,10 +114,12 @@ test('an instructor who did not host a night sees that record read-only', async 
 
   await reopenAccess(page);
   await page.getByRole('link', { name: 'Nights', exact: true }).click();
+  await page.getByRole('link', { name: /^(Open|Record) Public Cupping$/ }).click();
   const nightRecord = page.getByRole('region', { name: 'Record a night' });
   await expect(nightRecord).toBeVisible();
   await expect(nightRecord.getByText('Only the host who created this record can edit it.')).toBeVisible();
   await expect(nightRecord.getByRole('button', { name: 'Save draft' })).toHaveCount(0);
+  await expect(nightRecord.getByRole('button', { name: 'Download this night' })).toBeEnabled();
   await expect(nightRecord.getByRole('button', { name: 'Save as final' })).toHaveCount(0);
   await expect(nightRecord.getByLabel('Theme', { exact: true })).toBeDisabled();
   await expect(nightRecord.getByLabel('Theme', { exact: true })).toHaveValue('Range Night');
