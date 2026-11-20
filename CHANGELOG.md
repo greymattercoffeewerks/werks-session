@@ -6,6 +6,7 @@ All notable user-visible, operational, and security-impacting changes are record
 
 ### Changed
 
+- Nights now has a list and a detail page instead of loading every record with the form. `/instructor/nights` shows one row per assigned Public Cupping session — date, theme, host, guests, would-buy and bought counts, status — newest first, ten at a time with "Show more", plus a summary across the nights shown. Opening a row loads only that night at `/instructor/nights/<sessionId>`, with a "Download this night" CSV and an "All nights" link that asks before discarding unsaved edits. Unknown or unassigned night URLs are refused. The overview's "Open nights" link still lands on the list.
 - Brew 101 practice is now stored one document per week instead of one map of all four weeks on the learner's record. The instructor review queue and Reviewed history page through ten weeks at a time with a "Load more" control, backed by collection-group queries rather than reading every learner document, and an instructor can no longer read a week that is still a draft. The learner experience is unchanged: save, submit, return, and resubmit work as before, with each write touching only its own week.
 
 ### Security

@@ -7,10 +7,8 @@ import {
   nightRecordsToCsv,
   nightSeatIds,
   summariseNight,
-  summariseTrends,
   type NightAnswer,
   type NightCup,
-  type NightEntry,
   type NightRecord,
   type NightSeat,
   type NightSeatId,
@@ -41,10 +39,12 @@ export function NightRecordWorkspace({
   sessions,
   uid,
   hostName,
+  onBack,
 }: {
   sessions: InstructorSession[];
   uid: string;
   hostName: string;
+  onBack?: () => void;
 }) {
   const [selectedId, setSelectedId] = useState(sessions[0]?.id ?? '');
   const [saved, setSaved] = useState<Record<string, NightRecord | null> | undefined>(undefined);
@@ -142,17 +142,6 @@ export function NightRecordWorkspace({
   };
 
   const summary = useMemo(() => summariseNight(draft), [draft]);
-  const entries: NightEntry[] = useMemo(
-    () =>
-      sessions.flatMap((session) =>
-        saved?.[session.id]
-          ? [{ sessionId: session.id, sessionTitle: session.title, record: saved[session.id] as NightRecord }]
-          : [],
-      ),
-    [sessions, saved],
-  );
-  const trends = useMemo(() => summariseTrends(entries), [entries]);
-
   if (saved === undefined) {
     return (
       <section className="panel night-record" aria-live="polite">
@@ -169,18 +158,52 @@ export function NightRecordWorkspace({
           <h2 id="night-record-heading">Record a night</h2>
           <p>One record per night. Seat numbers and choices only: no guest names or contact details.</p>
         </div>
-        {sessions.length > 1 && (
-          <label>
-            Session
-            <select value={selectedId} onChange={(event) => selectSession(event.target.value)}>
-              {sessions.map((session) => (
-                <option key={session.id} value={session.id}>
-                  {session.title}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
+        <div className="night-record-tools">
+          {onBack && (
+            <button
+              className="button secondary"
+              type="button"
+              onClick={() => {
+                if (dirty && !window.confirm('Discard the unsaved changes to this night record?')) return;
+                onBack();
+              }}
+            >
+              All nights
+            </button>
+          )}
+          {storedRecord && (
+            <button
+              className="button secondary"
+              type="button"
+              onClick={() =>
+                downloadCsv(
+                  `public-cupping-${storedRecord.date || 'night'}.csv`,
+                  nightRecordsToCsv([
+                    {
+                      sessionId: selectedId,
+                      sessionTitle: sessions[0]?.title ?? 'Public Cupping',
+                      record: storedRecord,
+                    },
+                  ]),
+                )
+              }
+            >
+              Download this night
+            </button>
+          )}
+          {sessions.length > 1 && (
+            <label>
+              Session
+              <select value={selectedId} onChange={(event) => selectSession(event.target.value)}>
+                {sessions.map((session) => (
+                  <option key={session.id} value={session.id}>
+                    {session.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
       </div>
 
       <form className="panel night-form" onSubmit={(event) => event.preventDefault()}>
@@ -429,56 +452,6 @@ export function NightRecordWorkspace({
           </p>
         )}
       </form>
-
-      {entries.length > 0 && (
-        <section className="panel night-trends" aria-labelledby="night-trends-heading">
-          <div className="night-trends-heading">
-            <h3 id="night-trends-heading">Across your nights</h3>
-            <button
-              className="button secondary"
-              type="button"
-              onClick={() => downloadCsv('public-cupping-nights.csv', nightRecordsToCsv(entries))}
-            >
-              Download CSV
-            </button>
-          </div>
-          <p>
-            {trends.nights} {trends.nights === 1 ? 'night' : 'nights'}, {trends.guests} guests, {trends.wouldBuyYes}{' '}
-            would buy, {trends.bought} bought. Of those who said yes, {percent(trends.conversion)} bought.
-          </p>
-          <div className="night-table-wrap">
-            <table className="night-trend-table">
-              <thead>
-                <tr>
-                  <th scope="col">Date</th>
-                  <th scope="col">Theme</th>
-                  <th scope="col">Guests</th>
-                  <th scope="col">Would buy</th>
-                  <th scope="col">Bought</th>
-                  <th scope="col">Said yes and bought</th>
-                  <th scope="col">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {entries.map(({ sessionId, record }) => {
-                  const nightSummary = summariseNight(record);
-                  return (
-                    <tr key={sessionId}>
-                      <th scope="row">{record.date || '–'}</th>
-                      <td>{record.theme || '–'}</td>
-                      <td>{record.guests || nightSummary.guestsCounted}</td>
-                      <td>{nightSummary.wouldBuyYes}</td>
-                      <td>{nightSummary.bought}</td>
-                      <td>{percent(nightSummary.conversion)}</td>
-                      <td>{record.status}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
     </section>
   );
 }

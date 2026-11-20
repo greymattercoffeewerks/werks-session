@@ -539,10 +539,82 @@ describe('portal navigation and interest registration', () => {
     learnerAccessMock.loadLearnerAccess.mockResolvedValueOnce({ state: 'pending' });
     instructorAccessMock.loadInstructorAccess.mockResolvedValueOnce(assignedAccess(options));
   };
+  const openNight = async (title = 'Range Night') => {
+    await openInstructorTab('Nights');
+    const pattern = new RegExp('^(Open|Record) ' + title + '$');
+    fireEvent.click(await screen.findByRole('link', { name: pattern }));
+  };
   const cuppingSession = { id: 'cupping-01', title: 'Range Night', offeringId: 'cupping' };
   const secondCuppingSession = { id: 'cupping-02', title: 'Second Night', offeringId: 'cupping' };
 
-  it('keeps unsaved night-record edits when a session switch is cancelled', async () => {
+  it('lists every assigned night with its numbers and opens one at a time', async () => {
+    signInAsInstructor({ sessions: [cuppingSession, secondCuppingSession] });
+    nightMock.loadNightRecord.mockImplementation((sessionId: string) =>
+      Promise.resolve(
+        sessionId === 'cupping-01'
+          ? parseNightRecord({
+              status: 'final',
+              date: '2026-10-24',
+              theme: 'Range Night',
+              host: 'Firdaus',
+              guests: 2,
+              hostUid: 'instructor-uid',
+              createdAt: 'stored',
+              seats: { s1: { cup: 1, buy: 'yes', bought: 'yes', words: '' } },
+            })
+          : null,
+      ),
+    );
+
+    render(<App />);
+    fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
+    await openInstructorTab('Nights');
+
+    expect(await screen.findByRole('heading', { name: 'Your nights' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open Range Night' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Record Second Night' })).toBeInTheDocument();
+    expect(screen.getByText('No record')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('link', { name: 'Open Range Night' }));
+    expect(await screen.findByRole('heading', { name: 'Record a night' })).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/instructor/nights/cupping-01');
+
+    fireEvent.click(screen.getByRole('button', { name: 'All nights' }));
+    expect(await screen.findByRole('heading', { name: 'Your nights' })).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/instructor/nights');
+  });
+
+  it('opens a night from a deep link', async () => {
+    signInAsInstructor({ sessions: [cuppingSession] });
+    nightMock.loadNightRecord.mockResolvedValue(null);
+    window.history.replaceState({}, '', '/instructor/nights/cupping-01');
+
+    render(<App />);
+
+    expect(await screen.findByRole('heading', { name: 'Record a night' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'All nights' })).toBeInTheDocument();
+  });
+
+  it('tells an instructor when a night URL is not theirs', async () => {
+    signInAsInstructor({ sessions: [cuppingSession] });
+    window.history.replaceState({}, '', '/instructor/nights/someone-elses-night');
+
+    render(<App />);
+
+    expect(await screen.findByText('That night is not assigned to you.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'All nights' })).toBeInTheDocument();
+  });
+
+  it('refuses a malformed night URL instead of blanking the page', async () => {
+    signInAsInstructor({ sessions: [cuppingSession] });
+    window.history.replaceState({}, '', '/instructor/nights/%');
+
+    render(<App />);
+
+    expect(await screen.findByText('That night is not assigned to you.')).toBeInTheDocument();
+  });
+
+  it('keeps unsaved night-record edits when leaving the night is cancelled', async () => {
     signInAsInstructor({ sessions: [cuppingSession, secondCuppingSession] });
     nightMock.loadNightRecord.mockResolvedValue(null);
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
@@ -550,28 +622,75 @@ describe('portal navigation and interest registration', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
     await openInstructorTab('Nights');
+    // Both assigned cupping sessions are rows before any record exists.
+    expect(await screen.findByRole('link', { name: 'Record Second Night' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('link', { name: 'Record Range Night' }));
 
-    const nightRecord = await screen.findByRole('region', { name: 'Record a night' });
-    const sessionSelect = within(nightRecord).getByLabelText('Session');
-
-    fireEvent.change(screen.getByLabelText('Theme'), { target: { value: 'Unsaved theme' } });
+    fireEvent.change(await screen.findByLabelText('Theme'), { target: { value: 'Unsaved theme' } });
     expect(screen.getByText('Unsaved changes')).toBeInTheDocument();
 
-    fireEvent.change(sessionSelect, { target: { value: 'cupping-02' } });
+    fireEvent.click(screen.getByRole('button', { name: 'All nights' }));
     expect(confirmSpy).toHaveBeenCalledWith('Discard the unsaved changes to this night record?');
     expect(screen.getByLabelText('Theme')).toHaveValue('Unsaved theme');
-    expect(sessionSelect).toHaveValue('cupping-01');
 
     confirmSpy.mockReturnValue(true);
-    fireEvent.change(sessionSelect, { target: { value: 'cupping-02' } });
-    expect(screen.getByLabelText('Theme')).toHaveValue('');
-    expect(screen.getByText('Status: draft')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'All nights' }));
+    expect(await screen.findByRole('heading', { name: 'Your nights' })).toBeInTheDocument();
     confirmSpy.mockRestore();
+  });
+
+  it('keeps an unsaved night draft across a tab switch', async () => {
+    signInAsInstructor({ sessions: [cuppingSession] });
+    nightMock.loadNightRecord.mockResolvedValue(null);
+
+    render(<App />);
+    fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
+    await openNight();
+    fireEvent.change(await screen.findByLabelText('Theme'), { target: { value: 'Draft theme' } });
+
+    await openInstructorTab('Review');
+    await openInstructorTab('Nights');
+    // The list returns; opening the same night brings the unsaved draft back.
+    fireEvent.click(await screen.findByRole('link', { name: 'Record Range Night' }));
+
+    expect(screen.getByLabelText('Theme')).toHaveValue('Draft theme');
+    expect(screen.getByText('Unsaved changes')).toBeInTheDocument();
+  });
+
+  it('shows ten nights at a time and reveals the rest on request', async () => {
+    const many = Array.from({ length: 11 }, (_, index) => ({
+      id: 'night-' + (index + 1),
+      title: 'Night ' + (index + 1),
+      offeringId: 'cupping',
+    }));
+    signInAsInstructor({ sessions: many });
+    nightMock.loadNightRecord.mockResolvedValue(null);
+
+    render(<App />);
+    fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
+    await openInstructorTab('Nights');
+
+    expect(await screen.findByText('Showing 10 of 11 nights.')).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: /^Record Night/ })).toHaveLength(10);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show more nights' }));
+    expect(screen.getAllByRole('link', { name: /^Record Night/ })).toHaveLength(11);
+  });
+
+  it('says a night could not be loaded instead of calling it unrecorded', async () => {
+    signInAsInstructor({ sessions: [cuppingSession] });
+    nightMock.loadNightRecord.mockRejectedValueOnce(new Error('permission-denied'));
+
+    render(<App />);
+    fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
+    await openInstructorTab('Nights');
+
+    expect((await screen.findAllByText('Could not load')).length).toBeGreaterThan(0);
   });
 
   it('gives a cupping-only instructor the night record instead of the review queue, and saves it', async () => {
     signInAsInstructor({ sessions: [cuppingSession] });
-    nightMock.loadNightRecord.mockResolvedValueOnce(null).mockResolvedValueOnce(
+    nightMock.loadNightRecord.mockResolvedValue(
       parseNightRecord({
         status: 'final',
         date: '2026-10-24',
@@ -592,7 +711,7 @@ describe('portal navigation and interest registration', () => {
     expect(screen.getByText('1 session assigned.')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Record a night' })).not.toBeInTheDocument();
 
-    await openInstructorTab('Nights');
+    await openNight();
     expect(await screen.findByRole('heading', { name: 'Record a night' })).toBeInTheDocument();
     expect(screen.getByLabelText('Host')).toHaveValue('Firdaus');
 
@@ -619,12 +738,12 @@ describe('portal navigation and interest registration', () => {
         tally: { r1c2: 5 },
       }),
     );
-    expect(nightMock.loadNightRecord).toHaveBeenCalledTimes(2);
+    expect(nightMock.loadNightRecord).toHaveBeenCalledTimes(3);
   });
 
   it("shows another host's night record read-only instead of offering a save that the Rules refuse", async () => {
     signInAsInstructor({ sessions: [cuppingSession] });
-    nightMock.loadNightRecord.mockResolvedValueOnce(
+    nightMock.loadNightRecord.mockResolvedValue(
       parseNightRecord({
         status: 'final',
         date: '2026-10-24',
@@ -638,7 +757,7 @@ describe('portal navigation and interest registration', () => {
 
     render(<App />);
     fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
-    await openInstructorTab('Nights');
+    await openNight();
 
     expect(await screen.findByRole('heading', { name: 'Record a night' })).toBeInTheDocument();
     expect(
@@ -647,6 +766,7 @@ describe('portal navigation and interest registration', () => {
     expect(screen.queryByRole('button', { name: 'Save draft' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Save as final' })).not.toBeInTheDocument();
     expect(document.querySelector('fieldset.night-readonly')).toHaveAttribute('disabled');
+    expect(screen.getByRole('button', { name: 'Download this night' })).toBeEnabled();
     expect(screen.getByLabelText('Theme')).toHaveValue('Range Night');
   });
 
@@ -661,7 +781,7 @@ describe('portal navigation and interest registration', () => {
     expect(await screen.findByRole('heading', { name: 'What needs you now.' })).toBeInTheDocument();
     await openInstructorTab('Review');
     expect(await screen.findByRole('heading', { name: 'No submitted weeks are waiting.' })).toBeInTheDocument();
-    await openInstructorTab('Nights');
+    await openNight();
     expect(await screen.findByRole('heading', { name: 'Record a night' })).toBeInTheDocument();
   });
 
@@ -687,7 +807,7 @@ describe('portal navigation and interest registration', () => {
 
     render(<App />);
     fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
-    await openInstructorTab('Nights');
+    await openNight();
     await screen.findByRole('heading', { name: 'Record a night' });
     fireEvent.click(screen.getByRole('button', { name: 'Save draft' }));
 
@@ -723,11 +843,13 @@ describe('portal navigation and interest registration', () => {
     fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
     await openInstructorTab('Nights');
 
-    expect(await screen.findByRole('heading', { name: 'Across your nights' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Your nights' })).toBeInTheDocument();
     expect(
-      screen.getByText(/1 night, 4 guests, 2 would buy, 1 bought\. Of those who said yes, 50% bought\./),
+      screen.getByText(
+        /Across the 1 recorded night shown: 4 guests, 2 would buy, 1 bought\. Of those who said yes, 50% bought\./,
+      ),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Download CSV' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Download this page' }));
 
     expect(createObjectURL).toHaveBeenCalledTimes(1);
     const blob = (createObjectURL.mock.calls[0] as unknown as [Blob])[0];

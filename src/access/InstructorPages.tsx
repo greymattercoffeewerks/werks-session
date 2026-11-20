@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { User } from 'firebase/auth';
 import { NightRecordWorkspace } from '../NightRecordWorkspace';
+import { NightsList } from '../NightsList';
 import { ScheduleEditor } from '../ScheduleEditor';
 import {
   reviewPracticeWeek,
@@ -32,6 +33,16 @@ const routes = [
 ] as const;
 
 type Section = 'overview' | 'review' | 'nights' | 'dates';
+
+function nightIdFromPath(path: string): string {
+  if (!path.startsWith('/instructor/nights/')) return '';
+  try {
+    return decodeURIComponent(path.slice('/instructor/nights/'.length));
+  } catch {
+    // A malformed escape (for example a lone %) is an id that cannot match any session.
+    return 'invalid-night-id';
+  }
+}
 
 function sectionFor(path: string): Section {
   if (path.startsWith('/instructor/review')) return 'review';
@@ -74,15 +85,24 @@ export function InstructorShell({
 }) {
   const path = usePathname();
   const section = sectionFor(path);
+  const nightId = nightIdFromPath(path);
   const cuppingSessions = access.sessions.filter((session) => session.offeringId === 'cupping');
+  const nightSession = nightId ? cuppingSessions.find((session) => session.id === nightId) : undefined;
+  const nightSessionId = nightSession?.id;
   const waiting = access.reviews.length;
   // A page is mounted the first time it is opened and then kept alive but hidden, so
   // switching tabs does not throw away a half-typed review or an unsaved night record.
   const [opened, setOpened] = useState<Set<Section>>(() => new Set(['overview']));
+  const [openNightId, setOpenNightId] = useState<string | null>(null);
 
   useEffect(() => {
     setOpened((current) => (current.has(section) ? current : new Set(current).add(section)));
   }, [section]);
+
+  // Keep the opened night mounted so a tab switch or history move cannot discard a draft.
+  useEffect(() => {
+    if (nightSessionId) setOpenNightId((current) => (current === nightSessionId ? current : nightSessionId));
+  }, [nightSessionId]);
 
   useEffect(() => {
     document.getElementById('instructor-page-heading')?.focus();
@@ -131,10 +151,40 @@ export function InstructorShell({
       </div>
       <div hidden={section !== 'nights'}>
         {opened.has('nights') &&
-          (cuppingSessions.length > 0 ? (
-            <NightRecordWorkspace sessions={cuppingSessions} uid={account.uid} hostName={account.displayName ?? ''} />
-          ) : (
+          (cuppingSessions.length === 0 ? (
             <p className="panel review-empty">No Public Cupping sessions are assigned to you.</p>
+          ) : (
+            <>
+              <div hidden={Boolean(nightId)}>
+                <NightsList sessions={cuppingSessions} />
+              </div>
+              {nightId && !nightSession && (
+                <p className="panel review-empty">
+                  That night is not assigned to you.{' '}
+                  <RouteLink to="/instructor/nights" label="All nights" current={false} onNavigate={navigate} />
+                </p>
+              )}
+              {openNightId && (
+                <div hidden={!nightSession}>
+                  {(() => {
+                    const openSession = cuppingSessions.find((session) => session.id === openNightId);
+                    if (!openSession) return null;
+                    return (
+                      <NightRecordWorkspace
+                        key={openSession.id}
+                        sessions={[openSession]}
+                        uid={account.uid}
+                        hostName={account.displayName ?? ''}
+                        onBack={() => {
+                          setOpenNightId(null);
+                          navigate('/instructor/nights');
+                        }}
+                      />
+                    );
+                  })()}
+                </div>
+              )}
+            </>
           ))}
       </div>
       <div hidden={section !== 'dates'}>{opened.has('dates') && <ScheduleEditor />}</div>
