@@ -62,75 +62,67 @@ service cloud.firestore {
         && d.updatedAt == request.time;
     }
     function validNewChallenge(sessionId, uid) {
-      return request.resource.data.keys().hasOnly(['sessionId', 'ownerUid', 'personId', 'status', 'weeks', 'createdAt', 'updatedAt'])
+      return request.resource.data.keys().hasOnly(['sessionId', 'ownerUid', 'personId', 'createdAt', 'updatedAt'])
         && request.resource.data.sessionId == sessionId
         && request.resource.data.ownerUid == uid
         && request.resource.data.personId == accessGrant().data.personId
-        && request.resource.data.status == 'in_progress';
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
     }
-    function completedWeek(week) {
-      return week.keys().hasAll(['focus', 'coffee', 'recipe', 'tastingNote', 'changeMade', 'complete', 'status'])
-        && nonBlank(week.focus)
+    function weekText(value) { return value is string && value.size() <= 2000; }
+    function validNewWeek(sessionId, uid, weekId) {
+      return request.resource.data.keys().hasOnly(['sessionId', 'learnerUid', 'weekId', 'focus', 'coffee', 'recipe', 'tastingNote', 'changeMade', 'complete', 'status', 'updatedAt'])
+        && request.resource.data.sessionId == sessionId
+        && request.resource.data.learnerUid == uid
+        && request.resource.data.weekId == weekId
+        && weekId in ['week1', 'week2', 'week3', 'week4']
+        && weekText(request.resource.data.focus)
+        && weekText(request.resource.data.coffee)
+        && weekText(request.resource.data.recipe)
+        && weekText(request.resource.data.tastingNote)
+        && weekText(request.resource.data.changeMade)
+        && request.resource.data.status == 'draft'
+        && request.resource.data.complete == false
+        && request.resource.data.updatedAt == request.time;
+    }
+    function nonBlank(value) { return value is string && value.matches('.*[^\\s].*'); }
+    function weekComplete(week) {
+      return nonBlank(week.focus)
         && nonBlank(week.coffee)
         && nonBlank(week.recipe)
         && nonBlank(week.tastingNote)
         && nonBlank(week.changeMade)
-        && week.complete == true
-        && week.status == 'submitted';
+        && week.complete == true;
     }
-    function nonBlank(value) { return value is string && value.matches('.*[^\\s].*'); }
-    function weekStatus(week) { return week.keys().hasAll(['status']) ? week.status : 'draft'; }
-    function learnerCanChangeWeek(before, after) {
-      return ((weekStatus(before) == 'submitted' || weekStatus(before) == 'approved')
-          && before.diff(after).affectedKeys().size() == 0)
-        || ((weekStatus(before) == 'draft' || weekStatus(before) == 'returned')
-          && before.diff(after).affectedKeys().hasOnly(['focus', 'coffee', 'recipe', 'tastingNote', 'changeMade', 'complete', 'status'])
-          && (weekStatus(after) == 'draft'
-            || (weekStatus(after) == 'submitted' && completedWeek(after))));
-    }
-    function validLearnerChallengeUpdate() {
+    // A learner may edit a draft or a returned week, and may submit only a complete week.
+    // Submitted and approved weeks are locked for them.
+    function validLearnerWeekUpdate() {
       return request.resource.data.sessionId == resource.data.sessionId
-        && request.resource.data.ownerUid == resource.data.ownerUid
-        && request.resource.data.personId == resource.data.personId
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['weeks', 'status', 'updatedAt'])
-        && resource.data.status in ['in_progress', 'returned']
-        && request.resource.data.status == 'in_progress'
-        && learnerCanChangeWeek(resource.data.weeks.week1, request.resource.data.weeks.week1)
-        && learnerCanChangeWeek(resource.data.weeks.week2, request.resource.data.weeks.week2)
-        && learnerCanChangeWeek(resource.data.weeks.week3, request.resource.data.weeks.week3)
-        && learnerCanChangeWeek(resource.data.weeks.week4, request.resource.data.weeks.week4);
+        && request.resource.data.learnerUid == resource.data.learnerUid
+        && request.resource.data.weekId == resource.data.weekId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['focus', 'coffee', 'recipe', 'tastingNote', 'changeMade', 'complete', 'status', 'submittedAt', 'updatedAt'])
+        && resource.data.status in ['draft', 'returned']
+        && weekText(request.resource.data.focus)
+        && weekText(request.resource.data.coffee)
+        && weekText(request.resource.data.recipe)
+        && weekText(request.resource.data.tastingNote)
+        && weekText(request.resource.data.changeMade)
+        && (request.resource.data.status == 'draft'
+          || (request.resource.data.status == 'submitted' && weekComplete(request.resource.data) && request.resource.data.get('submittedAt', null) == request.time))
+        && request.resource.data.updatedAt == request.time;
     }
-    function validStaffChallengeReview() {
-      return request.resource.data.sessionId == resource.data.sessionId
-        && request.resource.data.ownerUid == resource.data.ownerUid
-        && request.resource.data.personId == resource.data.personId
-        && request.resource.data.status == resource.data.status
-        && request.resource.data.status == 'in_progress'
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['weeks', 'updatedAt'])
-        && ((validStaffWeekReview(resource.data.weeks.week1, request.resource.data.weeks.week1)
-            && unchangedWeek(resource.data.weeks.week2, request.resource.data.weeks.week2)
-            && unchangedWeek(resource.data.weeks.week3, request.resource.data.weeks.week3)
-            && unchangedWeek(resource.data.weeks.week4, request.resource.data.weeks.week4))
-          || (unchangedWeek(resource.data.weeks.week1, request.resource.data.weeks.week1)
-            && validStaffWeekReview(resource.data.weeks.week2, request.resource.data.weeks.week2)
-            && unchangedWeek(resource.data.weeks.week3, request.resource.data.weeks.week3)
-            && unchangedWeek(resource.data.weeks.week4, request.resource.data.weeks.week4))
-          || (unchangedWeek(resource.data.weeks.week1, request.resource.data.weeks.week1)
-            && unchangedWeek(resource.data.weeks.week2, request.resource.data.weeks.week2)
-            && validStaffWeekReview(resource.data.weeks.week3, request.resource.data.weeks.week3)
-            && unchangedWeek(resource.data.weeks.week4, request.resource.data.weeks.week4))
-          || (unchangedWeek(resource.data.weeks.week1, request.resource.data.weeks.week1)
-            && unchangedWeek(resource.data.weeks.week2, request.resource.data.weeks.week2)
-            && unchangedWeek(resource.data.weeks.week3, request.resource.data.weeks.week3)
-            && validStaffWeekReview(resource.data.weeks.week4, request.resource.data.weeks.week4)));
-    }
-    function unchangedWeek(before, after) { return before.diff(after).affectedKeys().size() == 0; }
-    function validStaffWeekReview(before, after) {
-      return weekStatus(before) == 'submitted'
-        && before.diff(after).affectedKeys().hasOnly(['status', 'reviewerNote', 'reviewedAt'])
-        && weekStatus(after) in ['approved', 'returned']
-        && nonBlank(after.reviewerNote)
-        && after.reviewedAt == request.time;
+    // Staff may only decide a submitted week, with non-blank feedback stamped by the server.
+    function validStaffWeekReview() {
+      return resource.data.status == 'submitted'
+        && request.resource.data.keys().hasAll(['status', 'reviewerNote', 'reviewedAt', 'updatedAt'])
+        && request.resource.data.sessionId == resource.data.sessionId
+        && request.resource.data.learnerUid == resource.data.learnerUid
+        && request.resource.data.weekId == resource.data.weekId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'reviewerNote', 'reviewedAt', 'updatedAt'])
+        && request.resource.data.status in ['approved', 'returned']
+        && nonBlank(request.resource.data.get('reviewerNote', ''))
+        && request.resource.data.get('reviewedAt', null) == request.time
+        && request.resource.data.updatedAt == request.time;
     }
 
     match /public_schedule/{docId} {
@@ -166,10 +158,28 @@ service cloud.firestore {
       match /challenges/{uid} {
         allow get, list: if hasConfirmedEnrolment(sessionId, uid) || teaches(sessionId);
         allow create: if hasConfirmedEnrolment(sessionId, uid) && validNewChallenge(sessionId, uid);
-        allow update: if (hasConfirmedEnrolment(sessionId, uid) && validLearnerChallengeUpdate())
-          || (teaches(sessionId) && validStaffChallengeReview());
-        allow delete: if false;
+        allow update, delete: if false;
+
+        match /weeks/{weekId} {
+          // The learner keeps all four own weeks. Staff see only weeks that have been
+          // submitted or reviewed, so a draft is never readable by an instructor.
+          allow get, list: if hasConfirmedEnrolment(sessionId, uid)
+            || (teaches(sessionId) && resource.data.status in ['submitted', 'approved', 'returned']);
+          allow create: if hasConfirmedEnrolment(sessionId, uid) && validNewWeek(sessionId, uid, weekId);
+          allow update: if (hasConfirmedEnrolment(sessionId, uid) && validLearnerWeekUpdate())
+            || (teaches(sessionId) && validStaffWeekReview());
+          allow delete: if false;
+        }
       }
+    }
+    // The instructor queue and history page through weeks with a collection-group query
+    // constrained to a status staff may see. Drafts never satisfy it, and rules are not
+    // filters, so an unfiltered query is refused outright.
+    match /{path=**}/weeks/{weekId} {
+      allow get, list: if signedIn()
+        && teaches(resource.data.sessionId)
+        && resource.data.status in ['submitted', 'approved', 'returned'];
+      allow write: if false;
     }
     match /access_grants/{uid} { allow get: if signedIn() && request.auth.uid == uid; allow list, write: if false; }
     match /teaching_assignments/{assignmentId} { allow get, list: if isAdmin() || (isInstructor() && resource.data.uid == request.auth.uid); allow write: if false; }

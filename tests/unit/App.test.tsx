@@ -23,7 +23,7 @@ const instructorAccessMock = vi.hoisted(() => ({
 const practiceMock = vi.hoisted(() => ({
   loadPracticeChallenge: vi.fn(() => Promise.resolve(null)),
   startPracticeChallenge: vi.fn(),
-  savePracticeChallenge: vi.fn(),
+  savePracticeWeek: vi.fn(),
   submitPracticeWeek: vi.fn(),
   practiceWeekIds: ['week1', 'week2', 'week3', 'week4'],
 }));
@@ -191,12 +191,11 @@ describe('portal navigation and interest registration', () => {
     expect(within(weekOne).getByRole('button', { name: 'Submit week 1' })).toBeEnabled();
     fireEvent.click(within(weekOne).getByRole('button', { name: 'Save week' }));
     expect(await screen.findByText('Week 1 draft saved.')).toBeInTheDocument();
-    expect(practiceMock.savePracticeChallenge).toHaveBeenCalledWith(
+    expect(practiceMock.savePracticeWeek).toHaveBeenCalledWith(
       'brew101-01',
       'learner-uid',
-      expect.objectContaining({
-        week1: expect.objectContaining({ focus: 'Ratio' }),
-      }),
+      'week1',
+      expect.objectContaining({ focus: 'Ratio' }),
     );
     fireEvent.click(within(weekOne).getByRole('button', { name: 'Submit week 1' }));
     expect(
@@ -206,80 +205,24 @@ describe('portal navigation and interest registration', () => {
       'brew101-01',
       'learner-uid',
       'week1',
-      expect.objectContaining({
-        week1: expect.objectContaining({ status: 'draft' }),
-      }),
+      expect.objectContaining({ focus: 'Ratio', complete: true }),
     );
     expect(practiceMock.startPracticeChallenge).toHaveBeenCalledWith('brew101-01', 'learner-uid');
   });
 
   it('lets an assigned instructor review one submitted week with feedback', async () => {
-    authMock.observeAccount.mockImplementationOnce((callback: (user: { uid: string; email: string }) => void) => {
-      callback({ uid: 'instructor-uid', email: 'teacher@example.com' });
-      return () => undefined;
-    });
-    learnerAccessMock.loadLearnerAccess.mockResolvedValueOnce({ state: 'pending' });
-    instructorAccessMock.loadInstructorAccess.mockResolvedValueOnce({
-      state: 'assigned',
-      sessions: [
-        {
-          id: 'brew101-01',
-          title: 'Manual Brew Foundations',
-          reviews: [
-            {
-              learnerUid: 'learner-uid',
-              weekId: 'week1',
-              week: {
-                focus: 'Ratio',
-                coffee: 'Konga',
-                recipe: '15 g : 250 g',
-                tastingNote: 'Sweet and clear.',
-                changeMade: 'Grind finer',
-                complete: true,
-                status: 'submitted',
-              },
-              weeks: {
-                week1: {
-                  focus: 'Ratio',
-                  coffee: 'Konga',
-                  recipe: '15 g : 250 g',
-                  tastingNote: 'Sweet and clear.',
-                  changeMade: 'Grind finer',
-                  complete: true,
-                  status: 'submitted',
-                },
-                week2: {
-                  focus: '',
-                  coffee: '',
-                  recipe: '',
-                  tastingNote: '',
-                  changeMade: '',
-                  complete: false,
-                  status: 'draft',
-                },
-                week3: {
-                  focus: '',
-                  coffee: '',
-                  recipe: '',
-                  tastingNote: '',
-                  changeMade: '',
-                  complete: false,
-                  status: 'draft',
-                },
-                week4: {
-                  focus: '',
-                  coffee: '',
-                  recipe: '',
-                  tastingNote: '',
-                  changeMade: '',
-                  complete: false,
-                  status: 'draft',
-                },
-              },
-            },
-          ],
-        },
-      ],
+    const submittedWeek = {
+      focus: 'Ratio',
+      coffee: 'Konga',
+      recipe: '15 g : 250 g',
+      tastingNote: 'Sweet and clear.',
+      changeMade: 'Grind finer',
+      complete: true,
+      status: 'submitted',
+    };
+    signInAsInstructor({
+      sessions: [{ id: 'brew101-01', title: 'Manual Brew Foundations', offeringId: 'brew101' }],
+      reviews: [{ sessionId: 'brew101-01', learnerUid: 'learner-uid', weekId: 'week1', week: submittedWeek }],
     });
     instructorAccessMock.reviewPracticeWeek.mockResolvedValueOnce(undefined);
 
@@ -300,7 +243,6 @@ describe('portal navigation and interest registration', () => {
       'brew101-01',
       'learner-uid',
       'week1',
-      expect.objectContaining({ week1: expect.objectContaining({ status: 'submitted' }) }),
       'approved',
       'Clear observation. Keep this ratio for one more brew.',
     );
@@ -315,33 +257,12 @@ describe('portal navigation and interest registration', () => {
     complete: true,
     status: 'submitted',
   };
-  const blankWeek = {
-    focus: '',
-    coffee: '',
-    recipe: '',
-    tastingNote: '',
-    changeMade: '',
-    complete: false,
-    status: 'draft',
-  };
-  const waitingSession = {
-    id: 'brew101-01',
-    title: 'Manual Brew Foundations',
-    offeringId: 'brew101',
-    reviews: [
-      {
-        learnerUid: 'learner-uid',
-        weekId: 'week1',
-        week: submittedWeek,
-        weeks: { week1: submittedWeek, week2: blankWeek, week3: blankWeek, week4: blankWeek },
-      },
-    ],
-    history: [],
-  };
+  const waitingSession = { id: 'brew101-01', title: 'Manual Brew Foundations', offeringId: 'brew101' };
+  const waitingReviews = [{ sessionId: 'brew101-01', learnerUid: 'learner-uid', weekId: 'week1', week: submittedWeek }];
 
   it('opens the review page directly from a deep link', async () => {
     window.history.replaceState({}, '', '/instructor/review');
-    signInAsInstructor([waitingSession]);
+    signInAsInstructor({ sessions: [waitingSession], reviews: waitingReviews });
 
     render(<App />);
 
@@ -367,7 +288,7 @@ describe('portal navigation and interest registration', () => {
   });
 
   it('keeps a half-typed review when switching tabs', async () => {
-    signInAsInstructor([waitingSession]);
+    signInAsInstructor({ sessions: [waitingSession], reviews: waitingReviews });
     render(<App />);
     fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
     await openInstructorTab('Review');
@@ -409,7 +330,7 @@ describe('portal navigation and interest registration', () => {
         week4: { focus: '', coffee: '', recipe: '', tastingNote: '', changeMade: '', complete: false, status: 'draft' },
       },
     });
-    practiceMock.savePracticeChallenge.mockResolvedValueOnce(undefined);
+    practiceMock.savePracticeWeek.mockResolvedValueOnce(undefined);
 
     render(<App />);
     fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
@@ -437,15 +358,14 @@ describe('portal navigation and interest registration', () => {
       'Compare this ratio one more time.',
     );
 
-    expect(practiceMock.savePracticeChallenge).toHaveBeenCalledWith(
+    expect(practiceMock.savePracticeWeek).toHaveBeenCalledWith(
       'brew101-01',
       'learner-uid',
+      'week1',
       expect.objectContaining({
-        week1: expect.objectContaining({
-          status: 'draft',
-          reviewerNote: 'Compare this ratio one more time.',
-          reviewedAt: 'reviewed-at',
-        }),
+        status: 'draft',
+        reviewerNote: 'Compare this ratio one more time.',
+        reviewedAt: 'reviewed-at',
       }),
     );
   });
@@ -586,7 +506,30 @@ describe('portal navigation and interest registration', () => {
     ).toBeInTheDocument();
     expect(sessionGuideMock.loadSessionGuide).not.toHaveBeenCalled();
   });
-  const signInAsInstructor = (sessions: unknown[]) => {
+  type AssignedAccess = {
+    state: 'assigned';
+    sessions: unknown[];
+    reviews: unknown[];
+    history: unknown[];
+    reviewCursor: null;
+    historyCursor: null;
+    reviewHasMore: boolean;
+    historyHasMore: boolean;
+  };
+
+  const assignedAccess = (options: Partial<AssignedAccess> = {}): AssignedAccess => ({
+    state: 'assigned',
+    sessions: [],
+    reviews: [],
+    history: [],
+    reviewCursor: null,
+    historyCursor: null,
+    reviewHasMore: false,
+    historyHasMore: false,
+    ...options,
+  });
+
+  const signInAsInstructor = (options: Partial<AssignedAccess> = {}) => {
     authMock.observeAccount.mockImplementationOnce(
       (callback: (user: { uid: string; email: string; displayName: string }) => void) => {
         callback({ uid: 'instructor-uid', email: 'host@example.com', displayName: 'Firdaus' });
@@ -594,13 +537,13 @@ describe('portal navigation and interest registration', () => {
       },
     );
     learnerAccessMock.loadLearnerAccess.mockResolvedValueOnce({ state: 'pending' });
-    instructorAccessMock.loadInstructorAccess.mockResolvedValueOnce({ state: 'assigned', sessions });
+    instructorAccessMock.loadInstructorAccess.mockResolvedValueOnce(assignedAccess(options));
   };
-  const cuppingSession = { id: 'cupping-01', title: 'Range Night', offeringId: 'cupping', reviews: [] };
-  const secondCuppingSession = { id: 'cupping-02', title: 'Second Night', offeringId: 'cupping', reviews: [] };
+  const cuppingSession = { id: 'cupping-01', title: 'Range Night', offeringId: 'cupping' };
+  const secondCuppingSession = { id: 'cupping-02', title: 'Second Night', offeringId: 'cupping' };
 
   it('keeps unsaved night-record edits when a session switch is cancelled', async () => {
-    signInAsInstructor([cuppingSession, secondCuppingSession]);
+    signInAsInstructor({ sessions: [cuppingSession, secondCuppingSession] });
     nightMock.loadNightRecord.mockResolvedValue(null);
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
 
@@ -627,7 +570,7 @@ describe('portal navigation and interest registration', () => {
   });
 
   it('gives a cupping-only instructor the night record instead of the review queue, and saves it', async () => {
-    signInAsInstructor([cuppingSession]);
+    signInAsInstructor({ sessions: [cuppingSession] });
     nightMock.loadNightRecord.mockResolvedValueOnce(null).mockResolvedValueOnce(
       parseNightRecord({
         status: 'final',
@@ -680,7 +623,7 @@ describe('portal navigation and interest registration', () => {
   });
 
   it("shows another host's night record read-only instead of offering a save that the Rules refuse", async () => {
-    signInAsInstructor([cuppingSession]);
+    signInAsInstructor({ sessions: [cuppingSession] });
     nightMock.loadNightRecord.mockResolvedValueOnce(
       parseNightRecord({
         status: 'final',
@@ -708,10 +651,9 @@ describe('portal navigation and interest registration', () => {
   });
 
   it('shows both the review queue and the night record to an instructor with both kinds of session', async () => {
-    signInAsInstructor([
-      cuppingSession,
-      { id: 'brew101-01', title: 'Manual Brew Foundations', offeringId: 'brew101', reviews: [], history: [] },
-    ]);
+    signInAsInstructor({
+      sessions: [cuppingSession, { id: 'brew101-01', title: 'Manual Brew Foundations', offeringId: 'brew101' }],
+    });
 
     render(<App />);
     fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
@@ -724,9 +666,9 @@ describe('portal navigation and interest registration', () => {
   });
 
   it('shows a Barista 101-only instructor no review queue and no night record', async () => {
-    signInAsInstructor([
-      { id: 'barista101-01', title: 'Espresso Foundations', offeringId: 'barista101', reviews: [], history: [] },
-    ]);
+    signInAsInstructor({
+      sessions: [{ id: 'barista101-01', title: 'Espresso Foundations', offeringId: 'barista101' }],
+    });
 
     render(<App />);
     fireEvent.click(screen.getByRole('link', { name: 'Learner access' }));
@@ -740,7 +682,7 @@ describe('portal navigation and interest registration', () => {
   });
 
   it('reports a failed save and keeps the form editable', async () => {
-    signInAsInstructor([cuppingSession]);
+    signInAsInstructor({ sessions: [cuppingSession] });
     nightMock.saveNightRecord.mockRejectedValueOnce(new Error('permission-denied'));
 
     render(<App />);
@@ -754,7 +696,7 @@ describe('portal navigation and interest registration', () => {
   });
 
   it('summarises saved nights and downloads them as a CSV', async () => {
-    signInAsInstructor([cuppingSession]);
+    signInAsInstructor({ sessions: [cuppingSession] });
     nightMock.loadNightRecord.mockResolvedValue(
       parseNightRecord({
         status: 'final',
@@ -859,7 +801,7 @@ describe('portal navigation and interest registration', () => {
   });
 
   it('lets an instructor edit and publish the upcoming dates', async () => {
-    signInAsInstructor([]);
+    signInAsInstructor();
     scheduleMock.loadPublicScheduleForEditing.mockResolvedValueOnce([dateItem({ id: 'd1', title: 'Range Night' })]);
 
     render(<App />);
@@ -889,7 +831,7 @@ describe('portal navigation and interest registration', () => {
   });
 
   it('switches editing off when the published dates cannot be loaded, so they cannot be overwritten', async () => {
-    signInAsInstructor([]);
+    signInAsInstructor();
     scheduleMock.loadPublicScheduleForEditing.mockRejectedValueOnce(new Error('offline'));
 
     render(<App />);
@@ -902,7 +844,7 @@ describe('portal navigation and interest registration', () => {
   });
 
   it('reports a failed publish and keeps the rows', async () => {
-    signInAsInstructor([]);
+    signInAsInstructor();
     scheduleMock.loadPublicScheduleForEditing.mockResolvedValueOnce([dateItem()]);
     scheduleMock.savePublicSchedule.mockRejectedValueOnce(new Error('permission-denied'));
 

@@ -4,6 +4,14 @@ All notable user-visible, operational, and security-impacting changes are record
 
 ## [2026-11-20]
 
+### Changed
+
+- Brew 101 practice is now stored one document per week instead of one map of all four weeks on the learner's record. The instructor review queue and Reviewed history page through ten weeks at a time with a "Load more" control, backed by collection-group queries rather than reading every learner document, and an instructor can no longer read a week that is still a draft. The learner experience is unchanged: save, submit, return, and resubmit work as before, with each write touching only its own week.
+
+### Security
+
+- Draft practice weeks are no longer readable by teaching staff. The Rules only expose a week to an instructor once it is submitted, approved, or returned, so the queue cannot include work a learner has not chosen to submit.
+
 ### Operational
 
 - Adopted Prettier for the code base. `npm.cmd run format` formats; `npm.cmd run format:check` now runs inside `verify`, so unformatted code blocks a commit. Hand-written prose (Markdown), the vendored design system, `firestore.rules`, and lockfiles are deliberately outside the formatter, and `.git-blame-ignore-revs` records the one-off reformat commit so blame stays useful. The reformat is mechanical: no behaviour changed, and the full gate still passes.

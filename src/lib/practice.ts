@@ -1,4 +1,4 @@
-import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, serverTimestamp, updateDoc, writeBatch } from 'firebase/firestore';
 import { firestore } from './firebase';
 
 export const practiceWeekIds = ['week1', 'week2', 'week3', 'week4'] as const;
@@ -65,20 +65,6 @@ export function practiceWeek(value: unknown): PracticeWeek {
   };
 }
 
-function readChallenge(value: Record<string, unknown>): PracticeChallenge {
-  const sourceWeeks = value.weeks && typeof value.weeks === 'object' ? (value.weeks as Record<string, unknown>) : {};
-  const status = value.status === 'submitted' || value.status === 'returned' ? value.status : 'in_progress';
-  return {
-    status,
-    weeks: {
-      week1: practiceWeek(sourceWeeks.week1),
-      week2: practiceWeek(sourceWeeks.week2),
-      week3: practiceWeek(sourceWeeks.week3),
-      week4: practiceWeek(sourceWeeks.week4),
-    },
-  };
-}
-
 function databaseOrThrow() {
   if (!firestore) {
     throw new Error('Firebase is not configured.');
@@ -86,13 +72,50 @@ function databaseOrThrow() {
   return firestore;
 }
 
+/** One document per week, with a small header document per learner and session. */
 function challengeRef(sessionId: string, uid: string) {
   return doc(databaseOrThrow(), 'sessions', sessionId, 'challenges', uid);
 }
 
+function weekRef(sessionId: string, uid: string, weekId: PracticeWeekId) {
+  return doc(collection(challengeRef(sessionId, uid), 'weeks'), weekId);
+}
+
+function weekPayload(week: PracticeWeek, status: PracticeWeek['status']) {
+  return {
+    focus: week.focus,
+    coffee: week.coffee,
+    recipe: week.recipe,
+    tastingNote: week.tastingNote,
+    changeMade: week.changeMade,
+    complete: week.complete,
+    status,
+    updatedAt: serverTimestamp(),
+  };
+}
+
 export async function loadPracticeChallenge(sessionId: string, uid: string): Promise<PracticeChallenge | null> {
-  const challenge = await getDoc(challengeRef(sessionId, uid));
-  return challenge.exists() ? readChallenge(challenge.data()) : null;
+  const header = await getDoc(challengeRef(sessionId, uid));
+  if (!header.exists()) {
+    return null;
+  }
+
+  const snapshots = await Promise.all(practiceWeekIds.map((weekId) => getDoc(weekRef(sessionId, uid, weekId))));
+  const weeks = emptyPracticeWeeks();
+  snapshots.forEach((snapshot, index) => {
+    if (snapshot.exists()) {
+      weeks[practiceWeekIds[index]] = practiceWeek(snapshot.data());
+    }
+  });
+
+  const statuses = practiceWeekIds.map((weekId) => weeks[weekId].status);
+  const status = statuses.includes('submitted')
+    ? 'submitted'
+    : statuses.includes('returned')
+      ? 'returned'
+      : 'in_progress';
+
+  return { status, weeks };
 }
 
 export async function startPracticeChallenge(sessionId: string, uid: string): Promise<PracticeChallenge> {
@@ -103,40 +126,45 @@ export async function startPracticeChallenge(sessionId: string, uid: string): Pr
     throw new Error('Learner access is not active.');
   }
 
-  const challenge: PracticeChallenge = { status: 'in_progress', weeks: emptyPracticeWeeks() };
-  await setDoc(challengeRef(sessionId, uid), {
+  const batch = writeBatch(database);
+  batch.set(challengeRef(sessionId, uid), {
     sessionId,
     ownerUid: uid,
     personId,
-    status: challenge.status,
-    weeks: challenge.weeks,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
-  return challenge;
+  practiceWeekIds.forEach((weekId) => {
+    batch.set(weekRef(sessionId, uid, weekId), {
+      sessionId,
+      learnerUid: uid,
+      weekId,
+      ...weekTemplate(),
+      updatedAt: serverTimestamp(),
+    });
+  });
+  await batch.commit();
+
+  return { status: 'in_progress', weeks: emptyPracticeWeeks() };
 }
 
-export async function savePracticeChallenge(sessionId: string, uid: string, weeks: PracticeWeeks): Promise<void> {
-  await updateDoc(challengeRef(sessionId, uid), {
-    weeks,
-    status: 'in_progress',
-    updatedAt: serverTimestamp(),
-  });
+export async function savePracticeWeek(
+  sessionId: string,
+  uid: string,
+  weekId: PracticeWeekId,
+  week: PracticeWeek,
+): Promise<void> {
+  await updateDoc(weekRef(sessionId, uid, weekId), weekPayload(week, 'draft'));
 }
 
 export async function submitPracticeWeek(
   sessionId: string,
   uid: string,
   weekId: PracticeWeekId,
-  weeks: PracticeWeeks,
+  week: PracticeWeek,
 ): Promise<void> {
-  const submittedWeeks: PracticeWeeks = {
-    ...weeks,
-    [weekId]: { ...weeks[weekId], status: 'submitted' },
-  };
-  await updateDoc(challengeRef(sessionId, uid), {
-    weeks: submittedWeeks,
-    status: 'in_progress',
-    updatedAt: serverTimestamp(),
+  await updateDoc(weekRef(sessionId, uid, weekId), {
+    ...weekPayload(week, 'submitted'),
+    submittedAt: serverTimestamp(),
   });
 }
