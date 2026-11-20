@@ -2,7 +2,12 @@ import { Fragment, useEffect, useState } from 'react';
 import type { User } from 'firebase/auth';
 import { sessionsEmail } from '../lib/contact';
 import { authErrorMessage, observeAccount, signInWithGoogle, signOut } from '../lib/google-auth';
-import { loadInstructorAccess, type InstructorAccess } from '../lib/instructor-access';
+import {
+  loadInstructorAccess,
+  loadMoreHistory as fetchMoreHistory,
+  loadMoreReviews as fetchMoreReviews,
+  type InstructorAccess,
+} from '../lib/instructor-access';
 import {
   loadLearnerAccess,
   type ConfirmedSession as LearnerAccessSession,
@@ -12,7 +17,7 @@ import { hasPracticeRecord } from '../lib/offering';
 import {
   loadPracticeChallenge,
   practiceWeekIds,
-  savePracticeChallenge,
+  savePracticeWeek,
   startPracticeChallenge,
   submitPracticeWeek,
   type PracticeChallenge,
@@ -30,6 +35,8 @@ function LearnerAccess() {
   const [instructorAccess, setInstructorAccess] = useState<InstructorAccess | undefined>(undefined);
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [error, setError] = useState('');
+  const [loadingMore, setLoadingMore] = useState<'reviews' | 'history' | null>(null);
+  const [moreError, setMoreError] = useState('');
   const path = usePathname();
   const wantsInstructor = path.startsWith('/instructor');
 
@@ -133,44 +140,88 @@ function LearnerAccess() {
         );
       }
 
+      const sessionIds = instructorAccess.sessions.map((session) => session.id);
+
       const applyReview = (outcome: ReviewOutcome) => {
         setInstructorAccess((current) => {
           if (current?.state !== 'assigned') return current;
+          const sameWeek = (entry: { sessionId: string; learnerUid: string; weekId: string }) =>
+            entry.sessionId === outcome.sessionId &&
+            entry.learnerUid === outcome.learnerUid &&
+            entry.weekId === outcome.weekId;
+          const reviewed = current.reviews.find(sameWeek);
           return {
             ...current,
-            sessions: current.sessions.map((session) => {
-              if (session.id !== outcome.sessionId) return session;
-              const reviewedWeek = session.reviews.find(
-                (review) => review.learnerUid === outcome.learnerUid && review.weekId === outcome.weekId,
-              );
-              return {
-                ...session,
-                reviews: session.reviews.filter(
-                  (review) => review.learnerUid !== outcome.learnerUid || review.weekId !== outcome.weekId,
-                ),
-                history: [
-                  {
-                    learnerUid: outcome.learnerUid,
-                    weekId: outcome.weekId,
-                    week: reviewedWeek?.week ?? outcome.week,
-                    decision: outcome.decision,
-                    reviewerNote: outcome.note,
-                  },
-                  ...(session.history ?? []).filter(
-                    (entry) => entry.learnerUid !== outcome.learnerUid || entry.weekId !== outcome.weekId,
-                  ),
-                ],
-              };
-            }),
+            reviews: current.reviews.filter((review) => !sameWeek(review)),
+            history: [
+              {
+                sessionId: outcome.sessionId,
+                learnerUid: outcome.learnerUid,
+                weekId: outcome.weekId,
+                week: reviewed?.week ?? outcome.week,
+                decision: outcome.decision,
+                reviewerNote: outcome.note,
+              },
+              ...current.history.filter((entry) => !sameWeek(entry)),
+            ],
           };
         });
+      };
+
+      const loadMoreReviewsPage = async () => {
+        if (!instructorAccess.reviewCursor) return;
+        setLoadingMore('reviews');
+        setMoreError('');
+        try {
+          const page = await fetchMoreReviews(sessionIds, instructorAccess.reviewCursor);
+          setInstructorAccess((current) =>
+            current?.state === 'assigned'
+              ? {
+                  ...current,
+                  reviews: [...current.reviews, ...page.reviews],
+                  reviewCursor: page.cursor,
+                  reviewHasMore: page.hasMore,
+                }
+              : current,
+          );
+        } catch {
+          setMoreError('We could not load more reviews. Please try again.');
+        } finally {
+          setLoadingMore(null);
+        }
+      };
+
+      const loadMoreHistoryPage = async () => {
+        if (!instructorAccess.historyCursor) return;
+        setLoadingMore('history');
+        setMoreError('');
+        try {
+          const page = await fetchMoreHistory(sessionIds, instructorAccess.historyCursor);
+          setInstructorAccess((current) =>
+            current?.state === 'assigned'
+              ? {
+                  ...current,
+                  history: [...current.history, ...page.history],
+                  historyCursor: page.cursor,
+                  historyHasMore: page.hasMore,
+                }
+              : current,
+          );
+        } catch {
+          setMoreError('We could not load more review history. Please try again.');
+        } finally {
+          setLoadingMore(null);
+        }
       };
 
       return (
         <InstructorShell
           access={instructorAccess}
           account={account}
-          error={error}
+          error={error || moreError}
+          loadingMore={loadingMore}
+          onLoadMoreReviews={loadMoreReviewsPage}
+          onLoadMoreHistory={loadMoreHistoryPage}
           onReviewed={applyReview}
           onSignOut={leaveAccount}
         />
@@ -530,7 +581,7 @@ function PracticeWorkspace({ sessionId, sessionTitle, uid }: { sessionId: string
     setBusy(weekId);
     setError('');
     try {
-      await savePracticeChallenge(sessionId, uid, weeks);
+      await savePracticeWeek(sessionId, uid, weekId, weeks[weekId]);
       setChallenge({ ...challenge, weeks });
       setMessage(`Week ${practiceWeekIds.indexOf(weekId) + 1} draft saved.`);
     } catch {
@@ -545,7 +596,7 @@ function PracticeWorkspace({ sessionId, sessionTitle, uid }: { sessionId: string
     setBusy(weekId);
     setError('');
     try {
-      await submitPracticeWeek(sessionId, uid, weekId, challenge.weeks);
+      await submitPracticeWeek(sessionId, uid, weekId, challenge.weeks[weekId]);
       setChallenge({
         ...challenge,
         weeks: { ...challenge.weeks, [weekId]: { ...challenge.weeks[weekId], status: 'submitted' } },

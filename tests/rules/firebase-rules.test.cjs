@@ -5,16 +5,23 @@ const { serverTimestamp } = require('firebase/firestore');
 
 let testEnv;
 
-const draftWeeks = {
-  week1: { focus: '', coffee: '', recipe: '', tastingNote: '', changeMade: '', complete: false, status: 'draft' },
-  week2: { focus: '', coffee: '', recipe: '', tastingNote: '', changeMade: '', complete: false, status: 'draft' },
-  week3: { focus: '', coffee: '', recipe: '', tastingNote: '', changeMade: '', complete: false, status: 'draft' },
-  week4: { focus: '', coffee: '', recipe: '', tastingNote: '', changeMade: '', complete: false, status: 'draft' },
-};
+const draftWeek = (overrides = {}) => ({
+  sessionId: 'brew101-01',
+  learnerUid: 'learner-uid',
+  weekId: 'week1',
+  focus: '',
+  coffee: '',
+  recipe: '',
+  tastingNote: '',
+  changeMade: '',
+  complete: false,
+  status: 'draft',
+  updatedAt: serverTimestamp(),
+  ...overrides,
+});
 
-const submittedWeek1 = {
-  ...draftWeeks,
-  week1: {
+const completeWeek = (overrides = {}) =>
+  draftWeek({
     focus: 'Ratio',
     coffee: 'ttku',
     recipe: '15g : 250g',
@@ -22,19 +29,21 @@ const submittedWeek1 = {
     changeMade: 'Held grind steady.',
     complete: true,
     status: 'submitted',
-  },
-};
+    submittedAt: serverTimestamp(),
+    ...overrides,
+  });
 
-const challenge = (overrides = {}) => ({
+const challengeHeader = (overrides = {}) => ({
   sessionId: 'brew101-01',
   ownerUid: 'learner-uid',
   personId: 'person-123',
-  status: 'in_progress',
-  weeks: draftWeeks,
-  createdAt: '2026-10-16T00:00:00.000Z',
-  updatedAt: '2026-10-16T00:00:00.000Z',
+  createdAt: serverTimestamp(),
+  updatedAt: serverTimestamp(),
   ...overrides,
 });
+
+const weekPath = (sessionId, weekId = 'week1', uid = 'learner-uid') =>
+  `sessions/${sessionId}/challenges/${uid}/weeks/${weekId}`;
 
 before(async () => {
   testEnv = await initializeTestEnvironment({
@@ -65,7 +74,8 @@ before(async () => {
     await db
       .doc('teaching_assignments/brew101-01_instructor-uid')
       .set({ sessionId: 'brew101-01', uid: 'instructor-uid', status: 'active' });
-    await db.doc('sessions/brew101-01/challenges/learner-uid').set(challenge());
+    await db.doc('sessions/brew101-01/challenges/learner-uid').set(challengeHeader());
+    await db.doc('sessions/brew101-01/challenges/learner-uid/weeks/week1').set(draftWeek());
   });
 });
 
@@ -92,94 +102,155 @@ describe('Spark access grants and learner practice', () => {
     await assertFails(db.doc('people/person-456').get());
   });
 
-  test('allows a confirmed learner to submit each complete week and locks that week', async () => {
-    const db = testEnv.authenticatedContext('learner-uid').firestore();
-    const draft = challenge({ sessionId: 'brew101-02', status: 'in_progress' });
-    await assertSucceeds(db.doc('sessions/brew101-02/challenges/learner-uid').set(draft));
-    await assertFails(
-      db
-        .doc('sessions/brew101-01/challenges/learner-uid')
-        .update({ status: 'submitted', submittedAt: '2026-10-16T00:30:00.000Z' }),
-    );
-    await assertFails(
-      db
-        .doc('sessions/brew101-01/challenges/learner-uid')
-        .update({ weeks: { ...draftWeeks, week1: { ...draftWeeks.week1, status: 'submitted' } } }),
-    );
-    await assertSucceeds(db.doc('sessions/brew101-01/challenges/learner-uid').update({ weeks: submittedWeek1 }));
+  test('lets a confirmed learner create the header and the four week documents', async () => {
+    const learner = testEnv.authenticatedContext('learner-uid').firestore();
+    const session = 'brew101-02';
     await assertSucceeds(
-      db
-        .doc('sessions/brew101-01/challenges/learner-uid')
-        .update({ weeks: { ...submittedWeek1, week2: { ...submittedWeek1.week2, focus: 'Grind' } } }),
+      learner.doc(`sessions/${session}/challenges/learner-uid`).set(challengeHeader({ sessionId: session })),
+    );
+    for (const weekId of ['week1', 'week2', 'week3', 'week4']) {
+      await assertSucceeds(learner.doc(weekPath(session, weekId)).set(draftWeek({ sessionId: session, weekId })));
+    }
+    // A pending enrolment cannot start a record, and the header cannot carry extra fields.
+    await assertFails(
+      learner
+        .doc('sessions/brew101-pending/challenges/learner-uid')
+        .set(challengeHeader({ sessionId: 'brew101-pending' })),
     );
     await assertFails(
-      db.doc('sessions/brew101-01/challenges/learner-uid').update({
-        weeks: { ...submittedWeek1, week1: { ...submittedWeek1.week1, focus: 'Changed after submission' } },
+      learner
+        .doc('sessions/brew101-02/challenges/learner-uid')
+        .set(challengeHeader({ sessionId: session, status: 'approved' })),
+    );
+    // A learner cannot write another learner's week, an unknown week, or oversized text.
+    await assertFails(learner.doc(weekPath(session, 'week1', 'someone-else')).set(draftWeek({ sessionId: session })));
+    await assertFails(learner.doc(weekPath(session, 'week5')).set(draftWeek({ sessionId: session, weekId: 'week5' })));
+  });
+
+  test('lets a learner save a draft, submit only a complete week, and locks it afterwards', async () => {
+    const learner = testEnv.authenticatedContext('learner-uid').firestore();
+    const ref = learner.doc(weekPath('brew101-01', 'week2'));
+    await assertSucceeds(ref.set(draftWeek({ weekId: 'week2' })));
+
+    await assertSucceeds(ref.update({ focus: 'Grind', updatedAt: serverTimestamp() }));
+    // Text is bounded so a week cannot be used as a large scratch store.
+    await assertFails(ref.update({ focus: 'x'.repeat(2001), updatedAt: serverTimestamp() }));
+    // Incomplete weeks cannot be submitted.
+    await assertFails(
+      ref.update({ status: 'submitted', submittedAt: serverTimestamp(), updatedAt: serverTimestamp() }),
+    );
+    await assertSucceeds(
+      ref.update({
+        focus: 'Grind',
+        coffee: 'Konga',
+        recipe: '15 g : 250 g',
+        tastingNote: 'Sweeter than the last cup.',
+        changeMade: 'One click finer.',
+        complete: true,
+        status: 'submitted',
+        submittedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
       }),
     );
-    await assertFails(db.doc('sessions/brew101-01/challenges/learner-uid').update({ reviewerNote: 'Self-approved' }));
+    // Submitted weeks are locked for the learner.
+    await assertFails(ref.update({ focus: 'Changed after submission', updatedAt: serverTimestamp() }));
+    // A learner cannot review their own week.
     await assertFails(
-      db.doc('access_grants/learner-uid').set({ personId: 'person-123', role: 'admin', status: 'active' }),
+      ref.update({
+        status: 'approved',
+        reviewerNote: 'Self-approved',
+        reviewedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }),
+    );
+    // A learner cannot write identity fields on the week.
+    await assertFails(
+      learner.doc(weekPath('brew101-01', 'week3')).set(draftWeek({ learnerUid: 'someone-else', weekId: 'week3' })),
     );
   });
 
-  test('allows only the assigned instructor to review one submitted week at a time', async () => {
+  test('lets only the assigned instructor review one submitted week, and hides drafts from staff', async () => {
     const instructor = testEnv.authenticatedContext('instructor-uid').firestore();
     const learner = testEnv.authenticatedContext('learner-uid').firestore();
     const unassigned = testEnv.authenticatedContext('unassigned-instructor-uid').firestore();
     await testEnv.withSecurityRulesDisabled(async (context) => {
-      await context.firestore().doc('sessions/brew101-01/challenges/learner-uid').update({ weeks: submittedWeek1 });
+      await context
+        .firestore()
+        .doc(weekPath('brew101-01', 'week1'))
+        .update({ ...completeWeek() });
+      await context
+        .firestore()
+        .doc(weekPath('brew101-01', 'week2'))
+        .set(draftWeek({ weekId: 'week2' }));
     });
-    await assertSucceeds(instructor.doc('sessions/brew101-01/challenges/learner-uid').get());
+
+    await assertSucceeds(instructor.doc(weekPath('brew101-01', 'week1')).get());
+    await assertFails(instructor.doc(weekPath('brew101-01', 'week2')).get());
+    await assertFails(unassigned.doc(weekPath('brew101-01', 'week1')).get());
+    await assertSucceeds(learner.doc(weekPath('brew101-01', 'week2')).get());
+
+    // The queue query must be constrained to a status staff may see; an unfiltered
+    // collection-group read would include the draft and is refused.
     await assertSucceeds(
       instructor
-        .collection('teaching_assignments')
-        .where('uid', '==', 'instructor-uid')
-        .where('status', '==', 'active')
+        .collectionGroup('weeks')
+        .where('sessionId', '==', 'brew101-01')
+        .where('status', '==', 'submitted')
         .get(),
     );
-    const returnedWeek1 = {
-      ...submittedWeek1,
-      week1: {
-        ...submittedWeek1.week1,
+    await assertFails(
+      instructor.collectionGroup('weeks').where('sessionId', '==', 'brew101-01').where('status', '==', 'draft').get(),
+    );
+    await assertFails(
+      unassigned
+        .collectionGroup('weeks')
+        .where('sessionId', '==', 'brew101-01')
+        .where('status', '==', 'submitted')
+        .get(),
+    );
+
+    await assertSucceeds(
+      instructor.doc(weekPath('brew101-01', 'week1')).update({
         status: 'returned',
         reviewerNote: 'Try the same ratio once more and compare the sweetness.',
         reviewedAt: serverTimestamp(),
-      },
-    };
-    await assertSucceeds(
-      instructor
-        .doc('sessions/brew101-01/challenges/learner-uid')
-        .update({ weeks: returnedWeek1, updatedAt: serverTimestamp() }),
-    );
-    const storedReturnedWeek1 = (await instructor.doc('sessions/brew101-01/challenges/learner-uid').get()).data().weeks;
-    const resubmittedWeek1 = {
-      ...storedReturnedWeek1,
-      week1: { ...storedReturnedWeek1.week1, status: 'submitted' },
-    };
-    await assertSucceeds(learner.doc('sessions/brew101-01/challenges/learner-uid').update({ weeks: resubmittedWeek1 }));
-    const approvedWeek1 = {
-      ...resubmittedWeek1,
-      week1: {
-        ...resubmittedWeek1.week1,
-        status: 'approved',
-        reviewerNote: 'Clear observation and a useful next change.',
-        reviewedAt: serverTimestamp(),
-      },
-    };
-    await assertSucceeds(
-      instructor
-        .doc('sessions/brew101-01/challenges/learner-uid')
-        .update({ weeks: approvedWeek1, updatedAt: serverTimestamp() }),
-    );
-    await assertFails(
-      instructor.doc('sessions/brew101-01/challenges/learner-uid').update({
-        weeks: { ...approvedWeek1, week1: { ...approvedWeek1.week1, reviewerNote: 'Changed after approval.' } },
         updatedAt: serverTimestamp(),
       }),
     );
+    await assertFails(
+      unassigned.doc(weekPath('brew101-01', 'week1')).update({
+        status: 'approved',
+        reviewerNote: 'Not mine to review',
+        reviewedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }),
+    );
+    await assertSucceeds(
+      learner
+        .doc(weekPath('brew101-01', 'week1'))
+        .update({ status: 'submitted', submittedAt: serverTimestamp(), updatedAt: serverTimestamp() }),
+    );
+    await assertSucceeds(
+      instructor.doc(weekPath('brew101-01', 'week1')).update({
+        status: 'approved',
+        reviewerNote: 'Clear observation and a useful next change.',
+        reviewedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }),
+    );
+    // A decided week cannot be reviewed again, and staff cannot rewrite the learner's fields.
+    await assertFails(
+      instructor.doc(weekPath('brew101-01', 'week1')).update({
+        status: 'returned',
+        reviewerNote: 'Again',
+        reviewedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }),
+    );
+    await assertFails(
+      instructor.doc(weekPath('brew101-01', 'week1')).update({ focus: 'Staff edit', updatedAt: serverTimestamp() }),
+    );
     await assertFails(instructor.doc('teaching_assignments/brew101-01_instructor-uid').set({ status: 'active' }));
-    await assertFails(unassigned.doc('sessions/brew101-01/challenges/learner-uid').get());
   });
 
   test('requires the server review timestamp on every instructor review', async () => {
@@ -192,70 +263,69 @@ describe('Spark access grants and learner practice', () => {
       await db
         .doc('teaching_assignments/brew101-04_instructor-uid')
         .set({ sessionId: 'brew101-04', uid: 'instructor-uid', status: 'active' });
-      await db
-        .doc('sessions/brew101-04/challenges/learner-uid')
-        .set(challenge({ sessionId: 'brew101-04', weeks: submittedWeek1 }));
+      await db.doc('sessions/brew101-04/challenges/learner-uid').set(challengeHeader({ sessionId: 'brew101-04' }));
+      await db.doc(weekPath('brew101-04', 'week1')).set(completeWeek({ sessionId: 'brew101-04' }));
     });
-    const reviewed = { ...submittedWeek1.week1, status: 'returned', reviewerNote: 'Compare the sweetness once more.' };
+    const ref = instructor.doc(weekPath('brew101-04', 'week1'));
     await assertFails(
-      instructor
-        .doc('sessions/brew101-04/challenges/learner-uid')
-        .update({ weeks: { ...submittedWeek1, week1: reviewed }, updatedAt: serverTimestamp() }),
+      ref.update({ status: 'returned', reviewerNote: 'Compare once more.', updatedAt: serverTimestamp() }),
     );
     await assertFails(
-      instructor.doc('sessions/brew101-04/challenges/learner-uid').update({
-        weeks: { ...submittedWeek1, week1: { ...reviewed, reviewedAt: new Date('2020-01-01T00:00:00Z') } },
+      ref.update({
+        status: 'returned',
+        reviewerNote: 'Compare once more.',
+        reviewedAt: new Date('2020-01-01T00:00:00Z'),
         updatedAt: serverTimestamp(),
       }),
     );
     await assertSucceeds(
-      instructor.doc('sessions/brew101-04/challenges/learner-uid').update({
-        weeks: { ...submittedWeek1, week1: { ...reviewed, reviewedAt: serverTimestamp() } },
+      ref.update({
+        status: 'returned',
+        reviewerNote: 'Compare once more.',
+        reviewedAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       }),
     );
   });
 
-  test('allows a learner to save edits to all four weeks in one write', async () => {
+  test('keeps the four weeks independent for the learner', async () => {
     const learner = testEnv.authenticatedContext('learner-uid').firestore();
     await testEnv.withSecurityRulesDisabled(async (context) => {
       const db = context.firestore();
       await db
         .doc('enrolments/brew101-05_learner-uid')
         .set({ sessionId: 'brew101-05', uid: 'learner-uid', personId: 'person-123', status: 'confirmed' });
-      await db.doc('sessions/brew101-05/challenges/learner-uid').set(challenge({ sessionId: 'brew101-05' }));
+      await db.doc('sessions/brew101-05/challenges/learner-uid').set(challengeHeader({ sessionId: 'brew101-05' }));
+      for (const weekId of ['week1', 'week2', 'week3', 'week4']) {
+        await db.doc(weekPath('brew101-05', weekId)).set(draftWeek({ sessionId: 'brew101-05', weekId }));
+      }
     });
-    const filled = (label) => ({
-      focus: `${label} focus`,
-      coffee: `${label} coffee`,
+    const fill = (weekId, overrides = {}) => ({
+      focus: `${weekId} focus`,
+      coffee: 'Konga',
       recipe: '15 g : 250 g',
-      tastingNote: `${label} note`,
-      changeMade: `${label} change`,
+      tastingNote: `${weekId} note`,
+      changeMade: 'One change',
       complete: true,
-      status: 'draft',
+      ...overrides,
     });
-    const allWeeksEdited = {
-      week1: filled('One'),
-      week2: filled('Two'),
-      week3: filled('Three'),
-      week4: filled('Four'),
-    };
+    // Saving week 2 does not touch week 1, and submitting week 1 does not lock week 3.
     await assertSucceeds(
-      learner
-        .doc('sessions/brew101-05/challenges/learner-uid')
-        .update({ weeks: allWeeksEdited, status: 'in_progress', updatedAt: serverTimestamp() }),
+      learner.doc(weekPath('brew101-05', 'week2')).update({ ...fill('week2'), updatedAt: serverTimestamp() }),
     );
-    const submittedOneAndEditedRest = {
-      ...allWeeksEdited,
-      week1: { ...allWeeksEdited.week1, status: 'submitted' },
-      week2: { ...allWeeksEdited.week2, focus: 'Two revised' },
-      week3: { ...allWeeksEdited.week3, focus: 'Three revised' },
-      week4: { ...allWeeksEdited.week4, focus: 'Four revised' },
-    };
     await assertSucceeds(
-      learner
-        .doc('sessions/brew101-05/challenges/learner-uid')
-        .update({ weeks: submittedOneAndEditedRest, status: 'in_progress', updatedAt: serverTimestamp() }),
+      learner.doc(weekPath('brew101-05', 'week1')).update({
+        ...fill('week1'),
+        status: 'submitted',
+        submittedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }),
+    );
+    await assertSucceeds(
+      learner.doc(weekPath('brew101-05', 'week3')).update({ ...fill('week3'), updatedAt: serverTimestamp() }),
+    );
+    await assertFails(
+      learner.doc(weekPath('brew101-05', 'week1')).update({ focus: 'Late edit', updatedAt: serverTimestamp() }),
     );
   });
 
